@@ -1,0 +1,75 @@
+<view class="page flex-col" style="--nav-safe-r:{{navSafeRightRpx}}rpx">
+  <view class="x-statusbar" style="height:{{statusBarH}}px"></view>
+    <view class="x-nav flex-row">
+      <view class="x-nav-back x-tap" bindtap="goBack">‹</view>
+      <view class="x-nav-title">积分与订单</view>
+      <view class="x-nav-action"></view>
+    </view>
+<scroll-view
+    class="x-scroll flex-col"
+    scroll-y
+    refresher-enabled="{{true}}"
+    refresher-triggered="{{refreshing}}"
+    bindrefresherrefresh="onPull"
+    bindscrolltolower="onReach"
+  >
+    
+    <view class="x-card x-sumcard flex-col">
+      <view class="x-sumrow flex-row">
+        <view class="x-sumcol flex-col">
+          <view class="x-sum-n">{{monthCreditText}}</view>
+          <view class="x-sum-l">本月消耗积分</view>
+        </view>
+        <view class="x-sumcol flex-col">
+          <view class="x-sum-n">{{totalCreditText}}</view>
+          <view class="x-sum-l">累计消耗积分</view>
+        </view>
+      </view>
+      <view class="x-udivider"></view>
+      <view class="x-quota flex-row align-center justify-between">
+        <view class="x-quota-l">会员额度</view>
+        <view class="x-quota-v">{{quotaText}}</view>
+      </view>
+      <view wx:if="{{quotaPct > 0}}" class="x-qbar">
+        <view class="x-qbar-fill" style="width:{{quotaPct}}%"></view>
+      </view>
+    </view>
+    <view class="x-card x-ordcard flex-col">
+      <view class="x-cardhead flex-row">
+        <view class="x-cardhead-t">订单</view>
+      </view>
+      <view wx:if="{{orders.length}}" class="x-ordlist flex-col">
+        <view class="x-ord flex-row align-center" wx:for="{{orders}}" wx:key="_id">
+          <view class="x-ord-main flex-col">
+            <view class="x-ord-t">{{item.title}}</view>
+            <view class="x-ord-m">{{item.meta}}</view>
+          </view>
+          <view class="x-ord-right flex-col">
+            <view class="x-ord-amt">{{item.amountText}}</view>
+            <view class="x-ord-st {{item.stCls}}">{{item.stText}}</view>
+          </view>
+        </view>
+      </view>
+      <view wx:else class="x-empty">暂无订单</view>
+    </view>
+    <view class="x-card x-usecard flex-col">
+      <view class="x-cardhead flex-row justify-between">
+        <view class="x-cardhead-t">消耗明细</view>
+        <view wx:if="{{total > 0}}" class="x-cardhead-more">共 {{total}} 条</view>
+      </view>
+      <view wx:if="{{list.length}}" class="x-uselist flex-col">
+        <view class="x-use flex-row align-center" wx:for="{{list}}" wx:key="_id">
+          <view class="x-use-main flex-col">
+            <view class="x-use-t">{{item.title}}</view>
+            <view class="x-use-m">{{item.meta}}</view>
+          </view>
+          <view class="x-use-cost {{item.costCls}}">{{item.costText}}</view>
+          <view class="x-more x-tap" data-id="{{item._id}}" bindtap="onRemove">⋯</view>
+        </view>
+      </view>
+      <view wx:else class="x-empty">{{emptyText}}</view>
+      <view wx:if="{{hasMore && list.length}}" class="x-foot">上拉加载更多</view>
+      <view wx:elif="{{list.length}}" class="x-foot">没有更多了</view>
+    </view>
+  </scroll-view>
+</view>

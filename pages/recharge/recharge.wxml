@@ -1,0 +1,85 @@
+<view class="page flex-col" style="--nav-safe-r:{{navSafeRightRpx}}rpx">
+  <view class="text-wrapper_25" style="height:{{statusBarH}}px"></view>
+  <view class="text-wrapper_26 flex-row">
+    <view class="text_3 x-tap" bindtap="goBack">‹</view>
+    <view class="text_4">充值积分</view>
+    <view class="text_5 x-tap" bindtap="showRules">规则说明</view>
+  </view>
+  <scroll-view class="x-scroll flex-col" scroll-y>
+    <view class="group_1 flex-col">
+      <view class="box_4 flex-row">
+        <view class="text-wrapper_28 flex-col justify-between">
+          <view class="text_7">当前余额</view>
+          <view class="text_8">{{balanceText}}</view>
+        </view>
+        <view class="text_9">积分</view>
+        <view class="ui-art"><image class="ui-orb" src="/images/app-figma/recharge-imgUiOrb.png"/><image class="ui-symbol" src="/images/app-figma/recharge-imgUiSymbol.png"/><image class="ui-spark" src="/images/home-figma/imgSpark.png"/></view>
+      </view>
+      <view class="text-wrapper_27 flex-row">
+        <view class="text_6">1 元 = {{rate}} 积分</view>
+      </view>
+    </view>
+    <view class="text-wrapper_29 flex-row justify-between">
+      <view class="text_10">选择充值金额</view>
+      <view class="text_11">积分永久有效</view>
+    </view>
+    <view
+      class="block_1 flex-row justify-between"
+      wx:for="{{presetRows}}"
+      wx:for-item="row"
+      wx:key="id"
+    >
+      <view
+        class="text-wrapper_8 x-preset flex-row {{p.selected ? 'x-preset-on' : ''}}"
+        wx:for="{{row.items}}"
+        wx:for-item="p"
+        wx:key="amount"
+        data-amount="{{p.amount}}"
+        bindtap="pickPreset"
+      >
+        <view class="text-group_14 flex-col justify-between">
+          <view class="text_15"><text class="x-yuan">¥</text>{{p.amount}}</view>
+          <view class="text_16">{{p.credits}} 积分</view>
+        </view>
+        <view class="text-wrapper_6 flex-col justify-center align-center" wx:if="{{p.selected}}">
+          <view class="text_13">✓</view>
+        </view>
+      </view>
+    </view>
+    <view class="text_25">自定义金额</view>
+    <view class="list_4 flex-col">
+      <view class="text-wrapper_13-0 flex-row">
+        <view class="text_26-0">¥</view>
+        <input
+          class="text_27-0"
+          type="digit"
+          value="{{customAmount}}"
+          placeholder="{{customMin}} – {{customMax}} 元"
+          placeholder-class="x-ph"
+          bindinput="onCustomInput"
+          bindblur="onCustomBlur"
+        />
+        <view class="text_28-0">{{customCredits ? '将获得 ' + customCredits + ' 积分' : '将获得对应积分'}}</view>
+      </view>
+      <view class="text-wrapper_13-1 flex-row">
+        <view class="text_26-1">✓</view>
+        <view class="text_27-1">短视频 ≤10 分钟仅扣 {{basicCost}} 积分</view>
+      </view>
+    </view>
+    <view class="text-wrapper_14 flex-row x-tap" bindtap="pay">
+      <view class="text_29">确认充值 ¥{{payAmount}}</view>
+      <view class="text_30">→</view>
+    </view>
+    <view class="text_31 x-tap" bindtap="showAgreement">充值即代表同意《虚拟支付服务协议》</view>
+  </scroll-view>
+  <x-dialog
+    show="{{dlg.show}}"
+    title="{{dlg.title}}"
+    content="{{dlg.content}}"
+    confirm-text="{{dlg.confirmText}}"
+    cancel-text="{{dlg.cancelText}}"
+    show-cancel="{{dlg.showCancel}}"
+    bind:confirm="onDialogConfirm"
+    bind:cancel="onDialogCancel"
+  />
+</view>

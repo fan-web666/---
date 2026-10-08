@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "openapi": [
+      "media.get",
+      "customerServiceMessage.send",
+      "customerServiceMessage.uploadTempMedia",
+      "customerServiceMessage.setTyping"
+    ]
+  }
+}

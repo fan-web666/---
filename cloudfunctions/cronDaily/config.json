@@ -1,0 +1,9 @@
+{
+  "triggers": [
+    {
+      "name": "cronDailyTimer",
+      "type": "timer",
+      "config": "0 5 0 * * * *"
+    }
+  ]
+}

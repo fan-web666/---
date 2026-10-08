@@ -1,0 +1,292 @@
+/* 对应 Figma「全界面 · 淡彩焕新」，尺寸按 390px → 750rpx 换算。 */
+.x-scroll {
+  width:100%;
+  height:0;
+  min-height:0;
+  flex:1 1 0;
+  padding-bottom:32rpx;
+}
+
+.x-statusbar {
+  width:100%;
+  flex-shrink:0;
+}
+
+.x-nav {
+  height:104rpx;
+  display:flex;
+  align-items:center;
+  padding:0 38rpx;
+  gap:18rpx;
+  padding-right:var(--nav-safe-r,196rpx);
+  position:relative;
+}
+
+.x-nav-title {
+  font-size:36rpx;
+  line-height:1.4;
+  font-weight:700;
+  min-width:0;
+  white-space:nowrap;
+}
+
+.x-nav-btn,.x-nav-back {
+  min-width:40rpx;
+  height:72rpx;
+  display:flex;
+  align-items:center;
+  font-size:52rpx;
+  color:#727686;
+}
+
+.x-nav-action {
+  font-size:23rpx;
+  color:#8273FA;
+  white-space:nowrap;
+  margin-left:auto;
+}
+
+.x-card {
+  width:calc(100% - 76rpx);
+  margin:24rpx 38rpx 0;
+  padding:32rpx;
+  background:#FFFFFF;
+  border-radius:44rpx;
+  box-shadow:none;
+  border:0;
+}
+
+.x-cardhead {
+  align-items:center;
+  min-height:38rpx;
+  gap:12rpx;
+}
+
+.x-cardhead-t {
+  font-size:31rpx;
+  line-height:1.4;
+font-weight:700
+}
+
+.x-cardhead-more {
+  font-size:23rpx;
+color:#A1A5B2
+}
+
+.x-chevron {
+  font-size:40rpx;
+  line-height:1;
+  color:#A1A5B2;
+margin-left:12rpx
+}
+
+.x-empty {
+  font-size:26rpx;
+  line-height:1.6;
+  color:#727686;
+  padding:30rpx 0;
+text-align:center
+}
+
+.x-udivider {
+  height:1rpx;
+  background:#EDF0F5;
+  width:100%;
+margin:28rpx 0
+}
+
+.text-wrapper_26,.text-wrapper_20,.text-wrapper_15 {
+  height:104rpx;
+  padding:0 38rpx;
+  padding-right:var(--nav-safe-r,196rpx);
+  align-items:center;
+  gap:18rpx;
+}
+
+.text_3 {
+  font-size:52rpx;
+  color:#727686;
+  line-height:72rpx;
+min-width:40rpx
+}
+
+.text_4 {
+  font-size:36rpx;
+  font-weight:700;
+  color:#20212C;
+  white-space:nowrap;
+line-height:1.4
+}
+
+.text_5 {
+  font-size:23rpx;
+  color:#8273FA;
+  white-space:nowrap;
+  margin-left:auto;
+}
+
+.section_8 {
+  flex-direction:column;
+  width:100%;
+height:100vh
+}
+
+.block_1 {
+  width:100%;
+  height:0;
+  flex:1 1 0;
+  min-height:0;
+padding-bottom:30rpx
+}
+
+.section_1 {
+  width:calc(100% - 76rpx);
+  margin-left:38rpx;
+  margin-right:38rpx;
+  border-radius:44rpx;
+  padding:32rpx;
+  margin-top:20rpx;
+  min-height:230rpx;
+  background:linear-gradient(125deg,#F7DFFF 0%,#DEE8FF 45%,#CFFFF0 100%);
+  align-items:center;
+  gap:16rpx;
+}
+
+.text-group_16 {
+  flex:1 1 0;
+  min-width:0;
+gap:10rpx
+}
+
+.text_6 {
+  font-size:40rpx;
+  font-weight:900;
+color:#20212C
+}
+
+.text_7 {
+  font-size:27rpx;
+  color:#6859D9;
+font-weight:700
+}
+
+.text_8 {
+  font-size:23rpx;
+  line-height:1.6;
+  color:#727686;
+white-space:normal
+}
+
+.group_2 {
+  width:150rpx;
+height:160rpx
+}
+
+.text-wrapper_21 {
+  margin:32rpx 38rpx 20rpx;
+  align-items:center;
+  gap:12rpx;
+flex-wrap:wrap
+}
+
+.text_9 {
+  font-size:31rpx;
+  line-height:1.4;
+  font-weight:700;
+  color:#20212C;
+}
+
+.text_10 {
+  font-size:23rpx;
+  line-height:1.6;
+  color:#727686;
+}
+
+.section_3,.section_5,.section_7 {
+  width:calc(100% - 76rpx);
+  margin-left:38rpx;
+  margin-right:38rpx;
+  border-radius:44rpx;
+  padding:28rpx;
+  margin-top:16rpx;
+  gap:22rpx;
+  align-items:center;
+  background:white;
+min-height:150rpx
+}
+
+.text-wrapper_5,.text-wrapper_6,.text-wrapper_7 {
+  width:70rpx;
+  height:70rpx;
+  border-radius:24rpx;
+  background:#F0EDFF;
+  align-items:center;
+justify-content:center
+}
+
+.text_11,.text_14,.text_17 {
+  font-size:31rpx;
+  font-weight:800;
+color:#8273FA
+}
+
+.text-group_17,.text-group_18,.text-group_19 {
+  flex:1 1 0;
+  min-width:0;
+gap:10rpx
+}
+
+.text_12,.text_15,.text_18 {
+  font-size:29rpx;
+font-weight:700
+}
+
+.text_13,.text_16,.text_19 {
+  font-size:23rpx;
+  line-height:1.6;
+  color:#727686;
+}
+
+.section_4,.section_6 {
+display:none
+}
+
+.text-wrapper_8 {
+  width:calc(100% - 76rpx);
+  margin-left:38rpx;
+  margin-right:38rpx;
+  border-radius:44rpx;
+  margin-top:24rpx;
+  padding:24rpx;
+  background:#D9FFF2;
+  gap:16rpx;
+  align-items:center;
+justify-content:center
+}
+
+.text_20 {
+color:#8273FA
+}
+
+.text_21 {
+  font-size:25rpx;
+color:#527769
+}
+
+.text-wrapper_9 {
+  margin:20rpx 38rpx calc(24rpx + env(safe-area-inset-bottom));
+  min-height:100rpx;
+  padding:24rpx 32rpx;
+  background:#8273FA;
+  border-radius:28rpx;
+  align-items:center;
+  justify-content:center;
+gap:16rpx
+}
+
+.text_22,.text_23 {
+  font-size:31rpx;
+  color:white;
+font-weight:700
+}
+

@@ -1,0 +1,24 @@
+<!-- x-dialog · 自建说明弹窗（2026-09-27 新增，**超出设计稿**）
+     ⚠️ 为什么自建：原生 wx.showModal 的正文对齐由系统渲染决定、**API 没有对齐参数**
+        （Android 居中 / iOS 偏左 / 开发者工具又是另一套模拟）→ 想稳定左对齐只能自建。
+     用法：<x-dialog show="{{dlg.show}}" title="{{dlg.title}}" content="{{dlg.content}}"
+             confirm-text="{{dlg.confirmText}}" cancel-text="{{dlg.cancelText}}"
+             show-cancel="{{dlg.showCancel}}" bind:confirm="onDialogConfirm" bind:cancel="onDialogCancel" />
+     ⚠️ 交互与原生保持一致：**点遮罩不关闭**（避免误触丢失信息），只能点按钮关闭。 -->
+<view class="x-dialog-mask" wx:if="{{show}}" catchtap="noop" catchtouchmove="noop">
+  <view class="x-dialog" catchtap="noop">
+    <view class="x-dialog__title" wx:if="{{title}}">{{title}}</view>
+    <!-- 正文区：max-height 限高 + scroll-y，长说明（会员档位/扣费规则）可滚 -->
+    <scroll-view class="x-dialog__body" scroll-y>
+      <view class="x-dialog__text">{{content}}</view>
+    </scroll-view>
+    <view class="x-dialog__actions">
+      <view
+        wx:if="{{showCancel}}"
+        class="x-dialog__btn x-dialog__btn--cancel"
+        catchtap="onCancelTap"
+      >{{cancelText}}</view>
+      <view class="x-dialog__btn x-dialog__btn--confirm" catchtap="onConfirmTap">{{confirmText}}</view>
+    </view>
+  </view>
+</view>

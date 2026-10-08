@@ -1,0 +1,6 @@
+{
+  "navigationStyle": "custom",
+  "usingComponents": {
+    "x-dialog": "/components/x-dialog/x-dialog"
+  }
+}

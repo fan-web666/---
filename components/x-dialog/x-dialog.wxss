@@ -1,0 +1,10 @@
+/* 与全套淡彩 Figma 新稿一致；组件隔离样式需独立声明。 */
+.x-dialog-mask {position:fixed;top:0;right:0;bottom:0;left:0;z-index:1000;display:flex;align-items:center;justify-content:center;background:rgba(32,33,44,.4);}
+.x-dialog {width:600rpx;max-width:84%;border-radius:44rpx;background:#FFFFFF;overflow:hidden;box-sizing:border-box;}
+.x-dialog__title {padding:44rpx 38rpx 0;font-size:34rpx;font-weight:700;line-height:1.4;color:#20212C;text-align:center;}
+.x-dialog__body {max-height:56vh;padding:0 38rpx;box-sizing:border-box;}
+.x-dialog__text {padding:26rpx 0 12rpx;font-size:28rpx;line-height:1.65;color:#727686;text-align:left;white-space:pre-wrap;word-break:break-word;}
+.x-dialog__actions {display:flex;gap:20rpx;padding:26rpx 38rpx 38rpx;}
+.x-dialog__btn {flex:1 1 0;min-width:0;height:88rpx;border-radius:24rpx;font-size:29rpx;font-weight:700;line-height:88rpx;text-align:center;}
+.x-dialog__btn--cancel {background:#F0EDFF;color:#727686;}
+.x-dialog__btn--confirm {background:#8273FA;color:#FFFFFF;}

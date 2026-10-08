@@ -1,0 +1,141 @@
+<view class="page flex-col" style="--nav-safe-r:{{navSafeRightRpx}}rpx">
+  <view class="group_10 flex-row">
+    <view class="text-wrapper_29" style="height:{{statusBarH}}px"></view>
+      <view class="text-wrapper_30 flex-row">
+        <view class="text_3">历史记录</view>
+        <view class="text_4">共 {{total}} 条</view>
+      </view>
+<scroll-view
+      class="box_9 flex-col"
+      scroll-y
+      refresher-enabled
+      refresher-triggered="{{refreshing}}"
+      bindrefresherrefresh="onRefresh"
+      bindscrolltolower="onReachBottom"
+    >
+      
+      <view class="text-wrapper_3 flex-row">
+        <view class="text_5">⌕</view>
+        <input
+          class="text_6"
+          value="{{keyword}}"
+          placeholder="搜索标题、金句或来源"
+          placeholder-class="x-ph"
+          confirm-type="search"
+          bindinput="onSearch"
+        />
+      </view>
+      <view class="box_10 flex-row">
+        <view
+          class="x-pill flex-col justify-center align-center x-tap {{activeFilter === item.id ? 'x-pill-on' : ''}}"
+          wx:for="{{filters}}"
+          wx:for-item="item"
+          wx:key="id"
+          data-id="{{item.id}}"
+          bindtap="onFilter"
+        >
+          <view class="x-pill-t">{{item.label}}</view>
+        </view>
+      </view>
+      <block wx:for="{{groups}}" wx:for-item="g" wx:for-index="gi" wx:key="label">
+        <view class="text-wrapper_31 flex-row justify-between">
+          <view class="text_11">{{g.label}}</view>
+          <view class="text_12">{{g.count}} 条</view>
+        </view>
+        <view
+          class="box_2 flex-row x-tap"
+          wx:for="{{g.items}}"
+          wx:for-item="it"
+          wx:for-index="ii"
+          wx:key="_id"
+          data-id="{{it._id}}"
+          bindtap="openDetail"
+          bindlongpress="onLongPress"
+        >
+          <view
+            class="text-wrapper_9 x-thumb flex-col"
+            style="{{it.cover || it.videoSrc ? '' : 'background-color:' + it.thumbBg}}"
+          >
+            <image
+              wx:if="{{it.cover && !it.coverFail}}"
+              class="x-thumb-media"
+              src="{{it.cover}}"
+              mode="aspectFill"
+              lazy-load
+              data-id="{{it._id}}"
+              binderror="onCoverError"
+            />
+            <video
+              wx:elif="{{it.videoSrc}}"
+              class="x-thumb-media"
+              src="{{it.videoSrc}}"
+              object-fit="cover"
+              controls="{{false}}"
+              autoplay="{{false}}"
+              loop="{{false}}"
+              muted
+              show-center-play-btn="{{false}}"
+              show-play-btn="{{false}}"
+              show-fullscreen-btn="{{false}}"
+              show-progress="{{false}}"
+              show-mute-btn="{{false}}"
+              enable-progress-gesture="{{false}}"
+              data-id="{{it._id}}"
+              bindtap="openDetail"
+            ></video>
+            <view wx:else class="text_13">▶</view>
+          </view>
+          <view class="box_11 flex-col justify-between">
+            <view class="text-group_17 flex-col justify-between">
+              <view class="text_14">{{it.title}}</view>
+              <view class="x-metaline flex-row justify-between">
+                <view class="text_15">{{it.meta}}</view>
+                <view class="x-actions flex-row">
+                  <view
+                    class="x-act flex-col justify-center align-center x-tap"
+                    data-id="{{it._id}}"
+                    catchtap="copyOne"
+                  >
+                    <view class="x-ico-copy"></view>
+                  </view>
+                  <view
+                    class="x-act flex-col justify-center align-center x-tap"
+                    data-id="{{it._id}}"
+                    catchtap="deleteOne"
+                  >
+                    <view class="x-ico-trash"></view>
+                  </view>
+                </view>
+              </view>
+            </view>
+          </view>
+        </view>
+      </block>
+      <view class="x-tip" wx:if="{{loading && !groups.length}}">正在加载…</view>
+      <view class="x-empty" wx:elif="{{!groups.length}}">
+        <view class="ui-empty-art"><view class="ui-art"><image class="ui-orb" src="/images/home-figma/img.png"/><image class="ui-symbol" src="/images/home-figma/imgVideo.png"/><image class="ui-spark" src="/images/home-figma/imgSpark.png"/></view></view><view class="x-empty-t">还没有提取记录</view>
+        <view class="x-empty-s">转发视频号视频，或回首页粘贴链接提取</view>
+      </view>
+      <view class="box_5 flex-row">
+        <view class="group_5 flex-col"></view>
+        <view class="text_30">转发的视频，结果会自动出现在这里</view>
+      </view>
+    </scroll-view>
+    <view class="app-tabbar">
+    <view class="app-tabrow">
+      <view class="app-tab " bindtap="goHome" hover-class="app-tab-pressed" role="button" aria-label="首页">
+        <view class="app-tab-icon x-tabico x-tabico-home "></view>
+        <text class="app-tab-label">首页</text>
+      </view>
+      <view class="app-tab app-tab-active"  aria-label="历史，当前页面">
+        <view class="app-tab-icon x-tabico x-tabico-hist x-tabico-on"></view>
+        <text class="app-tab-label">历史</text>
+      </view>
+      <view class="app-tab " bindtap="goMine" hover-class="app-tab-pressed" role="button" aria-label="我的">
+        <view class="app-tab-icon x-tabico x-tabico-user "></view>
+        <text class="app-tab-label">我的</text>
+      </view>
+    </view>
+  </view>
+  </view>
+</view>

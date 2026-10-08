@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "openapi": [
+      "wxacode.getUnlimited",
+      "customerServiceMessage.send",
+      "customerServiceMessage.uploadTempMedia",
+      "customerServiceMessage.setTyping",
+      "media.get"
+    ]
+  }
+}

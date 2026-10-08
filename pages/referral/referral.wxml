@@ -1,0 +1,14 @@
+<view class="r-page">
+  <view style="height: {{statusBarH}}px;"></view>
+  <view class="r-nav" style="height: {{navBarH}}px; padding-right: {{navSafeRightRpx}}rpx;"><view class="r-back" bindtap="goBack" role="button" aria-label="返回首页">‹</view><text>我的推荐</text></view>
+  <scroll-view class="r-scroll" scroll-y="true">
+    <view class="r-content">
+      <view class="r-hero"><text class="r-eyebrow">分享好工具，收获创作灵感</text><view class="r-reward"><text class="r-number">+100</text><text>积分 / 每位新用户</text></view><text class="r-sub">好友首次通过你的推荐码进入，绑定后奖励到账</text></view>
+      <view class="r-card r-code-card"><text class="r-label">我的专属推荐码</text><view class="r-code-row"><text class="r-code">{{code || '正在加载…'}}</text><view class="r-copy" bindtap="copyCode" role="button">复制</view></view><view class="r-actions"><button class="r-button r-primary" open-type="share" disabled="{{!code || loading}}">分享给好友</button><button class="r-button r-soft" bindtap="createPoster" loading="{{posterBusy}}" disabled="{{!code || posterBusy}}">生成海报</button></view><view wx:if="{{error}}" class="r-error" bindtap="load" role="button">{{error}} · 点此重试</view></view>
+      <view class="r-card r-stats"><view class="r-stat"><text class="r-total">{{invitedCount}}</text><text class="r-label">已邀请新用户</text></view><view class="r-stat-line"></view><view class="r-stat"><text class="r-total">{{rewardTotal}}</text><text class="r-label">累计奖励积分</text></view></view>
+      <view class="r-card r-rules"><text class="r-title">邀请规则</text><text>01　分享卡片或海报，好友通过推荐码进入</text><text>02　每成功绑定一位新用户，奖励 100 积分</text><text>03　每位新用户仅绑定一次，现有用户不计奖</text></view>
+      <text class="r-footnote">奖励以后台成功绑定记录为准</text>
+    </view>
+  </scroll-view>
+  <canvas type="2d" id="referralPoster" class="r-canvas"></canvas>
+</view>

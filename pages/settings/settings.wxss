@@ -1,0 +1,279 @@
+/* 对应 Figma「全界面 · 淡彩焕新」，尺寸按 390px → 750rpx 换算。 */
+.x-scroll {
+  width:100%;
+  height:0;
+  min-height:0;
+  flex:1 1 0;
+  padding-bottom:32rpx;
+}
+
+.x-statusbar {
+  width:100%;
+  flex-shrink:0;
+}
+
+.x-nav {
+  height:104rpx;
+  display:flex;
+  align-items:center;
+  padding:0 38rpx;
+  gap:18rpx;
+  padding-right:var(--nav-safe-r,196rpx);
+  position:relative;
+}
+
+.x-nav-title {
+  font-size:36rpx;
+  line-height:1.4;
+  font-weight:700;
+  min-width:0;
+  white-space:nowrap;
+}
+
+.x-nav-btn,.x-nav-back {
+  min-width:40rpx;
+  height:72rpx;
+  display:flex;
+  align-items:center;
+  font-size:52rpx;
+  color:#727686;
+}
+
+.x-nav-action {
+  font-size:23rpx;
+  color:#8273FA;
+  white-space:nowrap;
+  margin-left:auto;
+}
+
+.x-card {
+  width:calc(100% - 76rpx);
+  margin:24rpx 38rpx 0;
+  padding:32rpx;
+  background:#FFFFFF;
+  border-radius:44rpx;
+  box-shadow:none;
+  border:0;
+}
+
+.x-cardhead {
+  align-items:center;
+  min-height:38rpx;
+  gap:12rpx;
+}
+
+.x-cardhead-t {
+  font-size:31rpx;
+  line-height:1.4;
+font-weight:700
+}
+
+.x-cardhead-more {
+  font-size:23rpx;
+color:#A1A5B2
+}
+
+.x-chevron {
+  font-size:40rpx;
+  line-height:1;
+  color:#A1A5B2;
+margin-left:12rpx
+}
+
+.x-empty {
+  font-size:26rpx;
+  line-height:1.6;
+  color:#727686;
+  padding:30rpx 0;
+text-align:center
+}
+
+.x-udivider {
+  height:1rpx;
+  background:#EDF0F5;
+  width:100%;
+margin:28rpx 0
+}
+
+.x-link {
+  width:calc(100% - 76rpx);
+  margin-left:38rpx;
+  margin-right:38rpx;
+  border-radius:44rpx;
+  margin-top:20rpx;
+  padding:26rpx;
+  background:linear-gradient(120deg,#F7DFFF,#DEE8FF 45%,#CFFFF0);
+  gap:20rpx;
+align-items:center
+}
+
+.x-link-thumb {
+  width:80rpx;
+  height:80rpx;
+  border-radius:26rpx;
+background:rgba(255,255,255,.72)
+}
+
+.x-link-icon {
+  font-size:26rpx;
+color:#8273FA
+}
+
+.x-link-info {
+  flex:1 1 0;
+  min-width:0;
+gap:8rpx
+}
+
+.x-link-title {
+  font-size:26rpx;
+  line-height:1.5;
+  font-weight:700;
+  overflow:hidden;
+  text-overflow:ellipsis;
+white-space:nowrap
+}
+
+.x-link-sub {
+  font-size:21rpx;
+  color:#727686;
+line-height:1.5
+}
+
+.x-group {
+  width:calc(100% - 76rpx);
+  margin-left:38rpx;
+  margin-right:38rpx;
+  border-radius:44rpx;
+  margin-top:24rpx;
+  padding:28rpx;
+background:white
+}
+
+.x-group-head {
+  gap:12rpx;
+  align-items:center;
+  padding-bottom:14rpx;
+flex-wrap:wrap
+}
+
+.x-group-title {
+  font-size:31rpx;
+  line-height:1.4;
+  font-weight:700;
+  color:#20212C;
+}
+
+.x-group-note {
+  font-size:21rpx;
+color:#A1A5B2
+}
+
+.x-row {
+  padding:24rpx 0;
+  gap:18rpx;
+  align-items:center;
+min-height:100rpx
+}
+
+.x-row+.x-row {
+border-top:1rpx solid #EDF0F5
+}
+
+.x-row-body {
+  flex:1 1 0;
+  min-width:0;
+gap:8rpx
+}
+
+.x-row-title {
+  font-size:27rpx;
+  font-weight:700;
+line-height:1.5
+}
+
+.x-row-desc {
+  font-size:22rpx;
+  color:#727686;
+line-height:1.6
+}
+
+.x-radio {
+  width:38rpx;
+  height:38rpx;
+  border:3rpx solid #DFE2EC;
+border-radius:50%
+}
+
+.x-radio-on {
+  border-color:#8273FA;
+background:#F0EDFF
+}
+
+.x-radio-dot {
+  width:18rpx;
+  height:18rpx;
+  background:#8273FA;
+border-radius:50%
+}
+
+.x-pick-row .x-row-title {
+  flex:1 1 0;
+min-width:0
+}
+
+.x-row-value {
+  font-size:23rpx;
+color:#727686
+}
+
+.x-switch {
+  width:82rpx;
+  height:46rpx;
+  border-radius:28rpx;
+  padding:5rpx;
+  background:#DDE0EA;
+align-items:center
+}
+
+.x-switch-knob {
+  width:36rpx;
+  height:36rpx;
+  background:white;
+border-radius:50%
+}
+
+.x-switch-on {
+  background:#8273FA;
+justify-content:flex-end
+}
+
+.x-note {
+  gap:14rpx;
+  padding:22rpx;
+  border-radius:24rpx;
+  background:#D9FFF2;
+align-items:flex-start
+}
+
+.x-note-mark {
+  font-size:24rpx;
+color:#527769
+}
+
+.x-note-text {
+  flex:1 1 0;
+  min-width:0;
+  font-size:21rpx;
+  line-height:1.6;
+color:#527769
+}
+
+.x-foot-note {
+  font-size:21rpx;
+  line-height:1.7;
+  color:#727686;
+  text-align:center;
+margin:24rpx 38rpx 32rpx
+}
+

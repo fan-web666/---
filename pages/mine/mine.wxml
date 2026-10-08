@@ -1,0 +1,179 @@
+<view class="page flex-col" style="--nav-safe-r:{{navSafeRightRpx}}rpx">
+  <view class="x-statusbar" style="height:{{statusBarH}}px"></view>
+    <view class="x-nav">
+      <view class="x-nav-title">我的</view>
+      <view class="x-ico x-ico-gear x-ico-gray x-nav-gear x-tap" bindtap="goSettings"></view>
+    </view>
+<scroll-view class="x-scroll flex-col" scroll-y>
+    
+    <view class="x-card x-usercard flex-col">
+      <view class="x-urow flex-row align-center">
+        <button
+          class="x-avatar-btn"
+          open-type="chooseAvatar"
+          bindchooseavatar="onChooseAvatar"
+          hover-class="none"
+        >
+          <view class="x-avatar flex-col align-center justify-center">
+            <image wx:if="{{avatarUrl}}" class="x-avatar-img" src="{{avatarUrl}}" mode="aspectFit" />
+            <view wx:else class="x-avatar-def flex-col align-center justify-center">
+              <view class="x-ico x-ico-user x-avatar-def-ico"></view>
+            </view>
+          </view>
+        </button>
+        <view class="x-uinfo flex-col">
+          <view class="x-uname-row flex-row align-center x-tap" bindtap="onEditNickname">
+            <view class="x-uname">{{nickName}}</view>
+            <view class="x-ico x-ico-pencil x-nick-edit"></view>
+          </view>
+          <view class="x-vip flex-row align-center x-tap" bindtap="goMember">
+            <view class="x-ico x-ico-crown x-vip-ico"></view>
+            <view class="x-vip-t">{{vipText}}</view>
+          </view>
+        </view>
+        <view class="x-chevron x-tap" bindtap="goMember">›</view>
+      </view>
+      <view class="x-udivider"></view>
+      <view class="x-stats flex-row">
+        <view class="x-stat flex-col">
+          <view class="x-stat-n">{{totalText}}</view>
+          <view class="x-stat-l">累计提取</view>
+        </view>
+        <view class="x-stat x-stat-c flex-col">
+          <view class="x-stat-n">{{charsText}}</view>
+          <view class="x-stat-l">累计字数</view>
+        </view>
+        <view class="x-stat x-stat-r flex-col">
+          <view class="x-stat-n">{{creditsText}}</view>
+          <view class="x-stat-l">可用积分</view>
+        </view>
+      </view>
+    </view>
+    <view class="x-card x-reccard flex-col{{usageMain ? '' : ' x-reccard-slim'}}">
+      <view class="x-cardhead flex-row justify-between x-tap" bindtap="goUsage">
+        <view class="x-cardhead-t">积分与订单</view>
+        <view wx:if="{{usageCount > 0}}" class="x-cardhead-r flex-row align-center">
+          <view class="x-cardhead-more">共 {{usageCount}} 次</view>
+          <view class="x-chevron x-chevron-s">›</view>
+        </view>
+      </view>
+      <view wx:if="{{usageMain}}" class="x-rec x-rec-plain flex-row align-center x-tap" bindtap="goUsage">
+        <view class="x-rec-info flex-col">
+          <view class="x-rec-title">{{usageMain}}</view>
+          <view class="x-rec-meta">{{usageSub}}</view>
+        </view>
+        <view class="x-chevron">›</view>
+      </view>
+      <view wx:else class="x-rec-empty x-tap" bindtap="goUsage">{{usageEmpty}}</view>
+    </view>
+    <view class="x-card x-list flex-col">
+      <view class="x-row flex-row align-center x-tap" bindtap="onTapPref">
+        <view class="x-row-ico flex-col align-center justify-center">
+          <view class="x-ico x-ico-sliders"></view>
+        </view>
+        <view class="x-row-t">提取偏好设置</view>
+        <view class="x-row-v">{{copyPrefText}}</view>
+        <view class="x-chevron">›</view>
+      </view>
+      <view class="x-row flex-row align-center x-tap" bindtap="goMember">
+        <view class="x-row-ico flex-col align-center justify-center">
+          <view class="x-ico x-ico-crown"></view>
+        </view>
+        <view class="x-row-t">会员中心</view>
+        <view class="x-row-v">{{memberRowText}}</view>
+        <view class="x-chevron">›</view>
+      </view>
+      <view class="x-row flex-row align-center x-tap" bindtap="goRecharge">
+        <view class="x-row-ico flex-col align-center justify-center">
+          <view class="x-ico x-ico-ticket"></view>
+        </view>
+        <view class="x-row-t">积分充值</view>
+        <view class="x-row-v">{{creditsText}} 积分</view>
+        <view class="x-chevron">›</view>
+      </view>
+    </view>
+    <view class="x-card x-list flex-col">
+      <view class="x-row flex-row align-center x-tap" bindtap="showHelp">
+        <view class="x-row-ico flex-col align-center justify-center">
+          <view class="x-ico x-ico-help"></view>
+        </view>
+        <view class="x-row-t">帮助与反馈</view>
+        <view class="x-chevron">›</view>
+      </view>
+      <view class="x-row flex-row align-center x-tap" bindtap="openPrivacy">
+        <view class="x-row-ico flex-col align-center justify-center">
+          <view class="x-ico x-ico-shield"></view>
+        </view>
+        <view class="x-row-t">用户协议与隐私政策</view>
+        <view class="x-chevron">›</view>
+      </view>
+      <view class="x-row flex-row align-center">
+        <view class="x-row-ico flex-col align-center justify-center">
+          <view class="x-ico x-ico-info"></view>
+        </view>
+        <view class="x-row-t">版本信息</view>
+        <view class="x-row-v">{{version}}</view>
+      </view>
+    </view>
+  </scroll-view>
+  <x-dialog
+    show="{{dlg.show}}"
+    title="{{dlg.title}}"
+    content="{{dlg.content}}"
+    confirm-text="{{dlg.confirmText}}"
+    cancel-text="{{dlg.cancelText}}"
+    show-cancel="{{dlg.showCancel}}"
+    bind:confirm="onDialogConfirm"
+    bind:cancel="onDialogCancel"
+  />
+  <view wx:if="{{wechatPopup}}" class="x-wx">
+    <view class="x-wx-mask" bindtap="hideWechatPopup"></view>
+    <view class="x-wx-card flex-col align-center">
+      <view class="x-wx-title">加我微信</view>
+      <view class="x-wx-desc">沟通反馈建议，或交流使用心得</view>
+      <view class="x-wx-id flex-row align-center justify-center">
+        <text class="x-wx-id-t">{{devWechat}}</text>
+      </view>
+      <view class="x-wx-copy flex-row justify-center align-center x-tap" bindtap="onCopyWechat">复制微信号</view>
+      <view class="x-wx-cancel x-tap" bindtap="hideWechatPopup">取消</view>
+    </view>
+  </view>
+  <view wx:if="{{nickEdit}}" class="x-modal">
+    <view class="x-modal-mask" bindtap="onNickCancel"></view>
+    <view class="x-modal-card flex-col">
+      <view class="x-modal-t">修改昵称</view>
+      <input
+        class="x-nick-input"
+        type="nickname"
+        value="{{nickInput}}"
+        placeholder="可直接一键填入微信昵称"
+        placeholder-class="x-ph"
+        maxlength="20"
+        focus="{{nickEdit}}"
+        bindinput="onNickInput"
+        bindblur="onNickInput"
+        bindconfirm="onNickSave"
+      />
+      <view class="x-modal-btns flex-row">
+        <view class="x-modal-btn x-modal-cancel x-tap" bindtap="onNickCancel">取消</view>
+        <view class="x-modal-btn x-modal-ok x-tap" bindtap="onNickSave">保存</view>
+      </view>
+    </view>
+  </view>
+  <view class="app-tabbar">
+    <view class="app-tabrow">
+      <view class="app-tab " bindtap="goHome" hover-class="app-tab-pressed" role="button" aria-label="首页">
+        <view class="app-tab-icon x-tabico x-tabico-home "></view>
+        <text class="app-tab-label">首页</text>
+      </view>
+      <view class="app-tab " bindtap="goHistory" hover-class="app-tab-pressed" role="button" aria-label="历史">
+        <view class="app-tab-icon x-tabico x-tabico-hist "></view>
+        <text class="app-tab-label">历史</text>
+      </view>
+      <view class="app-tab app-tab-active"  aria-label="我的，当前页面">
+        <view class="app-tab-icon x-tabico x-tabico-user x-tabico-on"></view>
+        <text class="app-tab-label">我的</text>
+      </view>
+    </view>
+  </view>
+</view>

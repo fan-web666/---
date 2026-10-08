@@ -1,0 +1,9 @@
+{
+  "name": "kfCallback",
+  "version": "1.0.0",
+  "description": "极速视频文案提取 - 企业微信「微信客服」回调（链路 A 可行性实测）",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

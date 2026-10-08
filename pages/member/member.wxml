@@ -1,0 +1,120 @@
+<view class="page flex-col" style="--nav-safe-r:{{navSafeRightRpx}}rpx">
+  <view class="text-wrapper_25" style="height:{{statusBarH}}px"></view>
+  <view class="text-wrapper_26 flex-row">
+    <view class="text_3 x-tap" bindtap="goBack">‹</view>
+    <view class="text_4">会员中心</view>
+    <view class="text_5 x-tap" bindtap="showRules">会员说明</view>
+  </view>
+  <scroll-view class="x-scroll flex-col" scroll-y>
+    <view class="group_1 flex-row">
+      <view class="text-group_13 flex-col justify-between">
+        <view class="text_6">{{heroTag}}</view>
+        <view class="text_7">{{heroTitle}}</view>
+        <view class="text_8">{{heroSub}}</view>
+      </view>
+      <view class="ui-art"><image class="ui-orb" src="/images/app-figma/member-imgUiOrb.png"/><image class="ui-symbol" src="/images/app-figma/member-imgUiSymbol.png"/><image class="ui-spark" src="/images/home-figma/imgSpark.png"/></view>
+    </view>
+    <view class="text-wrapper_27 flex-row justify-between">
+      <view class="text_9">选择适合你的方案</view>
+      <view class="text_10">随时可续费</view>
+    </view>
+    <view class="box_3 flex-row justify-between">
+      <view
+        class="group_4 flex-col x-tap {{selectedPlan === planMonth.id ? 'x-plan-on' : ''}}"
+        data-id="{{planMonth.id}}"
+        bindtap="pickPlan"
+      >
+        <view class="text-wrapper_28 flex-row">
+          <view class="text_11">{{planMonth.tag}}</view>
+        </view>
+        <view class="text-wrapper_29 flex-row justify-between">
+          <view class="text_12">{{planMonth.priceText}}</view>
+          <view class="text_13">{{planMonth.unit}}</view>
+        </view>
+        <view class="text-wrapper_30 flex-row">
+          <view class="text_14">{{planMonth.line1}}</view>
+        </view>
+        <view class="text-wrapper_31 flex-row">
+          <view class="text_15">{{planMonth.line2}}</view>
+        </view>
+      </view>
+      <view
+        class="group_5 flex-col x-tap {{selectedPlan === planYear.id ? 'x-plan-on' : ''}}"
+        data-id="{{planYear.id}}"
+        bindtap="pickPlan"
+      >
+        <view class="block_3 flex-row">
+          <view class="text-wrapper_8 flex-col justify-center align-center">
+            <view class="text_16">{{planYear.tag}}</view>
+          </view>
+        </view>
+        <view class="block_4 flex-row justify-between">
+          <view class="text-group_14 flex-col justify-between">
+            <view class="text_17">{{planYear.priceText}}</view>
+            <view class="text_18">{{planYear.line1}}</view>
+            <view class="text_19">{{planYear.line2}}</view>
+          </view>
+          <view class="text_20">{{planYear.unit}}</view>
+        </view>
+      </view>
+    </view>
+    <view
+      class="group_8 flex-row x-tap {{selectedPlan === planQuarter.id ? 'x-plan-on' : ''}}"
+      data-id="{{planQuarter.id}}"
+      bindtap="pickPlan"
+    >
+      <view class="text-group_15 flex-col justify-between">
+        <view class="text_21">{{planQuarter.name}}</view>
+        <view class="text_22">{{planQuarter.line1}}</view>
+      </view>
+      <view class="text-group_16 flex-col justify-between">
+        <view class="text_23">{{planQuarter.priceText}}</view>
+        <view class="text_24">{{planQuarter.line2}}</view>
+      </view>
+    </view>
+    <view
+      class="group_8 x-plan-row flex-row x-tap {{selectedPlan === planUnlimited.id ? 'x-plan-on' : ''}}"
+      data-id="{{planUnlimited.id}}"
+      bindtap="pickPlan"
+    >
+      <view class="text-group_15 flex-col justify-between">
+        <view class="text_21">{{planUnlimited.name}}</view>
+        <view class="text_22">{{planUnlimited.line1}}</view>
+      </view>
+      <view class="text-group_16 flex-col justify-between">
+        <view class="text_23">{{planUnlimited.priceText}}</view>
+        <view class="text_24">{{planUnlimited.line2}}</view>
+      </view>
+    </view>
+    <view class="text_25">会员权益</view>
+    <view class="list_4 flex-col">
+      <view class="text-wrapper_9-0 flex-row">
+        <view class="text_26-0">✓</view>
+        <view class="text_27-0">会员额度内提取不扣积分</view>
+      </view>
+      <view class="text-wrapper_9-1 flex-row">
+        <view class="text_26-1">✓</view>
+        <view class="text_27-1">长视频优先使用会员额度</view>
+      </view>
+      <view class="text-wrapper_9-2 flex-row">
+        <view class="text_26-2">✓</view>
+        <view class="text_27-2">到期前 3 天提醒续费</view>
+      </view>
+    </view>
+    <view class="text-wrapper_10 flex-row x-tap" bindtap="pay">
+      <view class="text_28">{{payText}}</view>
+      <view class="text_29">→</view>
+    </view>
+    <view class="text_30">开通后立即生效，支持到期提醒续费</view>
+  </scroll-view>
+  <x-dialog
+    show="{{dlg.show}}"
+    title="{{dlg.title}}"
+    content="{{dlg.content}}"
+    confirm-text="{{dlg.confirmText}}"
+    cancel-text="{{dlg.cancelText}}"
+    show-cancel="{{dlg.showCancel}}"
+    bind:confirm="onDialogConfirm"
+    bind:cancel="onDialogCancel"
+  />
+</view>

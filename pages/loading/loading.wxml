@@ -1,0 +1,49 @@
+<view class="page x-page flex-col" style="--nav-safe-r:{{navSafeRightRpx}}rpx">
+  <view class="x-statusbar" style="height:{{statusBarH}}px"></view>
+  <view class="x-nav flex-row justify-between">
+    <view class="x-nav-btn x-tap" bindtap="cancel">取消</view>
+    <view class="x-nav-title">提取中</view>
+    <view class="x-nav-hold"></view>
+  </view>
+  <scroll-view class="x-scroll flex-col" scroll-y>
+    <view class="x-video flex-row">
+      <view class="x-video-thumb flex-col justify-center align-center">
+        <image class="x-video-thumb-img" wx:if="{{cover}}" src="{{cover}}" mode="aspectFill" />
+        <view class="x-video-play" wx:else>▶</view>
+      </view>
+      <view class="x-video-info flex-col justify-between">
+        <view class="x-video-title">{{title}}</view>
+        <view class="x-video-sub">{{headSub}}</view>
+      </view>
+    </view>
+    <view class="x-ring-wrap flex-col justify-center align-center">
+      <view class="x-ring">
+        <canvas class="x-ring-canvas" type="2d" id="ringCanvas"></canvas>
+        <view class="x-ring-center flex-col justify-center align-center">
+          <view class="x-ring-pct">{{percent}}%</view>
+          <view class="x-ring-label">{{statusLabel}}</view>
+        </view>
+      </view>
+    </view>
+    <view class="x-state flex-col align-center">
+      <view class="x-state-title">{{stateTitle}}</view>
+      <view class="x-state-sub">{{stateSub}}</view>
+    </view>
+    <view class="x-steps flex-col">
+      <view class="x-step flex-row" wx:for="{{steps}}" wx:key="key">
+        <view class="x-step-dot x-step-{{item.status}} flex-col justify-center align-center">
+          <view class="x-step-mark">{{item.status === 'done' ? '✓' : item.status === 'doing' ? '●' : ''}}</view>
+        </view>
+        <view class="x-step-body flex-col">
+          <view class="x-step-name x-step-name-{{item.status}}">{{item.name}}</view>
+          <view class="x-step-status">{{item.statusText}}</view>
+        </view>
+      </view>
+    </view>
+  </scroll-view>
+  <view class="x-footer flex-col">
+    <view class="x-foot-hint">返回首页不会取消提取，任务会在后台继续进行</view>
+    <view class="x-cancel flex-row justify-center align-center x-tap" bindtap="cancel">取消提取</view>
+    <view class="x-back flex-row justify-center align-center x-tap" bindtap="backHome">返回首页</view>
+  </view>
+</view>

@@ -1,0 +1,234 @@
+/* 对应 Figma「全界面 · 淡彩焕新」，尺寸按 390px → 750rpx 换算。 */
+.x-scroll {
+  width:100%;
+  height:0;
+  min-height:0;
+  flex:1 1 0;
+  padding-bottom:32rpx;
+}
+
+.x-statusbar {
+  width:100%;
+  flex-shrink:0;
+}
+
+.x-nav {
+  height:104rpx;
+  display:flex;
+  align-items:center;
+  padding:0 38rpx;
+  gap:18rpx;
+  padding-right:var(--nav-safe-r,196rpx);
+  position:relative;
+}
+
+.x-nav-title {
+  font-size:36rpx;
+  line-height:1.4;
+  font-weight:700;
+  min-width:0;
+  white-space:nowrap;
+}
+
+.x-nav-btn,.x-nav-back {
+  min-width:40rpx;
+  height:72rpx;
+  display:flex;
+  align-items:center;
+  font-size:52rpx;
+  color:#727686;
+}
+
+.x-nav-action {
+  font-size:23rpx;
+  color:#8273FA;
+  white-space:nowrap;
+  margin-left:auto;
+}
+
+.x-card {
+  width:calc(100% - 76rpx);
+  margin:24rpx 38rpx 0;
+  padding:32rpx;
+  background:#FFFFFF;
+  border-radius:44rpx;
+  box-shadow:none;
+  border:0;
+}
+
+.x-cardhead {
+  align-items:center;
+  min-height:38rpx;
+  gap:12rpx;
+}
+
+.x-cardhead-t {
+  font-size:31rpx;
+  line-height:1.4;
+font-weight:700
+}
+
+.x-cardhead-more {
+  font-size:23rpx;
+color:#A1A5B2
+}
+
+.x-chevron {
+  font-size:40rpx;
+  line-height:1;
+  color:#A1A5B2;
+margin-left:12rpx
+}
+
+.x-empty {
+  font-size:26rpx;
+  line-height:1.6;
+  color:#727686;
+  padding:30rpx 0;
+text-align:center
+}
+
+.x-udivider {
+  height:1rpx;
+  background:#EDF0F5;
+  width:100%;
+margin:28rpx 0
+}
+
+.x-sumcard {
+background:linear-gradient(125deg,#F7DFFF,#DEE8FF 45%,#CFFFF0)
+}
+
+.x-sumrow {
+gap:28rpx
+}
+
+.x-sumcol {
+  flex:1 1 0;
+  min-width:0;
+gap:10rpx
+}
+
+.x-sum-n {
+  font-size:54rpx;
+  font-weight:900;
+  color:#20212C;
+  line-height:1.25;
+  overflow:hidden;
+  text-overflow:ellipsis;
+white-space:nowrap
+}
+
+.x-sum-l {
+  font-size:23rpx;
+color:#727686
+}
+
+.x-quota {
+  gap:16rpx;
+flex-wrap:wrap
+}
+
+.x-quota-l {
+  font-size:25rpx;
+font-weight:700
+}
+
+.x-quota-v {
+  font-size:22rpx;
+  color:#6859D9;
+line-height:1.5
+}
+
+.x-qbar {
+  height:12rpx;
+  border-radius:8rpx;
+  background:rgba(255,255,255,.8);
+  margin-top:20rpx;
+overflow:hidden
+}
+
+.x-qbar-fill {
+  height:100%;
+  border-radius:8rpx;
+background:#8273FA
+}
+
+.x-ordlist,.x-uselist {
+margin-top:16rpx
+}
+
+.x-ord,.x-use {
+  padding:22rpx 0;
+gap:14rpx
+}
+
+.x-ord+.x-ord,.x-use+.x-use {
+border-top:1rpx solid #EDF0F5
+}
+
+.x-ord-main,.x-use-main {
+  flex:1 1 0;
+  min-width:0;
+gap:10rpx
+}
+
+.x-ord-t,.x-use-t {
+  font-size:27rpx;
+  font-weight:700;
+line-height:1.5
+}
+
+.x-ord-m,.x-use-m {
+  font-size:21rpx;
+  line-height:1.6;
+color:#727686
+}
+
+.x-ord-right {
+  gap:8rpx;
+text-align:right
+}
+
+.x-ord-amt {
+  font-size:29rpx;
+font-weight:700
+}
+
+.x-ord-st {
+  font-size:21rpx;
+color:#A1A5B2
+}
+
+.x-st-ok {
+color:#527769
+}
+
+.x-use-cost {
+  font-size:25rpx;
+  font-weight:700;
+  white-space:nowrap;
+color:#8273FA
+}
+
+.x-cost-back {
+color:#527769
+}
+
+.x-cost-free,.x-cost-none {
+color:#A1A5B2
+}
+
+.x-more {
+  font-size:33rpx;
+  color:#A1A5B2;
+padding:12rpx
+}
+
+.x-foot {
+  font-size:21rpx;
+  color:#A1A5B2;
+  text-align:center;
+margin-top:12rpx
+}
+

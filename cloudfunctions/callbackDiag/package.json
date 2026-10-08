@@ -1,0 +1,7 @@
+{
+  "name": "callbackDiag",
+  "version": "1.0.0",
+  "description": "极速视频文案提取 - 服务号回调与链路 A 的 HTTP 诊断（不装任何依赖）",
+  "main": "index.js",
+  "dependencies": {}
+}

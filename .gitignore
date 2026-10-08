@@ -1,0 +1,26 @@
+# ── 微信开发者工具 ────────────────────────────────
+# 个人偏好配置（含本机路径、本机调试设置，不入库）
+project.private.config.json
+# 工具自动生成
+.wxss.wxml
+miniprogram_npm/
+node_modules/
+package-lock.json
+
+# ── 临时脚本 / 缓存 ───────────────────────────────
+tmp/
+*.log
+.DS_Store
+Thumbs.db
+
+# ── 编辑器 / IDE ──────────────────────────────────
+.idea/
+.vscode/
+!.vscode/settings.json
+
+# ── 敏感信息（切勿入库）──────────────────────────
+# 云函数密钥统一走云开发控制台「环境变量」，代码里只留占位符；此处兜底防止误加
+*.pem
+*.key
+.env
+.env.*

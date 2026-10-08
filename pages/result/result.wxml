@@ -1,0 +1,119 @@
+<view class="page flex-col" style="--nav-safe-r:{{navSafeRightRpx}}rpx">
+  <view class="text-wrapper_14" style="height:{{statusBarH}}px"></view>
+  <view class="text-wrapper_15 flex-row">
+    <view class="text_3 x-tap" bindtap="goBack">‹</view>
+    <view class="text_4">提取结果</view>
+    <view class="text_5 x-tap" bindtap="onMore">•••</view>
+  </view>
+  <scroll-view class="x-scroll flex-col" scroll-y>
+    <view class="group_1 flex-row x-tap" bindtap="copySource">
+      <view
+        class="text-wrapper_3 x-thumb flex-col"
+        style="{{detail.thumbBg && !detail.cover && !detail.videoSrc ? 'background-color:' + detail.thumbBg : ''}}"
+      >
+        <image
+          wx:if="{{detail.cover && !detail.coverFail}}"
+          class="x-thumb-media"
+          src="{{detail.cover}}"
+          mode="aspectFill"
+          binderror="onCoverError"
+        />
+        <video
+          wx:elif="{{detail.videoSrc}}"
+          class="x-thumb-media"
+          src="{{detail.videoSrc}}"
+          object-fit="cover"
+          controls="{{false}}"
+          autoplay="{{false}}"
+          loop="{{false}}"
+          muted
+          show-center-play-btn="{{false}}"
+          show-play-btn="{{false}}"
+          show-fullscreen-btn="{{false}}"
+          show-progress="{{false}}"
+          show-mute-btn="{{false}}"
+          enable-progress-gesture="{{false}}"
+          bindtap="copySource"
+        ></video>
+        <view wx:else class="text_6">▶</view>
+      </view>
+      <view class="group_10 flex-col justify-between">
+        <view class="text-group_9 flex-col justify-between">
+          <view class="text_7">{{detail.title}}</view>
+          <view class="text_8">{{detail.metaLine}}</view>
+        </view>
+      </view>
+    </view>
+    <view class="group_3 flex-row">
+      <view
+        class="text-wrapper_5 flex-col justify-center align-center x-tap {{tab === 'raw' ? 'x-seg-off' : ''}}"
+        bindtap="switchTab"
+        data-tab="structured"
+      >
+        <view class="text_10">结构化整理</view>
+      </view>
+      <view
+        class="text-wrapper_5 x-seg-r flex-col justify-center align-center x-tap {{tab === 'raw' ? '' : 'x-seg-off'}}"
+        bindtap="switchTab"
+        data-tab="raw"
+      >
+        <view class="text_11">原文案</view>
+      </view>
+    </view>
+    <block wx:if="{{editing}}">
+      <view class="x-editor-hint">正在编辑「原文案」，保存后原始记录会被覆盖</view>
+      <textarea
+        class="x-editor-area"
+        value="{{draft}}"
+        bindinput="onEdit"
+        maxlength="-1"
+        auto-height
+        placeholder="在这里修改原文案…"
+        placeholder-class="x-ph"
+      />
+    </block>
+    <block wx:elif="{{tab === 'structured'}}">
+      <view class="text_12">提炼出的可用表达</view>
+          <view class="box_2 flex-row justify-between" wx:if="{{detail.hook}}">
+            <view class="section_1 flex-col"></view>
+            <view class="text_13"><text selectable>“{{detail.hook}}”</text></view>
+          </view>
+      <view class="text_14">适合做标题 / 开场钩子</view>
+      <view
+        class="box_2 flex-row justify-between"
+        wx:for="{{detail.highlights}}"
+        wx:key="*this"
+      >
+        <view class="section_1 flex-col"></view>
+        <view class="text_13"><text selectable>“{{item}}”</text></view>
+      </view>
+      <view class="list_3 flex-col">
+        <view class="group_5-0 flex-col" wx:for="{{detail.points}}" wx:key="no">
+          <view class="text_15-0"><text selectable>{{item.no}}  {{item.title}}</text></view>
+          <view class="paragraph_1-0"><text selectable>{{item.text}}</text></view>
+        </view>
+      </view>
+      <view class="x-empty" wx:if="{{!detail.hasStructured}}">
+        这条记录还没有结构化整理结果，可切到「原文案」查看逐字稿。
+      </view>
+    </block>
+    <block wx:else>
+      <view class="x-raw-meta">{{detail.countLine}}</view>
+      <view
+        class="x-para"
+        wx:for="{{detail.paragraphs}}"
+        wx:key="i"
+      ><text selectable>{{item.text}}</text></view>
+      <view class="x-raw-empty" wx:if="{{!detail.paragraphs.length}}">这条记录还没有原文内容。</view>
+    </block>
+  </scroll-view>
+  <view class="group_7 flex-row">
+    <view class="text-wrapper_6 flex-col justify-center align-center x-tap" bindtap="toggleEdit">
+      <view class="text_18">{{editing ? '保存文案' : '编辑文案'}}</view>
+    </view>
+    <view class="text-wrapper_7 flex-row x-tap" bindtap="copyAll">
+      <view class="text_19">一键复制全文</view>
+      <view class="text_20">□</view>
+    </view>
+  </view>
+</view>

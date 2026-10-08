@@ -1,0 +1,940 @@
+/* pages/mine/mine.legacy.wxss
+ * ⚠️ 这是「我的」页**旧版**（蓝湖稿 lanhu_screen05myaccount 直译）的样式原文，整份留档、未删。
+ *    2026-09-26 用户提供新「我的」设计截图，界面整页重构 → 现行样式在 mine.wxss，
+ *    本文件**不被任何地方 import**（避免旧 .page 等通用类名与新样式打架），只作对照追溯用。
+ *    对照时若要复用其中某条尺寸，请先确认它属于旧稿画幅（390px / 系数 1.923077）。
+ */
+/* pages/mine/mine.wxss
+ * 来源：react-极速视频提取小程序/lanhu_screen05myaccount/index.css（蓝湖导出）
+ * 换算：设计稿画布 390px（flexible.js: clientWidth/390*37.5）→ 750rpx，系数 1.923077
+ * 规则：一条 CSS 一条 WXSS，数值只做 ×1.923077 换算，不合并、不删属性
+ * 缺失：font-family（Noto Sans 小程序无此字体，回落系统字体）、font-weight:NaN（蓝湖导出缺省）
+ * ⚠️ 设计稿的 display/flex-direction/justify-* 来自 common.css 工具类，已在 app.wxss 原样搬运，
+ *    WXML 逐节点带同名工具类 —— 漏掉这组类整页会塌成竖排
+ * 布局适配（100vh / 滚动 / 负 margin / 绝对定位 等）见文件末尾「超出设计稿」覆盖块
+ */
+
+/* .page */
+.page {
+  background-color: rgba(251, 252, 254, 1);
+  position: relative;
+  width: 750rpx;
+  height: 1623rpx;
+  overflow: hidden;
+}
+
+/* .box_10 */
+.box_10 {
+  width: 750rpx;
+  height: 1623rpx;
+}
+
+/* .section_8 */
+.section_8 {
+  position: relative;
+  width: 750rpx;
+  height: 1506rpx;
+}
+
+/* .text-wrapper_17 */
+.text-wrapper_17 {
+  width: 615rpx;
+  height: 29rpx;
+  margin: 31rpx 0 0 44rpx;
+}
+
+/* .text_1 */
+.text_1 {
+  width: 44rpx;
+  height: 29rpx;
+  overflow-wrap: break-word;
+  color: rgba(14, 19, 28, 1);
+  font-size: 21rpx;
+  font-weight: 700;
+  text-align: left;
+  white-space: nowrap;
+  line-height: 29rpx;
+}
+
+/* .text_2 */
+.text_2 {
+  width: 88rpx;
+  height: 27rpx;
+  overflow-wrap: break-word;
+  color: rgba(14, 19, 28, 1);
+  font-size: 19rpx;
+  font-weight: 700;
+  text-align: left;
+  white-space: nowrap;
+  line-height: 27rpx;
+}
+
+/* .text-wrapper_18 */
+.text-wrapper_18 {
+  width: 652rpx;
+  height: 60rpx;
+  margin: 50rpx 0 0 44rpx;
+}
+
+/* .text_3 */
+.text_3 {
+  width: 88rpx;
+  height: 60rpx;
+  overflow-wrap: break-word;
+  color: rgba(14, 19, 28, 1);
+  font-size: 44rpx;
+  font-weight: 700;
+  text-align: left;
+  white-space: nowrap;
+  line-height: 60rpx;
+}
+
+/* .text_4 */
+.text_4 {
+  width: 35rpx;
+  height: 46rpx;
+  overflow-wrap: break-word;
+  color: rgba(14, 19, 28, 1);
+  font-size: 35rpx;
+  font-weight: 700;
+  text-align: left;
+  white-space: nowrap;
+  line-height: 46rpx;
+  margin-top: 2rpx;
+}
+
+/* .group_1 */
+.group_1 {
+  box-shadow: 0rpx 13rpx 31rpx 0rpx rgba(23, 35, 58, 0.08);
+  background-color: rgba(255, 255, 255, 1);
+  border-radius: 40rpx;
+  width: 662rpx;
+  height: 181rpx;
+  margin: 38rpx 0 0 44rpx;
+}
+
+/* .text-wrapper_3 */
+.text-wrapper_3 {
+  background-color: rgba(48, 133, 242, 1);
+  border-radius: 35rpx;
+  height: 108rpx;
+  width: 108rpx;
+  margin: 35rpx 0 0 33rpx;
+}
+
+/* .text_5 */
+.text_5 {
+  width: 38rpx;
+  height: 52rpx;
+  overflow-wrap: break-word;
+  color: rgba(255, 255, 255, 1);
+  font-size: 38rpx;
+  font-weight: 700;
+  text-align: left;
+  white-space: nowrap;
+  line-height: 52rpx;
+  margin: 27rpx 0 0 31rpx;
+}
+
+/* .text-group_16 */
+.text-group_16 {
+  width: 215rpx;
+  height: 81rpx;
+  margin: 33rpx 0 0 33rpx;
+}
+
+/* .text_6 */
+.text_6 {
+  width: 131rpx;
+  height: 44rpx;
+  overflow-wrap: break-word;
+  color: rgba(14, 19, 28, 1);
+  font-size: 33rpx;
+  font-weight: 700;
+  text-align: left;
+  white-space: nowrap;
+  line-height: 44rpx;
+}
+
+/* .text_7 */
+.text_7 {
+  width: 215rpx;
+  height: 31rpx;
+  overflow-wrap: break-word;
+  color: rgba(97, 110, 130, 1);
+  font-size: 23rpx;
+  text-align: left;
+  white-space: nowrap;
+  line-height: 31rpx;
+  margin-top: 6rpx;
+}
+
+/* .text_8 */
+.text_8 {
+  width: 15rpx;
+  height: 65rpx;
+  overflow-wrap: break-word;
+  color: rgba(97, 110, 130, 1);
+  font-size: 48rpx;
+  text-align: left;
+  white-space: nowrap;
+  line-height: 65rpx;
+  margin: 63rpx 46rpx 0 212rpx;
+}
+
+/* .group_2 */
+.group_2 {
+  box-shadow: 0rpx 13rpx 31rpx 0rpx rgba(23, 35, 58, 0.08);
+  background-color: rgba(26, 33, 51, 1);
+  border-radius: 44rpx;
+  width: 662rpx;
+  height: 271rpx;
+  margin: 35rpx 0 0 44rpx;
+}
+
+/* .section_9 */
+.section_9 {
+  width: 223rpx;
+  height: 169rpx;
+  margin: 44rpx 0 0 40rpx;
+}
+
+/* .text-group_17 */
+.text-group_17 {
+  width: 223rpx;
+  height: 169rpx;
+}
+
+/* .text_9 */
+.text_9 {
+  width: 92rpx;
+  height: 31rpx;
+  overflow-wrap: break-word;
+  color: rgba(166, 214, 255, 1);
+  font-size: 23rpx;
+  font-weight: 700;
+  text-align: left;
+  white-space: nowrap;
+  line-height: 31rpx;
+}
+
+/* .text_10 */
+.text_10 {
+  width: 75rpx;
+  height: 88rpx;
+  overflow-wrap: break-word;
+  color: rgba(255, 255, 255, 1);
+  font-size: 65rpx;
+  font-weight: 700;
+  text-align: left;
+  white-space: nowrap;
+  line-height: 88rpx;
+  margin-top: 13rpx;
+}
+
+/* .text_11 */
+.text_11 {
+  width: 223rpx;
+  height: 31rpx;
+  overflow-wrap: break-word;
+  color: rgba(204, 219, 242, 1);
+  font-size: 23rpx;
+  text-align: left;
+  white-space: nowrap;
+  line-height: 31rpx;
+  margin-top: 6rpx;
+}
+
+/* .text_12 */
+.text_12 {
+  width: 50rpx;
+  height: 35rpx;
+  overflow-wrap: break-word;
+  color: rgba(204, 219, 242, 1);
+  font-size: 25rpx;
+  text-align: left;
+  white-space: nowrap;
+  line-height: 35rpx;
+  margin: 77rpx 60rpx 0 -110rpx;
+}
+
+/* .section_10 */
+.section_10 {
+  width: 135rpx;
+  height: 179rpx;
+  margin: 12rpx 37rpx 0 227rpx;
+}
+
+/* .section_2 */
+.section_2 {
+  background-color: rgba(48, 133, 242, 1);
+  border-radius: 67rpx;
+  height: 135rpx;
+  width: 135rpx;
+}
+
+/* .box_3 */
+.box_3 {
+  background-color: rgba(194, 255, 0, 1);
+  border-radius: 15rpx;
+  width: 31rpx;
+  height: 31rpx;
+  margin: 46rpx 0 0 48rpx;
+}
+
+/* .text_13 */
+.text_13 {
+  width: 35rpx;
+  height: 46rpx;
+  overflow-wrap: break-word;
+  color: rgba(255, 255, 255, 1);
+  font-size: 35rpx;
+  font-weight: 700;
+  text-align: left;
+  white-space: nowrap;
+  line-height: 46rpx;
+  margin: -2rpx 0 0 98rpx;
+}
+
+/* .text-wrapper_19 */
+.text-wrapper_19 {
+  width: 450rpx;
+  height: 29rpx;
+  margin: 192rpx 0 0 75rpx;
+}
+
+/* .text_14 */
+.text_14 {
+  width: 85rpx;
+  height: 29rpx;
+  overflow-wrap: break-word;
+  color: rgba(97, 110, 130, 1);
+  font-size: 21rpx;
+  text-align: left;
+  white-space: nowrap;
+  line-height: 29rpx;
+}
+
+/* .text_15 */
+.text_15 {
+  width: 106rpx;
+  height: 29rpx;
+  overflow-wrap: break-word;
+  color: rgba(97, 110, 130, 1);
+  font-size: 21rpx;
+  text-align: left;
+  white-space: nowrap;
+  line-height: 29rpx;
+}
+
+/* .text_16 */
+.text_16 {
+  width: 123rpx;
+  height: 42rpx;
+  overflow-wrap: break-word;
+  color: rgba(14, 19, 28, 1);
+  font-size: 31rpx;
+  font-weight: 700;
+  text-align: left;
+  white-space: nowrap;
+  line-height: 42rpx;
+  margin: 60rpx 0 0 44rpx;
+}
+
+/* .list_4 */
+.list_4 {
+  width: 662rpx;
+  height: 365rpx;
+  justify-content: space-between;
+  margin: 21rpx 0 102rpx 44rpx;
+}
+
+/* .list-items_1-0 */
+.list-items_1-0 {
+  box-shadow: 0rpx 13rpx 31rpx 0rpx rgba(23, 35, 58, 0.08);
+  background-color: rgba(255, 255, 255, 1);
+  border-radius: 31rpx;
+  width: 662rpx;
+  height: 108rpx;
+  margin-bottom: 21rpx;
+}
+
+/* .text-wrapper_5-0 */
+.text-wrapper_5-0 {
+  background-color: rgba(247, 250, 255, 1);
+  border-radius: 19rpx;
+  height: 62rpx;
+  width: 62rpx;
+  margin: 23rpx 0 0 27rpx;
+}
+
+/* .text_17-0 */
+.text_17-0 {
+  width: 29rpx;
+  height: 38rpx;
+  overflow-wrap: break-word;
+  color: rgba(48, 133, 242, 1);
+  font-size: 29rpx;
+  font-weight: 700;
+  text-align: left;
+  white-space: nowrap;
+  line-height: 38rpx;
+  margin: 13rpx 0 0 19rpx;
+}
+
+/* .text-group_18-0 */
+.text-group_18-0 {
+  width: 190rpx;
+  height: 65rpx;
+  margin: 21rpx 0 0 27rpx;
+}
+
+/* .text_18-0 */
+.text_18-0 {
+  width: 125rpx;
+  height: 35rpx;
+  overflow-wrap: break-word;
+  color: rgba(14, 19, 28, 1);
+  font-size: 25rpx;
+  font-weight: 700;
+  text-align: left;
+  white-space: nowrap;
+  line-height: 35rpx;
+}
+
+/* .text_19-0 */
+.text_19-0 {
+  width: 190rpx;
+  height: 29rpx;
+  overflow-wrap: break-word;
+  color: rgba(97, 110, 130, 1);
+  font-size: 21rpx;
+  text-align: left;
+  white-space: nowrap;
+  line-height: 29rpx;
+  margin-top: 2rpx;
+}
+
+/* .text_20-0 */
+.text_20-0 {
+  width: 13rpx;
+  height: 58rpx;
+  overflow-wrap: break-word;
+  color: rgba(97, 110, 130, 1);
+  font-size: 42rpx;
+  text-align: left;
+  white-space: nowrap;
+  line-height: 58rpx;
+  margin: 29rpx 42rpx 0 300rpx;
+}
+
+/* .list-items_1-1 */
+.list-items_1-1 {
+  box-shadow: 0rpx 13rpx 31rpx 0rpx rgba(23, 35, 58, 0.08);
+  background-color: rgba(255, 255, 255, 1);
+  border-radius: 31rpx;
+  width: 662rpx;
+  height: 108rpx;
+  margin-bottom: 21rpx;
+}
+
+/* .text-wrapper_5-1 */
+.text-wrapper_5-1 {
+  background-color: rgba(247, 250, 255, 1);
+  border-radius: 19rpx;
+  height: 62rpx;
+  width: 62rpx;
+  margin: 23rpx 0 0 27rpx;
+}
+
+/* .text_17-1 */
+.text_17-1 {
+  width: 29rpx;
+  height: 38rpx;
+  overflow-wrap: break-word;
+  color: rgba(48, 133, 242, 1);
+  font-size: 29rpx;
+  font-weight: 700;
+  text-align: left;
+  white-space: nowrap;
+  line-height: 38rpx;
+  margin: 13rpx 0 0 19rpx;
+}
+
+/* .text-group_18-1 */
+.text-group_18-1 {
+  width: 190rpx;
+  height: 65rpx;
+  margin: 21rpx 0 0 27rpx;
+}
+
+/* .text_18-1 */
+.text_18-1 {
+  width: 125rpx;
+  height: 35rpx;
+  overflow-wrap: break-word;
+  color: rgba(14, 19, 28, 1);
+  font-size: 25rpx;
+  font-weight: 700;
+  text-align: left;
+  white-space: nowrap;
+  line-height: 35rpx;
+}
+
+/* .text_19-1 */
+.text_19-1 {
+  width: 190rpx;
+  height: 29rpx;
+  overflow-wrap: break-word;
+  color: rgba(97, 110, 130, 1);
+  font-size: 21rpx;
+  text-align: left;
+  white-space: nowrap;
+  line-height: 29rpx;
+  margin-top: 2rpx;
+}
+
+/* .text_20-1 */
+.text_20-1 {
+  width: 13rpx;
+  height: 58rpx;
+  overflow-wrap: break-word;
+  color: rgba(97, 110, 130, 1);
+  font-size: 42rpx;
+  text-align: left;
+  white-space: nowrap;
+  line-height: 58rpx;
+  margin: 29rpx 42rpx 0 300rpx;
+}
+
+/* .list-items_1-2 */
+.list-items_1-2 {
+  box-shadow: 0rpx 13rpx 31rpx 0rpx rgba(23, 35, 58, 0.08);
+  background-color: rgba(255, 255, 255, 1);
+  border-radius: 31rpx;
+  width: 662rpx;
+  height: 108rpx;
+  margin-bottom: 21rpx;
+}
+
+/* .text-wrapper_5-2 */
+.text-wrapper_5-2 {
+  background-color: rgba(247, 250, 255, 1);
+  border-radius: 19rpx;
+  height: 62rpx;
+  width: 62rpx;
+  margin: 23rpx 0 0 27rpx;
+}
+
+/* .text_17-2 */
+.text_17-2 {
+  width: 29rpx;
+  height: 38rpx;
+  overflow-wrap: break-word;
+  color: rgba(48, 133, 242, 1);
+  font-size: 29rpx;
+  font-weight: 700;
+  text-align: left;
+  white-space: nowrap;
+  line-height: 38rpx;
+  margin: 13rpx 0 0 19rpx;
+}
+
+/* .text-group_18-2 */
+.text-group_18-2 {
+  width: 190rpx;
+  height: 65rpx;
+  margin: 21rpx 0 0 27rpx;
+}
+
+/* .text_18-2 */
+.text_18-2 {
+  width: 125rpx;
+  height: 35rpx;
+  overflow-wrap: break-word;
+  color: rgba(14, 19, 28, 1);
+  font-size: 25rpx;
+  font-weight: 700;
+  text-align: left;
+  white-space: nowrap;
+  line-height: 35rpx;
+}
+
+/* .text_19-2 */
+.text_19-2 {
+  width: 190rpx;
+  height: 29rpx;
+  overflow-wrap: break-word;
+  color: rgba(97, 110, 130, 1);
+  font-size: 21rpx;
+  text-align: left;
+  white-space: nowrap;
+  line-height: 29rpx;
+  margin-top: 2rpx;
+}
+
+/* .text_20-2 */
+.text_20-2 {
+  width: 13rpx;
+  height: 58rpx;
+  overflow-wrap: break-word;
+  color: rgba(97, 110, 130, 1);
+  font-size: 42rpx;
+  text-align: left;
+  white-space: nowrap;
+  line-height: 58rpx;
+  margin: 29rpx 42rpx 0 300rpx;
+}
+
+/* .box_11 */
+.box_11 {
+  position: absolute;
+  left: 44rpx;
+  top: 731rpx;
+  width: 662rpx;
+  height: 173rpx;
+}
+
+/* .section_3 */
+.section_3 {
+  box-shadow: 0rpx 13rpx 31rpx 0rpx rgba(23, 35, 58, 0.08);
+  background-color: rgba(255, 255, 255, 1);
+  border-radius: 37rpx;
+  width: 317rpx;
+  height: 173rpx;
+}
+
+/* .text-wrapper_6 */
+.text-wrapper_6 {
+  background-color: rgba(232, 245, 255, 1);
+  border-radius: 23rpx;
+  height: 69rpx;
+  width: 69rpx;
+  margin: 33rpx 0 0 31rpx;
+}
+
+/* .text_21 */
+.text_21 {
+  width: 42rpx;
+  height: 58rpx;
+  overflow-wrap: break-word;
+  color: rgba(48, 133, 242, 1);
+  font-size: 42rpx;
+  font-weight: 700;
+  text-align: left;
+  white-space: nowrap;
+  line-height: 58rpx;
+  margin: 10rpx 0 0 15rpx;
+}
+
+/* .text_22 */
+.text_22 {
+  width: 108rpx;
+  height: 37rpx;
+  overflow-wrap: break-word;
+  color: rgba(14, 19, 28, 1);
+  font-size: 27rpx;
+  font-weight: 700;
+  text-align: left;
+  white-space: nowrap;
+  line-height: 37rpx;
+  margin: 17rpx 0 17rpx 31rpx;
+}
+
+/* .section_4 */
+.section_4 {
+  box-shadow: 0rpx 13rpx 31rpx 0rpx rgba(23, 35, 58, 0.08);
+  background-color: rgba(255, 255, 255, 1);
+  border-radius: 37rpx;
+  width: 317rpx;
+  height: 173rpx;
+}
+
+/* .text-wrapper_7 */
+.text-wrapper_7 {
+  background-color: rgba(242, 250, 232, 1);
+  border-radius: 23rpx;
+  height: 69rpx;
+  width: 69rpx;
+  margin: 33rpx 0 0 31rpx;
+}
+
+/* .text_23 */
+.text_23 {
+  width: 31rpx;
+  height: 42rpx;
+  overflow-wrap: break-word;
+  color: rgba(84, 153, 13, 1);
+  font-size: 31rpx;
+  font-weight: 700;
+  text-align: left;
+  white-space: nowrap;
+  line-height: 42rpx;
+  margin: 15rpx 0 0 17rpx;
+}
+
+/* .text_24 */
+.text_24 {
+  width: 108rpx;
+  height: 37rpx;
+  overflow-wrap: break-word;
+  color: rgba(14, 19, 28, 1);
+  font-size: 27rpx;
+  font-weight: 700;
+  text-align: left;
+  white-space: nowrap;
+  line-height: 37rpx;
+  margin: 17rpx 0 17rpx 31rpx;
+}
+
+/* .block_2 */
+.block_2 {
+  background-color: rgba(255, 255, 255, 1);
+  width: 750rpx;
+  height: 119rpx;
+  margin: 1504rpx 0 0 -750rpx;
+}
+
+/* .text-wrapper_20 */
+.text-wrapper_20 {
+  width: 42rpx;
+  height: 67rpx;
+  margin: 21rpx 0 0 106rpx;
+}
+
+/* .text_25 */
+.text_25 {
+  width: 27rpx;
+  height: 38rpx;
+  overflow-wrap: break-word;
+  color: rgba(97, 110, 130, 1);
+  font-size: 29rpx;
+  font-weight: 700;
+  text-align: left;
+  white-space: nowrap;
+  line-height: 38rpx;
+  margin-left: 10rpx;
+}
+
+/* .text_26 */
+.text_26 {
+  width: 42rpx;
+  height: 29rpx;
+  overflow-wrap: break-word;
+  color: rgba(97, 110, 130, 1);
+  font-size: 21rpx;
+  text-align: left;
+  white-space: nowrap;
+  line-height: 29rpx;
+}
+
+/* .text-group_19 */
+.text-group_19 {
+  width: 63rpx;
+  height: 67rpx;
+  margin: 21rpx 0 0 190rpx;
+}
+
+/* .text_27 */
+.text_27 {
+  width: 21rpx;
+  height: 35rpx;
+  overflow-wrap: break-word;
+  color: rgba(97, 110, 130, 1);
+  font-size: 25rpx;
+  text-align: left;
+  white-space: nowrap;
+  line-height: 35rpx;
+  margin-left: 17rpx;
+}
+
+/* .text_28 */
+.text_28 {
+  width: 63rpx;
+  height: 29rpx;
+  overflow-wrap: break-word;
+  color: rgba(97, 110, 130, 1);
+  font-size: 21rpx;
+  text-align: left;
+  white-space: nowrap;
+  line-height: 29rpx;
+  margin-top: 4rpx;
+}
+
+/* .text-group_20 */
+.text-group_20 {
+  width: 42rpx;
+  height: 67rpx;
+  margin: 21rpx 121rpx 0 185rpx;
+}
+
+/* .text_29 */
+.text_29 {
+  width: 23rpx;
+  height: 35rpx;
+  overflow-wrap: break-word;
+  color: rgba(48, 133, 242, 1);
+  font-size: 25rpx;
+  font-weight: 700;
+  text-align: left;
+  white-space: nowrap;
+  line-height: 35rpx;
+  margin-left: 12rpx;
+}
+
+/* .text_30 */
+.text_30 {
+  width: 42rpx;
+  height: 29rpx;
+  overflow-wrap: break-word;
+  color: rgba(48, 133, 242, 1);
+  font-size: 21rpx;
+  font-weight: 700;
+  text-align: left;
+  white-space: nowrap;
+  line-height: 29rpx;
+  margin-top: 4rpx;
+}
+
+/* ============================================================================
+ * ⚠️ 超出设计稿：移动端布局适配
+ *    上方 72 条规则全部保留设计稿原值，此处只做真机运行必需的覆盖，逐条说明：
+ *
+ *  ① .page       设计稿写死 390×844 → 撑满屏幕 + 纵向布局（真机高度不定）
+ *  ② .box_10     设计稿 flex-row，靠 .block_2 的 margin-left:-390px 把 tabbar「叠」回同列；
+ *                小程序改 flex-direction:column、去掉负 margin，tabbar 落到内容下方
+ *  ③ .box_11     设计稿用绝对定位(left 23 / top 380)把「充值·会员」双卡插在积分卡与
+ *                「常用服务」之间 —— WXML 已把它按视觉序提前到 .text-wrapper_19 之前，
+ *                此处把绝对定位改回文档流（间距按设计稿实际坐标反推：上方 19px、下方见 .text_16）
+ *  ④ .text_4     导航栏右侧的 ⚙ 齿轮按用户要求取消 → 该节点未落地（本页无任何设置入口）
+ *  ⑤ .text-wrapper_17  设计稿画了「9:41 ●●● ᯤ」假状态栏 → 同节点改为动态等高占位（真机自带）
+ *  ⑥ .section_8  设计稿 390×783 固定画幅 → flex 撑满 + 改 <scroll-view> 滚动
+ *  ⑦ .block_2    tabbar：1504rpx 上边距归零；底部加安全区，避开 iPhone 横条
+ *  ⑧ 动态文案    昵称 / 积分 / 「还可提取 N 条」都比设计稿示意值长 → 放开定宽并省略
+ *
+ *  → 跑还原度对照时：本页导航栏少一个 ⚙ 节点（用户要求）、多一个「双卡提前」的顺序调整、
+ *    状态栏行内容被置空，
+ *    .page / .box_10 / .box_11 / .text-wrapper_19 / .text_16 / .section_8 / .block_2 的个别属性被覆盖，
+ *    **有意为之，不是回归**。
+ * ========================================================================== */
+
+/* ① 撑满屏幕 + 纵向布局 */
+.page {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ② 列布局：tabbar 从「负 margin 叠加」改为正常堆叠 */
+.box_10 {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0;
+  min-height: 0;
+  width: 100%;
+  height: auto;
+}
+
+/* ⑥ 内容区：可滚动 */
+.section_8 {
+  flex: 1 1 0;
+  min-height: 0;
+  width: 100%;
+  height: auto;
+}
+
+/* ⑤ 状态栏占位：宽度撑满、外边距归零（高度由 WXML 的 inline style 给真实值） */
+.text-wrapper_17 {
+  width: 100%;
+  height: auto;
+  margin: 0;
+}
+
+/* ③+④ 双卡行：绝对定位 → 文档流；标签行移到卡上方 */
+.text-wrapper_19 {
+  margin: 37rpx 0 0 75rpx;
+}
+.box_11 {
+  position: static;
+  left: auto;
+  top: auto;
+  margin: 15rpx 0 0 44rpx;
+}
+/* 双卡之后的分节标题：与设计稿坐标一致（卡底 470 → 标题 507 = 37px） */
+.text_16 {
+  margin: 71rpx 0 0 44rpx;
+}
+
+/* ⑧ 用户卡：昵称列吃掉剩余宽度，「›」顶到右边缘，超长省略 */
+.text-group_16 {
+  flex: 1 1 0;
+  width: auto;
+  min-width: 0;
+}
+.text_6,
+.text_7 {
+  width: auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.text_8 {
+  margin-left: 0;
+  margin-right: 46rpx;
+}
+
+/* ⑧ 积分卡：余额与「还可提取 N 条」放开定宽 */
+.text_10,
+.text_11 {
+  width: auto;
+}
+
+/* 常用服务列表：定高改自适应（3 项 + 项间距） */
+.list_4 {
+  height: auto;
+}
+
+/* ⑦ tabbar：去掉 1504rpx 上边距 + 底部安全区 */
+.block_2 {
+  flex-shrink: 0;
+  width: 100%;
+  height: calc(119rpx + env(safe-area-inset-bottom));
+  margin: 0;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* ⑨ tabbar 真图标 + 第 2 项「文案库」→「历史」（用户 2026-09-26 给设计稿 + 截图）
+     图标本体（掩膜 + base64 + 40rpx 盒 + 选中/未选中色）在 app.wxss 的 x-tabbar-icon 块。
+     ⚠️ .text_25 / .text_27 / .text_29 是 27/21/23rpx 的**字符盒** → 换 40×40 实框，
+        margin-left（10/17/12rpx）归零
+     ⚠️ tab 项盒高 67 → 73rpx；三项都是 21rpx 上外边距、不加高容器
+        → 21 + 73 = 94 < 119（.block_2 高度），不会顶掉底部安全区
+     ⚠️ 本页 tab 项的间距是 .text-group_20 的 `margin: 21rpx 121rpx 0 185rpx`（右侧还留了安全区），
+        **不动**；文字行自带 margin-top 4rpx，与 73 - 40 - 29 相抵，间隔仍是 4rpx
+     ⚠️ .text_28 由「文案库」(3 字 = 63rpx) 变「历史」(2 字 = 42rpx)：盒宽位置不动、文字居中
+     文字色按截图统一：#3D7EFF 选中 / #9CA3AF 未选中（设计稿原值 #3085F2 / #616E82 留档在上方）；
+     ⚠️ 本页第 3 项「我的」为选中态（蓝色） */
+.text-wrapper_20,
+.text-group_19,
+.text-group_20 {
+  height: 73rpx; /* 设计稿原值 67rpx */
+  align-items: center; /* flex-col，交叉轴=水平，让图标与文字互相对齐 */
+}
+.text_25,
+.text_27,
+.text_29 {
+  width: 40rpx; /* 设计稿原值 27 / 21 / 23rpx（皆为字符占位盒） */
+  height: 40rpx; /* 设计稿原值 38 / 35 / 35rpx */
+  margin-left: 0; /* 设计稿原值 10 / 17 / 12rpx */
+}
+.text_28 {
+  text-align: center; /* 设计稿原值 left */
+  color: rgba(156, 163, 175, 1); /* 设计稿原值 rgba(97, 110, 130, 1) */
+}
+.text_26 {
+  color: rgba(156, 163, 175, 1); /* 设计稿原值 rgba(97, 110, 130, 1) */
+}
+.text_30 {
+  color: rgba(61, 126, 255, 1); /* 设计稿原值 rgba(48, 133, 242, 1) */
+}

@@ -1,0 +1,74 @@
+<view class="page x-page flex-col" style="--nav-safe-r:{{navSafeRightRpx}}rpx">
+  <view class="x-statusbar" style="height:{{statusBarH}}px"></view>
+  <view class="x-nav flex-row justify-between">
+    <view class="x-nav-btn x-tap" bindtap="goBack">‹</view>
+    <view class="x-nav-title">提取设置</view>
+    <view class="x-nav-action x-tap" bindtap="resetAll">恢复默认</view>
+  </view>
+  <scroll-view class="x-scroll flex-col" scroll-y>
+    <view class="x-link flex-row">
+      <view class="x-link-thumb flex-col justify-center align-center">
+        <view class="x-link-icon">▶</view>
+      </view>
+      <view class="x-link-info flex-col justify-between">
+        <view class="x-link-title">{{link.title}}</view>
+        <view class="x-link-sub">{{link.sub}}</view>
+      </view>
+    </view>
+    <view class="x-group flex-col">
+      <view class="x-group-head flex-row justify-between">
+        <view class="x-group-title">提取内容</view>
+        <view class="x-group-note">单选，可随时切换</view>
+      </view>
+      <view
+        class="x-row flex-row x-tap"
+        wx:for="{{modes}}"
+        wx:key="id"
+        data-id="{{item.id}}"
+        bindtap="pickMode"
+      >
+        <view class="x-row-body flex-col">
+          <view class="x-row-title">{{item.name}}</view>
+          <view class="x-row-desc">{{item.desc}}</view>
+        </view>
+        <view class="x-radio {{form.mode === item.id ? 'x-radio-on' : ''}} flex-col justify-center align-center">
+          <view class="x-radio-dot" wx:if="{{form.mode === item.id}}"></view>
+        </view>
+      </view>
+    </view>
+    <view class="x-group flex-col">
+      <view class="x-group-head flex-row justify-between">
+        <view class="x-group-title">输出设置</view>
+        <view class="x-group-note">识别结果可编辑</view>
+      </view>
+      <view class="x-row x-pick-row flex-row x-tap" bindtap="pickLanguage">
+        <view class="x-row-title">文案语言</view>
+        <view class="x-row-value">{{form.languageLabel}}</view>
+        <view class="x-chevron">›</view>
+      </view>
+      <view class="x-row flex-row x-tap" data-key="autoPunct" bindtap="toggle">
+        <view class="x-row-body flex-col">
+          <view class="x-row-title">自动补标点</view>
+          <view class="x-row-desc">为转写结果添加标点与换行</view>
+        </view>
+        <view class="x-switch {{form.autoPunct ? 'x-switch-on' : ''}} flex-row">
+          <view class="x-switch-knob"></view>
+        </view>
+      </view>
+      <view class="x-row flex-row x-tap" data-key="keepTimeline" bindtap="toggle">
+        <view class="x-row-body flex-col">
+          <view class="x-row-title">保留时间轴</view>
+          <view class="x-row-desc">在每段前标注时间点，方便对轴</view>
+        </view>
+        <view class="x-switch {{form.keepTimeline ? 'x-switch-on' : ''}} flex-row">
+          <view class="x-switch-knob"></view>
+        </view>
+      </view>
+      <view class="x-note flex-row">
+        <view class="x-note-mark">✓</view>
+        <view class="x-note-text">视频链接与提取结果仅保存在你的账号内，可随时删除</view>
+      </view>
+    </view>
+    <view class="x-foot-note">非会员单次提取扣 {{basicCost}} 积分（≤10 分钟）；会员额度内不扣积分</view>
+  </scroll-view>
+</view>

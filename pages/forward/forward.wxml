@@ -1,0 +1,72 @@
+<view class="page flex-col" style="--nav-safe-r:{{navSafeRightRpx}}rpx">
+  <view class="section_8 flex-row">
+    <view class="text-wrapper_19" style="height:{{statusBarH}}px"></view>
+      <view class="text-wrapper_20 flex-row">
+        <view class="text_3 x-tap" bindtap="goBack">‹</view>
+        <view class="text_4">使用说明</view>
+        <view class="text_5 x-tap" bindtap="showHelp">使用帮助</view>
+      </view>
+<scroll-view class="block_1 flex-col" scroll-y>
+      
+      <view class="section_1 flex-row">
+        <view class="text-group_16 flex-col">
+          <view class="text_6">视频提取文案</view>
+          <view class="text_7">支持多平台解析</view>
+          <view class="text_8">视频号、抖音、快手、小红书、B站等</view>
+        </view>
+        <view class="ui-art"><image class="ui-orb" src="/images/app-figma/forward-imgUiOrb.png"/><image class="ui-symbol" src="/images/app-figma/forward-imgUiSymbol.png"/><image class="ui-spark" src="/images/home-figma/imgSpark.png"/></view>
+      </view>
+      <view class="text-wrapper_21 flex-row justify-between">
+        <view class="text_9">只需三步</view>
+        <view class="text_10">结果会自动保存到历史记录</view>
+      </view>
+      <view class="section_3 flex-row">
+        <view class="text-wrapper_5 flex-col">
+          <view class="text_11">01</view>
+        </view>
+        <view class="text-group_17 flex-col justify-between">
+          <view class="text_12">复制视频链接</view>
+          <view class="text_13">点「转发」，弹窗底部有「复制链接」</view>
+        </view>
+        <view class="section_4 flex-col"></view>
+      </view>
+      <view class="section_5 flex-row">
+        <view class="text-wrapper_6 flex-col">
+          <view class="text_14">02</view>
+        </view>
+        <view class="text-group_18 flex-col justify-between">
+          <view class="text_15">粘贴到首页输入框</view>
+          <view class="text_16">点粘贴按钮自动填入</view>
+        </view>
+      </view>
+      <view class="section_6 flex-col"></view>
+      <view class="section_7 flex-row">
+        <view class="text-wrapper_7 flex-col">
+          <view class="text_17">03</view>
+        </view>
+        <view class="text-group_19 flex-col justify-between">
+          <view class="text_18">点立即提取</view>
+          <view class="text_19">结果自动存历史记录</view>
+        </view>
+      </view>
+      <view class="text-wrapper_8 flex-row">
+        <view class="text_20">✓</view>
+        <view class="text_21">新人专享 {{trialCredit}} 积分</view>
+      </view>
+    </scroll-view>
+    <view class="text-wrapper_9 flex-row x-tap" bindtap="goHome">
+      <view class="text_22">回首页开始提取</view>
+      <view class="text_23">→</view>
+    </view>
+  </view>
+  <x-dialog
+    show="{{dlg.show}}"
+    title="{{dlg.title}}"
+    content="{{dlg.content}}"
+    confirm-text="{{dlg.confirmText}}"
+    cancel-text="{{dlg.cancelText}}"
+    show-cancel="{{dlg.showCancel}}"
+    bind:confirm="onDialogConfirm"
+    bind:cancel="onDialogCancel"
+  />
+</view>

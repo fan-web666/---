@@ -1,0 +1,25 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/forward/forward",
+    "pages/loading/loading",
+    "pages/result/result",
+    "pages/history/history",
+    "pages/mine/mine",
+    "pages/usage/usage",
+    "pages/recharge/recharge",
+    "pages/member/member",
+    "pages/settings/settings",
+    "pages/referral/referral"
+  ],
+  "window": {
+    "navigationStyle": "custom",
+    "navigationBarBackgroundColor": "#FBFDFC",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#FBFDFC",
+    "backgroundTextStyle": "light"
+  },
+  "style": "v2",
+  "lazyCodeLoading": "requiredComponents",
+  "sitemapLocation": "sitemap.json"
+}
