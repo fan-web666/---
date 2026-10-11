@@ -1873,6 +1873,23 @@ async function asrTranscribe(media, task) {
     mpTiming.attempt_log = attemptLog;
     mpTiming.retry_ms = attemptLog.filter(a => a.outcome !== 'ok').reduce((n, a) => n + a.total_ms, 0);
   }
+  // ⭐ 2026-10-11 诊断增强：成功也打一行，云端日志一眼可见「用了哪个模型 / 几秒 / 有没有重试」。
+  //    原先只在失败时 console.warn，成功后无任何输出 → 排查「为什么这次慢」时无从下手。
+  try {
+    const t = mpTiming || {};
+    console.log(
+      '[providers] ASR 完成 · 模型=' + (modelUsed || '-') +
+      ' · 总耗时=' + (t.total_ms || 0) + 'ms' +
+      '（上传 ' + (t.upload_ms || 0) + 'ms / 服务端 ' + (t.wait_ms || 0) + 'ms）' +
+      ' · 尝试=' + attempts + ' 次' +
+      (attemptLog.length > 1
+        ? ' · 前序失败=' + attemptLog.filter(a => a.outcome !== 'ok').map(a => a.model + '(' + a.reason + ' ' + a.total_ms + 'ms)').join(', ')
+        : '') +
+      ' · 文本=' + String(text || '').length + ' 字'
+    );
+  } catch (e) {
+    /* 诊断日志本身绝不能影响主流程 */
+  }
   return { text: text, segments: [], mock: false, timing: mpTiming, audio: audioInfo };
 }
 
