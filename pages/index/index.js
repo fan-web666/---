@@ -110,6 +110,8 @@ Page({
       this._unsub();
       this._unsub = null;
     }
+    // 防连点锁的定时器：页面销毁后必须清掉，否则回调里操作已卸载的页面实例
+    clearTimeout(this._submitTimer);
   },
 
   /* ---------- 全局提取会话 → 按钮 ---------- */
@@ -297,6 +299,7 @@ Page({
     // ③ 本地视频：与链接路径共用「立即提取」这一个确认动作
     if (this.data.localVideo) {
       if (!this.precheckCredits()) return;
+      if (!this.lockSubmit()) return;
       tracker.track('home_start_extract', { platform: 'local' });
       const v = this.data.localVideo;
       // ⚠️ 传对象（{ path, thumb }）而非裸路径 —— 会话要把 thumb 转存成列表封面
@@ -311,6 +314,7 @@ Page({
         url: '/pages/loading/loading',
         // 已开始 → 清掉已选态，返回首页时状态干净（不会像"还在等提取"）
         success: () => this.setData({ localVideo: null }),
+        fail: () => this.unlockSubmit(),
       });
       return;
     }
@@ -322,10 +326,32 @@ Page({
     const url = extractUrl(raw) || raw;
     if (!isValidUrl(url)) return toast('链接格式不太对，请检查后再试');
     if (!this.precheckCredits()) return;
+    if (!this.lockSubmit()) return;
 
     tracker.track('home_start_extract', { platform: detectPlatform(url) });
     sess.start({ mode: 'link', url });
-    wx.navigateTo({ url: '/pages/loading/loading' });
+    wx.navigateTo({ url: '/pages/loading/loading', fail: () => this.unlockSubmit() });
+  },
+
+  /**
+   * ⭐ 2026-10-11 防连点锁：只在「真正要建新任务」的两条分支上生效。
+   *    背景：requestId 每次调用都重新生成，后端幂等只在「同一次提交重试」时生效，
+   *          拦不住用户快速连点两次 → 会建出两个任务（第 2 个虽会被「当日去重」拦下，仍多一次请求）。
+   *    设计：1.2 秒窗口足够覆盖跳页期间的所有连点；跳页失败（fail）立即解锁，
+   *          避免"导航失败但锁没释放"导致按钮永久失效。
+   *    ⚠️ 不放在函数最前面：上面两个「已有任务 → 只跳页」的分支不建任务，不该被锁。
+   */
+  lockSubmit() {
+    if (this._submitting) return false;
+    this._submitting = true;
+    clearTimeout(this._submitTimer);
+    this._submitTimer = setTimeout(() => { this._submitting = false; }, 1200);
+    return true;
+  },
+
+  unlockSubmit() {
+    this._submitting = false;
+    clearTimeout(this._submitTimer);
   },
 
   /* ---------- 跳转 ---------- */

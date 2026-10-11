@@ -68,7 +68,11 @@ async function runTaskScan() {
       status: cmd().in(IN_FLIGHT_STATUS),
       updated_at: cmd().lt(threshold),
     })
-    .limit(5)
+    // ⭐ 2026-10-11 并发放宽：原来 limit(5) —— 每分钟最多只能救 5 个任务，
+    //    并发量上来后积压会持续增长（第 6 个要等下一个整分钟）。
+    //    调大到 20 不会让单次调用变慢：下面 for 循环有 `if (Date.now() > deadline) break`，
+    //    真正的约束是 40 秒总预算；调大的收益是**相邻的短任务能连着推完**，而不是卡在 5 这个硬顶上。
+    .limit(20)
     .get();
 
   const out = [];
