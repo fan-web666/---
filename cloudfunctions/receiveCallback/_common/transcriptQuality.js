@@ -12,6 +12,8 @@ const RULES = [
   { id: 'unexpected', re: /出奇不意/g, fix: () => '出其不意' },
   { id: 'local-conditions', re: /因地治宜/g, fix: () => '因地制宜' },
   { id: 'as-always', re: /一如即往/g, fix: () => '一如既往' },
+  // ⭐ 2026-10-12：「自已」在任何语境下都不是词（语音识别/模型都可能产出），恒为错 → 直接换。
+  { id: 'self', re: /自已/g, fix: () => '自己' },
 ];
 
 function compact(s) { return String(s || '').replace(/[\s，。！？；：、,.!?;:“”"'（）()]/g, ''); }

@@ -107,8 +107,18 @@ function cleanTranscript(text) {
 function buildContent(structured, transcriptText) {
   const s = structured || {};
   const correct = text => reconcileTranscript({ transcript: text }).text;
-  // 主稿已经过字幕/音频对照；不能再次单独纠错而推翻双来源保留的用字。
-  const transcript = transcriptText || s.transcript || '';
+  // ⭐ 2026-10-12 提取精度：优先采用大模型回填的「校对后全文」——
+  //    无字幕（语音识别主稿）时它已修掉同音错别字（夺舌→夺舍 / 京剧→金句 / 频繁→平淡），
+  //    有字幕时提示词要求原样回填字幕版，等价于原稿。
+  //    兜底防模型偷懒（返回空 / 明显变短）→ 一律回退原稿，绝不因模型失手丢内容：
+  const compactLen = t => String(t || '').replace(/\s/g, '').length;
+  const raw = transcriptText || '';
+  const llmText = String(s.transcript || '').trim();
+  const srcLen = compactLen(raw);
+  const usable = compactLen(llmText) > 0 && (srcLen === 0 || compactLen(llmText) >= srcLen * 0.6);
+  // 主稿已经过字幕/音频对照；这里只再跑一遍**本地固定搭配规则**（不依赖模型，纯确定性）——
+  // ⚠️ 原实现漏掉了这一步：规则库只作用于 hook/highlights/points，「口播原文」从未被纠错。
+  const transcript = correct(usable ? llmText : (raw || llmText));
   const hook = correct(s.hook || '');
   const highlights = Array.isArray(s.highlights) ? s.highlights.map(correct) : [];
   const points = Array.isArray(s.points) ? s.points.map(p => ({ ...p, title: correct(p.title || ''), text: correct(p.text || '') })) : [];
