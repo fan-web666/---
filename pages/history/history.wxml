@@ -83,7 +83,7 @@
               data-id="{{it._id}}"
               bindtap="openDetail"
             ></video>
-            <view wx:else class="text_13">▶</view>
+            <image wx:else class="suite-video-icon" src="/images/home-green/video.png" mode="aspectFit" aria-hidden="true" />
           </view>
           <view class="box_11 flex-col justify-between">
             <view class="text-group_17 flex-col justify-between">
@@ -113,8 +113,8 @@
       </block>
       <view class="x-tip" wx:if="{{loading && !groups.length}}">正在加载…</view>
       <view class="x-empty" wx:elif="{{!groups.length}}">
-        <view class="ui-empty-art"><view class="ui-art"><image class="ui-orb" src="/images/home-figma/img.png"/><image class="ui-symbol" src="/images/home-figma/imgVideo.png"/><image class="ui-spark" src="/images/home-figma/imgSpark.png"/></view></view><view class="x-empty-t">还没有提取记录</view>
-        <view class="x-empty-s">转发视频号视频，或回首页粘贴链接提取</view>
+        <view class="ui-empty-art"><view class="ui-art"><image class="ui-full" src="/images/suite-green/document.png" mode="aspectFit" aria-hidden="true" /></view></view><view class="x-empty-t">还没有提取记录</view>
+        <view class="x-empty-s">粘贴视频链接或导入本地视频，开始积累素材</view>
       </view>
       <view class="box_5 flex-row">
         <view class="group_5 flex-col"></view>
@@ -124,15 +124,15 @@
     <view class="app-tabbar">
     <view class="app-tabrow">
       <view class="app-tab " bindtap="goHome" hover-class="app-tab-pressed" role="button" aria-label="首页">
-        <view class="app-tab-icon x-tabico x-tabico-home "></view>
+        <image class="app-tab-icon" src="/images/tabbar-fun/tab-home-off.png" mode="aspectFit" aria-hidden="true" />
         <text class="app-tab-label">首页</text>
       </view>
       <view class="app-tab app-tab-active"  aria-label="历史，当前页面">
-        <view class="app-tab-icon x-tabico x-tabico-hist x-tabico-on"></view>
+        <image class="app-tab-icon" src="/images/tabbar-fun/tab-history-on.png" mode="aspectFit" aria-hidden="true" />
         <text class="app-tab-label">历史</text>
       </view>
       <view class="app-tab " bindtap="goMine" hover-class="app-tab-pressed" role="button" aria-label="我的">
-        <view class="app-tab-icon x-tabico x-tabico-user "></view>
+        <image class="app-tab-icon" src="/images/tabbar-fun/tab-user-off.png" mode="aspectFit" aria-hidden="true" />
         <text class="app-tab-label">我的</text>
       </view>
     </view>

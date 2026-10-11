@@ -1,7 +1,12 @@
 {
   "description": "极速视频文案提取 · 蓝湖设计稿还原版",
   "packOptions": {
-    "ignore": [],
+    "ignore": [
+      {
+        "type": "folder",
+        "value": "cloud-common"
+      }
+    ],
     "include": []
   },
   "setting": {

@@ -3,6 +3,8 @@
 
 const DB_COLLECTIONS = {
   users: 'users',
+  referralCodes: 'referral_codes',
+  referralBindings: 'referral_bindings',
   copywritings: 'copywritings',
   tasks: 'tasks',
   orders: 'orders',

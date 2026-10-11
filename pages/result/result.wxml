@@ -35,7 +35,7 @@
           enable-progress-gesture="{{false}}"
           bindtap="copySource"
         ></video>
-        <view wx:else class="text_6">▶</view>
+        <image wx:else class="suite-video-icon" src="/images/home-green/video.png" mode="aspectFit" aria-hidden="true" />
       </view>
       <view class="group_10 flex-col justify-between">
         <view class="text-group_9 flex-col justify-between">
@@ -113,7 +113,7 @@
     </view>
     <view class="text-wrapper_7 flex-row x-tap" bindtap="copyAll">
       <view class="text_19">一键复制全文</view>
-      <view class="text_20">□</view>
+      <view class="suite-copy-icon" aria-hidden="true"></view>
     </view>
   </view>
 </view>

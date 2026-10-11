@@ -1,0 +1,17 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="15.59" height="15.59" viewBox="0 0 15.59 15.59" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="x-ico x-ico-shield" clip-path="url(#clip0_0_88)">
+<g id="&#230;&#143;&#146;&#231;&#148;&#187; / suite-shield">
+<path id="Vector" d="M7.79499 1.94875C9.90613 3.24792 11.7737 3.8975 13.3976 3.8975V8.28219C13.3976 10.7181 11.5301 12.5857 7.79499 13.8848C4.05988 12.5857 2.19233 10.7181 2.19233 8.28219V3.8975C3.81629 3.8975 5.68384 3.24792 7.79499 1.94875Z" fill="url(#paint0_linear_0_88)" stroke-width="0.608984" stroke-linejoin="round" stroke="#173D2A"/>
+<path id="Vector_2" d="M5.35905 7.30781L7.0642 9.01297L10.4745 5.60266" stroke-width="0.974375" stroke-linecap="round" stroke-linejoin="round" stroke="#173D2A"/>
+</g>
+</g>
+<defs>
+<linearGradient id="paint0_linear_0_88" x1="2.19233" y1="1.94875" x2="10.715" y2="13.3786" gradientUnits="userSpaceOnUse">
+<stop stop-color="#DFFF79"/>
+<stop offset="1" stop-color="#73E49D"/>
+</linearGradient>
+<clipPath id="clip0_0_88">
+<rect width="15.59" height="15.59" fill="white"/>
+</clipPath>
+</defs>
+</svg>

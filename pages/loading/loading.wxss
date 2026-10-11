@@ -1,4 +1,4 @@
-/* 对应 Figma「全界面 · 淡彩焕新」，尺寸按 390px → 750rpx 换算。 */
+/* 对应 Figma「全界面 · 鲜绿统一」，尺寸按 390px → 750rpx 换算。 */
 .x-scroll {
   width:100%;
   height:0;
@@ -36,12 +36,12 @@
   display:flex;
   align-items:center;
   font-size:52rpx;
-  color:#727686;
+  color:#79817D;
 }
 
 .x-nav-action {
   font-size:23rpx;
-  color:#8273FA;
+  color:#16854A;
   white-space:nowrap;
   margin-left:auto;
 }
@@ -70,27 +70,27 @@ font-weight:700
 
 .x-cardhead-more {
   font-size:23rpx;
-color:#A1A5B2
+color:#A1AAA4
 }
 
 .x-chevron {
   font-size:40rpx;
   line-height:1;
-  color:#A1A5B2;
+  color:#A1AAA4;
 margin-left:12rpx
 }
 
 .x-empty {
   font-size:26rpx;
   line-height:1.6;
-  color:#727686;
+  color:#79817D;
   padding:30rpx 0;
 text-align:center
 }
 
 .x-udivider {
   height:1rpx;
-  background:#EDF0F5;
+  background:#E8EEEA;
   width:100%;
 margin:28rpx 0
 }
@@ -112,12 +112,12 @@ gap:22rpx
   height:94rpx;
   border-radius:26rpx;
   overflow:hidden;
-background:#F0EDFF
+background:#E8FAEF
 }
 
 .x-video-play {
   font-size:29rpx;
-color:#8273FA
+color:#16854A
 }
 
 .x-video-info {
@@ -138,7 +138,7 @@ white-space:nowrap
 .x-video-sub {
   font-size:23rpx;
   line-height:1.6;
-  color:#727686;
+  color:#79817D;
 }
 
 .x-ring-wrap {
@@ -166,13 +166,13 @@ height:300rpx
 .x-ring-pct {
   font-size:64rpx;
   font-weight:900;
-  color:#20212C;
+  color:#1B2620;
 line-height:1.2
 }
 
 .x-ring-label {
   font-size:23rpx;
-  color:#727686;
+  color:#79817D;
 margin-top:12rpx
 }
 
@@ -186,14 +186,14 @@ text-align:center
 .x-state-title {
   font-size:33rpx;
   font-weight:700;
-  color:#20212C;
+  color:#1B2620;
 line-height:1.4
 }
 
 .x-state-sub {
   font-size:23rpx;
   line-height:1.6;
-  color:#727686;
+  color:#79817D;
 }
 
 .x-steps {
@@ -217,7 +217,7 @@ align-items:center
   width:48rpx;
   height:48rpx;
   border-radius:18rpx;
-background:#EDF0F5
+background:#E8EEEA
 }
 
 .x-step-mark {
@@ -226,13 +226,13 @@ font-weight:700
 }
 
 .x-step-doing {
-  background:#8273FA;
+  background:#B8F76A;
 color:white
 }
 
 .x-step-done {
-  background:#D9FFF2;
-color:#527769
+  background:#E8FAEF;
+color:#16854A
 }
 
 .x-step-body {
@@ -243,33 +243,33 @@ gap:6rpx
 
 .x-step-name {
   font-size:27rpx;
-  color:#727686;
+  color:#79817D;
 font-weight:700
 }
 
 .x-step-name-doing {
-color:#20212C
+color:#1B2620
 }
 
 .x-step-name-done {
-color:#527769
+color:#16854A
 }
 
 .x-step-status {
   font-size:21rpx;
-  color:#A1A5B2;
+  color:#A1AAA4;
 line-height:1.4
 }
 
 .x-footer {
   padding:18rpx 38rpx calc(24rpx + env(safe-area-inset-bottom));
-background:#EFF3F7
+background:#F4F5F6
 }
 
 .x-foot-hint {
   font-size:21rpx;
   line-height:1.6;
-  color:#727686;
+  color:#79817D;
   text-align:center;
 margin-bottom:18rpx
 }
@@ -290,7 +290,7 @@ color:#D95C73
 
 .x-back {
   margin-top:16rpx;
-  background:#8273FA;
+  background:#B8F76A;
 color:white
 }
 
@@ -302,3 +302,7 @@ font-size:27rpx
 text-align:center
 }
 
+
+/* 与首页共用轻阴影；激活状态只改变颜色，布局尺寸保持固定。 */
+.x-video,.x-steps,.x-cancel{box-shadow:var(--card-shadow);}
+.x-step-doing,.x-back{color:#1B2620;}

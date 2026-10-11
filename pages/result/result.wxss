@@ -1,4 +1,4 @@
-/* 对应 Figma「全界面 · 淡彩焕新」，尺寸按 390px → 750rpx 换算。 */
+/* 对应 Figma「全界面 · 鲜绿统一」，尺寸按 390px → 750rpx 换算。 */
 .x-scroll {
   width:100%;
   height:0;
@@ -36,12 +36,12 @@
   display:flex;
   align-items:center;
   font-size:52rpx;
-  color:#727686;
+  color:#79817D;
 }
 
 .x-nav-action {
   font-size:23rpx;
-  color:#8273FA;
+  color:#16854A;
   white-space:nowrap;
   margin-left:auto;
 }
@@ -70,27 +70,27 @@ font-weight:700
 
 .x-cardhead-more {
   font-size:23rpx;
-color:#A1A5B2
+color:#A1AAA4
 }
 
 .x-chevron {
   font-size:40rpx;
   line-height:1;
-  color:#A1A5B2;
+  color:#A1AAA4;
 margin-left:12rpx
 }
 
 .x-empty {
   font-size:26rpx;
   line-height:1.6;
-  color:#727686;
+  color:#79817D;
   padding:30rpx 0;
 text-align:center
 }
 
 .x-udivider {
   height:1rpx;
-  background:#EDF0F5;
+  background:#E8EEEA;
   width:100%;
 margin:28rpx 0
 }
@@ -105,7 +105,7 @@ margin:28rpx 0
 
 .text_3 {
   font-size:52rpx;
-  color:#727686;
+  color:#79817D;
   line-height:72rpx;
 min-width:40rpx
 }
@@ -113,14 +113,14 @@ min-width:40rpx
 .text_4 {
   font-size:36rpx;
   font-weight:700;
-  color:#20212C;
+  color:#1B2620;
   white-space:nowrap;
 line-height:1.4
 }
 
 .text_5 {
   font-size:23rpx;
-  color:#8273FA;
+  color:#16854A;
   white-space:nowrap;
   margin-left:auto;
 }
@@ -140,7 +140,7 @@ gap:20rpx
 .x-thumb,.x-thumb-media {
   width:94rpx;
   height:94rpx;
-  background:#F0EDFF;
+  background:#E8FAEF;
   border-radius:24rpx;
 overflow:hidden
 }
@@ -152,7 +152,7 @@ justify-content:center
 
 .text_6 {
   font-size:29rpx;
-color:#8273FA
+color:#16854A
 }
 
 .group_10 {
@@ -176,7 +176,7 @@ white-space:nowrap
 .text_8 {
   font-size:23rpx;
   line-height:1.6;
-  color:#727686;
+  color:#79817D;
 }
 
 .group_3 {
@@ -186,7 +186,7 @@ white-space:nowrap
   border-radius:44rpx;
   margin-top:24rpx;
   padding:8rpx;
-  background:#E6E8F2;
+  background:#E8EEEA;
   gap:8rpx;
 min-height:84rpx
 }
@@ -202,7 +202,7 @@ border-radius:24rpx
 .text_10,.text_11 {
   font-size:26rpx;
   font-weight:700;
-color:#8273FA
+color:#16854A
 }
 
 .x-seg-off {
@@ -210,7 +210,7 @@ background:transparent
 }
 
 .x-seg-off .text_10,.x-seg-off .text_11 {
-  color:#727686;
+  color:#79817D;
 font-weight:400
 }
 
@@ -218,7 +218,7 @@ font-weight:400
   font-size:31rpx;
   line-height:1.4;
   font-weight:700;
-  color:#20212C;
+  color:#1B2620;
 margin:30rpx 38rpx 20rpx
 }
 
@@ -229,7 +229,7 @@ margin:30rpx 38rpx 20rpx
   border-radius:44rpx;
   margin-top:18rpx;
   padding:28rpx;
-  background:#F0EDFF;
+  background:#E8FAEF;
   gap:18rpx;
   align-items:stretch;
 justify-content:flex-start
@@ -238,23 +238,23 @@ justify-content:flex-start
 .section_1 {
   width:6rpx;
   min-height:70rpx;
-  background:#8273FA;
+  background:#B8F76A;
 border-radius:6rpx
 }
 
 .text_13 {
   flex:1 1 0;
   min-width:0;
-  font-size:29rpx;
+  font-size:31rpx;
   font-weight:700;
   line-height:1.65;
-color:#6859D9
+color:#16854A
 }
 
 .text_14 {
   font-size:23rpx;
   line-height:1.6;
-  color:#727686;
+  color:#79817D;
 margin:20rpx 38rpx 4rpx
 }
 
@@ -274,20 +274,20 @@ gap:12rpx
 }
 
 .group_5-0+.group_5-0 {
-border-top:1rpx solid #EDF0F5
+border-top:1rpx solid #E8EEEA
 }
 
 .text_15-0 {
-  font-size:29rpx;
+  font-size:31rpx;
   font-weight:700;
-  color:#20212C;
+  color:#1B2620;
 line-height:1.5
 }
 
 .paragraph_1-0,.x-para {
-  font-size:27rpx;
+  font-size:30rpx;
   line-height:1.8;
-  color:#727686;
+  color:#79817D;
 word-break:break-word
 }
 
@@ -304,7 +304,7 @@ margin-top:20rpx
 .x-raw-meta,.x-raw-empty,.x-empty,.x-editor-hint {
   font-size:23rpx;
   line-height:1.6;
-  color:#727686;
+  color:#79817D;
 margin:24rpx 38rpx
 }
 
@@ -316,7 +316,7 @@ margin:24rpx 38rpx
   padding:30rpx;
   background:white;
   min-height:500rpx;
-  font-size:28rpx;
+  font-size:30rpx;
 line-height:1.8
 }
 
@@ -330,21 +330,21 @@ border-radius:40rpx 40rpx 0 0
 .text-wrapper_6 {
   flex:1 1 0;
   min-width:0;
-  background:#F0EDFF;
+  background:#E8FAEF;
   border-radius:28rpx;
 min-height:96rpx
 }
 
 .text_18 {
   font-size:26rpx;
-  color:#6859D9;
+  color:#16854A;
 font-weight:700
 }
 
 .text-wrapper_7 {
   flex:1.7 1 0;
   min-width:0;
-  background:#8273FA;
+  background:#B8F76A;
   border-radius:28rpx;
   min-height:96rpx;
   align-items:center;
@@ -358,3 +358,13 @@ gap:14rpx
 color:white
 }
 
+
+/* 与首页共用轻阴影；激活状态只改变颜色，布局尺寸保持固定。 */
+.group_1,.box_2,.list_3,.x-para,.x-editor-area{box-shadow:var(--card-shadow);}
+.text_19,.text_20{color:#1B2620;}
+.section_1{background:#B8F76A;}
+
+.suite-copy-icon{position:relative;width:27rpx;height:30rpx;flex-shrink:0;margin-left:3rpx;}
+.suite-copy-icon::before,.suite-copy-icon::after{content:"";position:absolute;width:20rpx;height:23rpx;border:2rpx solid #1B2620;border-radius:4rpx;}
+.suite-copy-icon::before{left:0;top:0;background:#B8F76A;}
+.suite-copy-icon::after{right:0;bottom:0;background:#B8F76A;}

@@ -173,7 +173,7 @@ Page({
       title: '从本页移除',
       content: '只会从这份消费明细里移除，文案库里的内容不受影响。',
       confirmText: '移除',
-      confirmColor: '#8273FA',
+      confirmColor: '#16854A',
       success: (r) => {
         if (!r.confirm) return;
         call('hideUsage', { task_id: id })

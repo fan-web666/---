@@ -1,3 +1,4 @@
+const { reconcileTranscript } = require('./transcriptQuality');
 // _common/copywriting.js - 文案结果组装（PRD R-09 schema + F-04/V-01 长文页数据结构）
 // content 结构：
 //   { hook, highlights[], points[], transcript, full_markdown }
@@ -105,17 +106,22 @@ function cleanTranscript(text) {
  */
 function buildContent(structured, transcriptText) {
   const s = structured || {};
+  const correct = text => reconcileTranscript({ transcript: text }).text;
+  // 主稿已经过字幕/音频对照；不能再次单独纠错而推翻双来源保留的用字。
   const transcript = transcriptText || s.transcript || '';
+  const hook = correct(s.hook || '');
+  const highlights = Array.isArray(s.highlights) ? s.highlights.map(correct) : [];
+  const points = Array.isArray(s.points) ? s.points.map(p => ({ ...p, title: correct(p.title || ''), text: correct(p.text || '') })) : [];
   return {
-    hook: s.hook || '',
-    highlights: Array.isArray(s.highlights) ? s.highlights : [],
-    points: Array.isArray(s.points) ? s.points : [],
+    hook,
+    highlights,
+    points,
     transcript,
     full_markdown: markdownify({
       title: s.title || '',
-      hook: s.hook || '',
-      highlights: Array.isArray(s.highlights) ? s.highlights : [],
-      points: Array.isArray(s.points) ? s.points : [],
+      hook,
+      highlights,
+      points,
       transcript,
     }),
   };

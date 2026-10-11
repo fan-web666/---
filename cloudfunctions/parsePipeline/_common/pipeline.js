@@ -23,6 +23,7 @@ const { db, cmd, COLL } = require('./db');
 const { TASK_STATUS } = require('./consts');
 const { executeCharge, rollbackCharge } = require('./credit');
 const providers = require('./providers');
+const { reconcileTranscript } = require('./transcriptQuality');
 const { buildContent, cleanTranscript } = require('./copywriting');
 const wxapi = require('./wxapi');
 
@@ -83,7 +84,9 @@ async function claim(task) {
       phase_started_at: cmd().or([cmd().exists(false), cmd().lt(new Date(nowD.getTime() - LEASE_MS))]),
     })
     .update({ data: { phase_started_at: nowD, updated_at: nowD } });
-  return !!(res && res.stats && res.stats.updated);
+  const claimed = !!(res && res.stats && res.stats.updated);
+  if (claimed) task._leaseAt = nowD;
+  return claimed;
 }
 
 /** 生成事件（埋点，失败不阻塞主流程） */
@@ -105,10 +108,10 @@ async function emit(event, props) {
 }
 
 /** 推进一步到下一步（清空租约，让下一步立即可被认领） */
-async function moveTo(taskId, status, extra) {
-  await COLL
+async function moveTo(task, status, extra) {
+  const res = await COLL
     .tasks()
-    .doc(taskId)
+    .where({ _id: task._id, status: task.status, phase_started_at: task._leaseAt })
     .update({
       data: Object.assign(
         {
@@ -119,6 +122,11 @@ async function moveTo(taskId, status, extra) {
         extra || {}
       ),
     });
+  if (!(res && res.stats && res.stats.updated)) {
+    const error = new Error('任务已取消或步骤已被其他执行器接管');
+    error.code = 'TASK_LEASE_LOST';
+    throw error;
+  }
 }
 
 /** 清理任务留下的媒体文件与云存储中转件（任务进入终态时调用；PRD 8.4 不留存源视频） */
@@ -137,7 +145,7 @@ async function cleanupTaskMedia(task) {
  * 记录一次「可重试」的步骤失败：累加重试计数、留下最后错误（供诊断），
  * 并把租约还回去 —— 否则下一次轮询会一直 busy 空等到租约自然过期。
  */
-async function markStepError(taskId, status, tries, msg, timing) {
+async function markStepError(task, status, tries, msg, timing) {
   const data = {
     phase_started_at: EPOCH,
     step_meta: { status, tries, last_error: msg, last_at: now() },
@@ -152,16 +160,16 @@ async function markStepError(taskId, status, tries, msg, timing) {
   }
   await COLL
     .tasks()
-    .doc(taskId)
+    .where({ _id: task._id, status, phase_started_at: task._leaseAt })
     .update({ data })
     .catch((e) => console.warn('[pipeline] 记录步骤错误失败', e && e.message));
 }
 
 /** 标记失败（含已扣费用退还；幂等——refunded 后不再重复退） */
 async function failTask(task, reason, msg) {
-  await COLL
+  const failedWrite = await COLL
     .tasks()
-    .doc(task._id)
+    .where({ _id: task._id, status: task.status, ...(task._leaseAt ? { phase_started_at: task._leaseAt } : {}) })
     .update({
       data: {
         status: TASK_STATUS.FAILED,
@@ -175,6 +183,8 @@ async function failTask(task, reason, msg) {
       },
     })
     .catch((e) => console.warn('[pipeline] 标记失败写入异常', e && e.message));
+
+  if (!(failedWrite && failedWrite.stats && failedWrite.stats.updated)) return;
 
   if (task.charged && !task.refunded && task.credit_decision) {
     await rollbackCharge(task.uid, task.credit_decision).catch((e) =>
@@ -314,7 +324,7 @@ async function stepResolve(task) {
     decision = chargeRes.decision;
   }
 
-  await moveTo(task._id, TASK_STATUS.DOWNLOADING, {
+  await moveTo(task, TASK_STATUS.DOWNLOADING, {
     resolved: {
       url: resolved.url || '',
       title: resolved.title || '',
@@ -346,6 +356,14 @@ async function stepResolve(task) {
 /** 步骤 2：备好媒体文件（只下载；转写单独一步，避免两步串行撞 60 秒上限） */
 async function stepDownload(task) {
   const t0 = Date.now();
+  // 本地云文件在转写步骤下载一次；不同云实例之间不依赖 /tmp 共享。
+  if (task.file_id && /^cloud:\/\//.test(task.file_id)) {
+    await moveTo(task, TASK_STATUS.TRANSCRIBING, {
+      subtitle_probed: true,
+      ['timing.download']: { ms: Date.now() - t0, skipped: 'local_download_in_transcribe' },
+    });
+    return { ok: true, step: 'download', skipped: true };
+  }
   const resolved = task.resolved || {};
   const wantCorrect = String(providers.env('ASR_CORRECT', 'false')).toLowerCase() === 'true';
 
@@ -364,7 +382,7 @@ async function stepDownload(task) {
       console.warn('[pipeline] 字幕预抓失败，回退下载视频', e && e.message);
     }
     if (subText) {
-      await moveTo(task._id, TASK_STATUS.TRANSCRIBING, {
+      await moveTo(task, TASK_STATUS.TRANSCRIBING, {
         media_path: '',
         media_size: 0,
         subtitle_text: subText,
@@ -398,7 +416,7 @@ async function stepDownload(task) {
     }
   }
 
-  await moveTo(task._id, TASK_STATUS.TRANSCRIBING, {
+  await moveTo(task, TASK_STATUS.TRANSCRIBING, {
     media_path: media.path || '',
     media_size: media.sizeBytes || 0,
     media_file_id: relayFileId || '',
@@ -409,6 +427,7 @@ async function stepDownload(task) {
       ms: Date.now() - t0,
       dl_ms: dlMs,
       bytes: media.sizeBytes || 0,
+      fetchMode: media.fetchMode || '',
       cached: !!media.cached, // true = 命中本实例 /tmp，没真正下载
       relay: !!media.relay, // true = 从云存储中转件取回
       parallel: !!media.parallel, // true = 走了分片并发
@@ -467,6 +486,7 @@ async function stepTranscribe(task) {
       cached: !!media.cached,
       relay: !!media.relay,
       bytes: media.sizeBytes || 0,
+      fetchMode: media.fetchMode || '',
     };
     const a0 = Date.now();
     const asr = await providers.asrTranscribe(media, task);
@@ -481,16 +501,18 @@ async function stepTranscribe(task) {
     //    统一在任务进入终态时清理（stepStructure 成功 / failTask）。
   }
 
-  const transcript = subtitleText || asrText;
+  const quality = reconcileTranscript({ subtitle: subtitleText, asrText });
+  const transcript = quality.text;
   if (!transcript.trim()) {
     throw new Error('没有提取到文字内容，请确认视频里有清晰的口播或字幕');
   }
 
   const source = subtitleText ? (asrText ? 'subtitle+asr' : 'subtitle') : 'asr';
-  await moveTo(task._id, TASK_STATUS.ASR, {
+  await moveTo(task, TASK_STATUS.ASR, {
     subtitle_text: subtitleText,
     asr_text: asrText,
     transcript_text: transcript,
+    transcript_quality: { rule_version: quality.ruleVersion, edits: quality.edits },
     text_source: source,
     ['timing.transcribe']: {
       ms: Date.now() - t0,
@@ -499,6 +521,7 @@ async function stepTranscribe(task) {
       media_cached: mediaStat ? mediaStat.cached : null,
       media_relay: mediaStat ? mediaStat.relay : null,
       media_fetch_ms: mediaFetchMs,
+      media_fetch_mode: mediaStat ? mediaStat.fetchMode : '',
       media_bytes: mediaStat ? mediaStat.bytes : 0,
       asr_ms: asrMs,
       // ⭐ 拆分打点（2026-09-29 提速排查）：upload=上行耗时，wait=服务端耗时，bytes=实际上传字节
@@ -507,6 +530,8 @@ async function stepTranscribe(task) {
       // ⭐ 实际用的模型与尝试次数（提速排查：模型算力池差异极大，见 providers.js#asrTranscribe）
       asr_model: asrT ? asrT.model || '' : '',
       asr_attempts: asrT ? asrT.attempts || 0 : 0,
+      asr_retry_ms: asrT ? asrT.retry_ms || 0 : 0,
+      asr_attempt_log: asrT ? asrT.attempt_log || [] : [],
       asr_bytes: asrT ? asrT.bytes : mediaStat ? mediaStat.bytes : 0,
       // ⭐ 音频轨抽取的收益（提速核心）：原始体积 → 实际上传体积
       asr_audio_from: asrAudio ? asrAudio.from_bytes : 0,
@@ -529,12 +554,19 @@ async function stepTranscribe(task) {
 /** 步骤 3：LLM 结构化 + 归档 + 推卡 */
 async function stepStructure(task) {
   const t0 = Date.now();
-  const transcript = task.transcript_text || '';
+  const quality = reconcileTranscript({ subtitle: task.subtitle_text || '', asrText: task.asr_text || '', transcript: task.transcript_text || '' });
+  const transcript = quality.text;
   const subtitle = task.subtitle_text || '';
   const asrText = task.asr_text || '';
 
   let structured = null;
   let resultStatus = 'ok';
+  // 封面归档与文案整理相互独立，并行准备；都完成后才写结果，保留完整输出。
+  const resolved = task.resolved || {};
+  const coverReady = providers.relayCover(resolved.cover, task._id).catch((e) => {
+    console.warn('[pipeline] 封面归档失败，保留原地址', e && e.message);
+    return '';
+  });
   let llmMs = 0;
   try {
     const l0 = Date.now();
@@ -551,7 +583,6 @@ async function stepStructure(task) {
     resultStatus = 'plain_fallback';
   }
 
-  const resolved = task.resolved || {};
   const content = buildContent(structured, transcript);
   const title =
     (structured && structured.title) || resolved.title || task.video_title || '视频口播文案';
@@ -559,7 +590,7 @@ async function stepStructure(task) {
   // ⭐ 2026-09-28：封面转存云存储。平台封面直链带签名时效（几小时~一两天就 403），
   //    过期后历史 / 详情页只能降级成色块 → 归档时把图下一份放进自己云存储，库里改存 fileID。
   //    转存失败返回 ''（内部已 try/catch），此处回落原直链，绝不影响归档主流程。
-  const coverFileId = await providers.relayCover(resolved.cover, task._id);
+  const coverFileId = await coverReady;
 
   const addRes = await COLL.copywritings().add({
     data: {
@@ -584,7 +615,8 @@ async function stepStructure(task) {
     },
   });
 
-  await moveTo(task._id, TASK_STATUS.DONE, {
+  try {
+  await moveTo(task, TASK_STATUS.DONE, {
     result_id: addRes._id,
     video_title: title,
     ['timing.structure']: {
@@ -598,6 +630,11 @@ async function stepStructure(task) {
     // 端到端耗时：从任务创建到出结果，诊断「整体为什么慢」直接看这个
     ['timing.total_ms']: Date.now() - (task.created_at ? new Date(task.created_at).getTime() : t0),
   });
+
+  } catch (e) {
+    if (e.code === 'TASK_LEASE_LOST') await COLL.copywritings().doc(addRes._id).remove().catch(() => {});
+    throw e;
+  }
 
   // 结果已落库，临时媒体文件用完即删（PRD 8.4 不留存源视频）
   await cleanupTaskMedia(task);
@@ -680,13 +717,14 @@ async function runTask(taskId) {
     if (task.status === TASK_STATUS.LLM) return await stepStructure(task);
     return { ok: false, reason: 'unknown_status', status: task.status };
   } catch (e) {
+    if (e && e.code === 'TASK_LEASE_LOST') return { ok: false, reason: 'busy', status: task.status };
     const msg = (e && (e.msg || e.message)) || '解析失败，请稍后重试';
     const nextTries = tries + 1;
     console.error('[pipeline] 步骤失败', task.status, '第 ' + nextTries + ' 次：', msg);
 
     // 超时 / 中断一类错误不立即判死，留给下一次轮询续跑（下载支持断点续传，重试往往能过）
     if (nextTries < STEP_MAX_TRIES && RETRYABLE_RE.test(msg)) {
-      await markStepError(taskId, task.status, nextTries, msg, {
+      await markStepError(task, task.status, nextTries, msg, {
         key: stepKey,
         ms: Date.now() - stepT0,
       });
@@ -744,10 +782,7 @@ async function runUntilDone(taskId, budgetMs, maxSteps) {
     if (last.reason === 'busy') {
       // 步骤正被别的调用占着（或上一次调用被强杀、租约还没自然过期）。
       // 只短暂等一下，别把整个时间预算耗在空转上 —— 前端下次轮询自然会再来。
-      busyWaits += 1;
-      if (busyWaits > 3) return last;
-      await sleep(800);
-      continue;
+      return last;
     }
     busyWaits = 0;
     // ⭐ 只有「成功推进一步」才计数 —— retryable 的重试（下载断点续传）不计入，
@@ -790,6 +825,7 @@ async function rescanPending(opts) {
 }
 
 module.exports = {
+  REVISION: '20261011-speed-r4',
   runTask,
   runUntilDone,
   rescanPending,

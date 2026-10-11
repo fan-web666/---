@@ -207,14 +207,18 @@ Page({
   //    现改为：选完**只回填已选信息、留在首页**，由「立即提取」统一触发两条路径。
   //    ⚠️ 不要再把 navigateTo 挪回这里。
   importVideo() {
-    wx.chooseMedia({
+    const useMedia = typeof wx.chooseMedia === 'function';
+    const choose = useMedia ? wx.chooseMedia : wx.chooseVideo;
+    if (typeof choose !== 'function') return toast('请升级微信后导入视频');
+    choose.call(wx, {
       count: 1,
       mediaType: ['video'],
+      ...(useMedia ? { sizeType: ['original'] } : { compressed: false }),
       sourceType: ['album'],
       maxDuration: pricing.MAX_DURATION_SEC,
       success: (res) => {
-        const file = res.tempFiles && res.tempFiles[0];
-        if (!file) return;
+        const file = useMedia ? (res.tempFiles && res.tempFiles[0]) : res;
+        if (!file || !file.tempFilePath) return toast('未获取到视频文件，请重新选择');
         const sizeMB = (file.size || 0) / 1024 / 1024;
         if (sizeMB > 100) return toast('视频超过 100MB，请换个更短的');
         const sec = file.duration || 0;
@@ -228,7 +232,7 @@ Page({
         this.setData({
           localVideo: {
             path: file.tempFilePath,
-            // ⭐ 体积/时长要一路带到提取会话：用来判断「值不值得压缩」（见 extract-session.js#shouldCompress）
+            // 原视频体积/时长用于上传显示与耗时诊断，不触发重新编码。
             sizeMB,
             durationSec: sec,
             // ⭐ 视频缩略图临时路径（chooseMedia 视频必带）：上传时转存到本地持久目录，
@@ -242,8 +246,8 @@ Page({
         // 链接被顺带清掉时要说明 —— 那是用户费力粘进来的内容，突然消失会困惑
         toast(hadUrl ? '已选择本地视频，原链接已清除' : '已选择本地视频', 'success');
       },
-      fail: () => {
-        // 用户取消选择，不提示
+      fail: (e) => {
+        if (!/cancel/i.test((e && e.errMsg) || '')) toast('无法读取相册视频，请检查相册权限或重新选择');
       },
     });
   },

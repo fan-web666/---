@@ -1,5 +1,5 @@
 // config/pricing.js - 定价与会员档位（与 PRD 6.3/6.4 已拍板值对齐）
-// 注意：云端以 cloudfunctions/_common/consts.js 为准（同一套数字，勿单边改）
+// 注意：云端以 cloud-common/consts.js 为准（同一套数字，勿单边改）
 
 module.exports = {
   // 新人积分（一次性，仅首次建档发放）

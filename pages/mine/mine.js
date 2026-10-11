@@ -132,7 +132,7 @@ Page({
     copyPrefText: '结构化整理',
     memberRowText: cachedOr('memberRowText', '未开通'),
 
-    version: 'v' + (config.version || '1.0.0'),
+    version: realVersion(),
     accountName: config.serviceAccountName,
 
     // 通用说明弹窗（x-dialog）—— 2026-09-27「帮助与反馈」由原生 wx.showModal 迁过来（正文左对齐）
@@ -159,6 +159,7 @@ Page({
   },
 
   onShow() {
+    this.setData({ version: realVersion() });
     this.refresh();
   },
 
@@ -565,14 +566,19 @@ function pickAvatar(user, cached) {
   return String((user && user.avatarUrl) || c.avatarUrl || '');
 }
 
-/** 版本号：体验版 / 正式版优先用真实值；开发者工具里常为空 → 回落 config */
+/** 微信仅在正式版提供线上版本号；不使用本地配置冒充上传或发布版本。 */
 function realVersion() {
   try {
     const info = wx.getAccountInfoSync && wx.getAccountInfoSync();
-    const v = info && info.miniProgram && info.miniProgram.version;
-    return 'v' + (v || config.version || '1.0.0');
+    const miniProgram = (info && info.miniProgram) || {};
+    const env = miniProgram.envVersion;
+    if (env === 'develop') return '开发版';
+    if (env === 'trial') return '体验版';
+    const v = typeof miniProgram.version === 'string' ? miniProgram.version.trim() : '';
+    if (v) return /^v/i.test(v) ? v : 'v' + v;
+    return '版本暂未获取';
   } catch (e) {
-    return 'v' + (config.version || '1.0.0');
+    return '版本暂未获取';
   }
 }
 

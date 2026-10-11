@@ -13,7 +13,7 @@
           <view class="text_8">{{balanceText}}</view>
         </view>
         <view class="text_9">积分</view>
-        <view class="ui-art"><image class="ui-orb" src="/images/app-figma/recharge-imgUiOrb.png"/><image class="ui-symbol" src="/images/app-figma/recharge-imgUiSymbol.png"/><image class="ui-spark" src="/images/home-figma/imgSpark.png"/></view>
+        <view class="ui-art"><image class="ui-full" src="/images/suite-green/coins.png" mode="aspectFit" aria-hidden="true" /></view>
       </view>
       <view class="text-wrapper_27 flex-row">
         <view class="text_6">1 元 = {{rate}} 积分</view>

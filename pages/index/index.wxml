@@ -1,110 +1,41 @@
-<!-- Figma 3:11，390px 基准；状态栏与微信胶囊由系统原生绘制。 -->
+<!-- Figma 青柠首页 54:12；状态栏与微信胶囊由系统绘制。 -->
 <view class="x-home">
   <view class="x-statusbar" style="height:{{statusBarH}}px"></view>
   <view class="x-header" style="padding-right:{{navSafeRightRpx}}rpx; min-height:{{navBarH}}px">
-    <view class="x-brand">
-      <view class="x-brand-row">
-        <text class="x-brand-name">予行</text><text class="x-brand-dot">·</text><text class="x-brand-subtitle">文案快提</text>
-      </view>
-      <text class="x-brand-en">YuShine · Quick Extraction</text>
-    </view>
+    <view class="x-brand"><view class="x-brand-row"><text class="x-brand-name">予行</text><text class="x-brand-dot">·</text><text class="x-brand-subtitle">文案快提</text></view><text class="x-brand-en">YuShine · Quick Extraction</text></view>
   </view>
   <scroll-view class="x-home-scroll" scroll-y enhanced show-scrollbar="{{false}}">
     <view class="x-content">
       <view class="x-hero">
-        <view class="x-hero-copy">
-          <text class="x-hero-eyebrow">让好文案，触手可得</text>
-          <view class="x-hero-title"><text class="x-hero-title-line">提取精彩，</text><text class="x-hero-title-line">一键成稿</text></view>
-          <view class="x-hero-pill">VIDEO → TEXT</view>
-        </view>
-        <view class="x-hero-art" aria-hidden="true">
-          <image class="x-art-orb" src="/images/home-figma/img.png" mode="aspectFit" />
-          <view class="x-art-video"><image class="x-art-play" src="/images/home-figma/img1.png" mode="aspectFit" /></view>
-          <view class="x-art-document">
-            <view class="x-art-heading"></view>
-            <view class="x-art-line x-art-line-first"></view>
-            <view class="x-art-line x-art-line-second"></view>
-            <view class="x-art-line x-art-line-third"></view>
-            <image class="x-art-wave" src="/images/home-figma/img2.png" mode="aspectFit" />
-          </view>
-          <image class="x-art-mint" src="/images/home-figma/img3.png" mode="aspectFit" />
-          <image class="x-art-spark" src="/images/home-figma/imgSpark.png" mode="aspectFit" />
+        <image class="x-hero-fresh" src="/images/home-green/hero-fresh.png" mode="aspectFit" aria-hidden="true" />
+        <view class="x-hero-body">
+          <view class="x-hero-copy"><text class="x-hero-eyebrow">让好文案，触手可得</text><image class="x-hero-headline" src="/images/home-green/hero-headline.png" mode="aspectFit" aria-label="提取精彩，一键成稿" /><view class="x-hero-pill">VIDEO → TEXT</view></view>
+          <image class="x-hero-illustration" src="/images/home-green/hero.png" mode="aspectFit" aria-hidden="true" />
         </view>
       </view>
       <view class="x-shortcuts">
-        <view class="x-help-entry" bindtap="goForward" hover-class="x-pressed" role="button" aria-label="提取指南：三步轻松上手">
-          <text class="x-help-title">提取指南</text>
-          <text class="x-help-subtitle">三步轻松上手</text>
-        </view>
-        <view class="x-invite-entry" bindtap="goReferral" hover-class="x-pressed" role="button" aria-label="邀请好友得积分，每绑定一位新用户奖励100积分">
-          <view class="x-invite-copy">
-            <text class="x-invite-title">邀请好友得积分</text>
-            <view class="x-invite-rule"><text>每绑定1位新用户</text><text class="x-invite-bonus">+100 积分</text></view>
-          </view>
-          <view class="x-invite-arrow" aria-hidden="true">↗</view>
-        </view>
+        <view class="x-help-entry" bindtap="goForward" hover-class="x-pressed" role="button" aria-label="提取指南：三步轻松上手"><view class="x-help-heading"><image class="x-guide-art" src="/images/home-green/guide.png" mode="aspectFit" aria-hidden="true" /><text class="x-help-title">提取指南</text></view><text class="x-help-subtitle">三步轻松上手</text></view>
+        <view class="x-invite-entry" bindtap="goReferral" hover-class="x-pressed" role="button" aria-label="邀请好友得积分，每绑定一位新用户奖励100积分"><view class="x-invite-copy"><text class="x-invite-title">邀请好友得积分</text><text class="x-invite-bonus">+100 积分</text><text class="x-invite-rule">每绑定 1 位新用户</text></view><image class="x-gift-art" src="/images/home-green/gift.png" mode="aspectFit" aria-hidden="true" /></view>
       </view>
       <view class="x-balance-card">
-        <view class="x-balance-cell" bindtap="goRecharge" hover-class="x-pressed" role="button" aria-label="我的积分，点击充值">
-          <view class="x-icon-box x-balance-icon"><image class="x-icon-21" src="/images/home-figma/imgCoins.png" mode="aspectFit" /></view>
-          <view class="x-balance-copy"><text class="x-balance-label">我的积分</text><text class="x-balance-value">{{balanceText}}</text></view>
-          <image class="x-icon-13" src="/images/home-figma/imgChevron1.png" mode="aspectFit" />
-        </view>
-        <view class="x-balance-divider"></view>
-        <view class="x-balance-cell" bindtap="goMember" hover-class="x-pressed" role="button" aria-label="会员额度，点击会员中心">
-          <view class="x-icon-box x-balance-icon x-icon-box-mint"><image class="x-icon-21" src="/images/home-figma/imgCrown.png" mode="aspectFit" /></view>
-          <view class="x-balance-copy">
-            <text class="x-balance-label">会员额度</text>
-            <view class="x-member-values">
-              <text class="x-balance-value {{memberValue === '未开通' ? 'x-member-off' : ''}}">{{memberValue}}</text>
-              <text wx:if="{{memberQuotaText}}" class="x-member-quota">{{memberQuotaText}}</text>
-            </view>
-          </view>
-          <image class="x-icon-13" src="/images/home-figma/imgChevron1.png" mode="aspectFit" />
-        </view>
+        <view class="x-balance-cell" bindtap="goRecharge" hover-class="x-pressed" role="button" aria-label="我的积分，点击充值"><image class="x-balance-art" src="/images/home-green/coins.png" mode="aspectFit" aria-hidden="true" /><view class="x-balance-copy"><text class="x-balance-label">我的积分</text><text class="x-balance-value">{{balanceText}}</text></view><image class="x-chevron-small" src="/images/home-green/chevron.png" mode="aspectFit" aria-hidden="true" /></view>
+        <view class="x-balance-cell" bindtap="goMember" hover-class="x-pressed" role="button" aria-label="会员额度，点击会员中心"><image class="x-balance-art" src="/images/home-green/member.png" mode="aspectFit" aria-hidden="true" /><view class="x-balance-copy"><text class="x-balance-label">会员额度</text><view class="x-member-values"><text class="x-balance-value {{memberValue === '未开通' ? 'x-member-off' : ''}}">{{memberValue}}</text><text wx:if="{{memberQuotaText}}" class="x-member-quota">{{memberQuotaText}}</text></view></view><image class="x-chevron-small" src="/images/home-green/chevron.png" mode="aspectFit" aria-hidden="true" /></view>
       </view>
       <view class="x-extract-card">
         <view class="x-extract-heading"><text class="x-extract-title">开始提取</text><text class="x-extract-subtitle">把灵感变成文字</text></view>
-        <view class="x-link-field">
-          <image class="x-icon-18" src="/images/home-figma/imgLink.png" mode="aspectFit" />
-          <input class="x-link-input" value="{{url}}" placeholder="粘贴视频链接或分享口令" placeholder-class="x-link-placeholder"
-            confirm-type="go" maxlength="-1" bindinput="onInput" bindconfirm="startExtract" aria-label="视频链接或口令" />
-          <view class="x-paste" bindtap="readClipboard" hover-class="x-pressed" role="button">粘贴</view>
-        </view>
-        <view class="x-extract-divider"></view>
+        <view class="x-link-field"><image class="x-link-art" src="/images/home-green/link.png" mode="aspectFit" aria-hidden="true" /><input class="x-link-input" value="{{url}}" placeholder="粘贴视频链接或分享口令" placeholder-class="x-link-placeholder" confirm-type="go" maxlength="-1" bindinput="onInput" bindconfirm="startExtract" aria-label="视频链接或口令" /><view class="x-paste" bindtap="readClipboard" hover-class="x-pressed" role="button">粘贴</view></view>
         <view class="x-import-row" bindtap="importVideo" hover-class="x-pressed" role="button" aria-label="从相册导入本地视频">
-          <view class="x-icon-box x-import-icon {{localVideo ? 'x-icon-box-mint' : ''}}">
-            <text wx:if="{{localVideo}}" class="x-import-check">✓</text>
-            <image wx:else class="x-icon-22" src="/images/home-figma/imgVideo.png" mode="aspectFit" />
-          </view>
-          <view class="x-import-copy">
-            <text class="x-import-title">{{localVideo ? '已选择本地视频' : '导入本地视频'}}</text>
-            <text class="x-import-subtitle">{{localVideo ? localVideo.meta : '相册视频，≤100MB · ≤30 分钟'}}</text>
-          </view>
-          <view wx:if="{{localVideo}}" class="x-import-clear" catchtap="clearLocalVideo" role="button" aria-label="取消已选择的视频">×</view>
-          <image wx:else class="x-icon-18" src="/images/home-figma/imgChevron.png" mode="aspectFit" />
+          <view class="x-import-icon"><text wx:if="{{localVideo}}" class="x-import-check">✓</text><image wx:else class="x-video-art" src="/images/home-green/video.png" mode="aspectFit" aria-hidden="true" /></view>
+          <view class="x-import-copy"><text class="x-import-title">{{localVideo ? '已选择本地视频' : '导入本地视频'}}</text><text class="x-import-subtitle">{{localVideo ? localVideo.meta : '相册视频，≤100MB · ≤30 分钟'}}</text></view>
+          <view wx:if="{{localVideo}}" class="x-import-clear" catchtap="clearLocalVideo" role="button" aria-label="取消已选择的视频">×</view><image wx:else class="x-chevron" src="/images/home-green/chevron1.png" mode="aspectFit" aria-hidden="true" />
         </view>
-        <view class="x-extract-action" bindtap="startExtract" hover-class="x-action-pressed" role="button" aria-label="{{extractBtn}}">
-          <text class="x-extract-action-label">{{extractBtn}}</text>
-          <image class="x-icon-22" src="/images/home-figma/imgArrow.png" mode="aspectFit" />
-        </view>
+        <view class="x-extract-action" bindtap="startExtract" hover-class="x-action-pressed" role="button" aria-label="{{extractBtn}}"><text class="x-extract-action-label">{{extractBtn}}</text><image class="x-arrow-art" src="/images/home-green/arrow.png" mode="aspectFit" aria-hidden="true" /></view>
       </view>
     </view>
   </scroll-view>
-  <view class="app-tabbar">
-    <view class="app-tabrow">
-      <view class="app-tab app-tab-active"  aria-label="首页，当前页面">
-        <view class="app-tab-icon x-tabico x-tabico-home x-tabico-on"></view>
-        <text class="app-tab-label">首页</text>
-      </view>
-      <view class="app-tab " bindtap="goLibrary" hover-class="app-tab-pressed" role="button" aria-label="历史">
-        <view class="app-tab-icon x-tabico x-tabico-hist "></view>
-        <text class="app-tab-label">历史</text>
-      </view>
-      <view class="app-tab " bindtap="goMine" hover-class="app-tab-pressed" role="button" aria-label="我的">
-        <view class="app-tab-icon x-tabico x-tabico-user "></view>
-        <text class="app-tab-label">我的</text>
-      </view>
-    </view>
-  </view>
+  <view class="app-tabbar"><view class="app-tabrow">
+    <view class="app-tab app-tab-active" aria-label="首页，当前页面"><image class="app-tab-icon" src="/images/tabbar-fun/tab-home-on.png" mode="aspectFit" aria-hidden="true" /><text class="app-tab-label">首页</text></view>
+    <view class="app-tab" bindtap="goLibrary" hover-class="app-tab-pressed" role="button" aria-label="历史"><image class="app-tab-icon" src="/images/tabbar-fun/tab-history-off.png" mode="aspectFit" aria-hidden="true" /><text class="app-tab-label">历史</text></view>
+    <view class="app-tab" bindtap="goMine" hover-class="app-tab-pressed" role="button" aria-label="我的"><image class="app-tab-icon" src="/images/tabbar-fun/tab-user-off.png" mode="aspectFit" aria-hidden="true" /><text class="app-tab-label">我的</text></view>
+  </view></view>
 </view>

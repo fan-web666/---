@@ -8,7 +8,7 @@
   <scroll-view class="x-scroll flex-col" scroll-y>
     <view class="x-link flex-row">
       <view class="x-link-thumb flex-col justify-center align-center">
-        <view class="x-link-icon">▶</view>
+        <image class="suite-video-icon" src="/images/home-green/video.png" mode="aspectFit" aria-hidden="true" />
       </view>
       <view class="x-link-info flex-col justify-between">
         <view class="x-link-title">{{link.title}}</view>

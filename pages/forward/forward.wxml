@@ -14,7 +14,7 @@
           <view class="text_7">支持多平台解析</view>
           <view class="text_8">视频号、抖音、快手、小红书、B站等</view>
         </view>
-        <view class="ui-art"><image class="ui-orb" src="/images/app-figma/forward-imgUiOrb.png"/><image class="ui-symbol" src="/images/app-figma/forward-imgUiSymbol.png"/><image class="ui-spark" src="/images/home-figma/imgSpark.png"/></view>
+        <view class="ui-art"><image class="ui-full" src="/images/suite-green/guide.png" mode="aspectFit" aria-hidden="true" /></view>
       </view>
       <view class="text-wrapper_21 flex-row justify-between">
         <view class="text_9">只需三步</view>

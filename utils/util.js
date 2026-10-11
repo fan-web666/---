@@ -58,14 +58,14 @@ function normPlatform(code) {
 
 /**
  * 缩略块兜底配色（https 封面 / 视频首帧都拿不到时才用）
- * 取自设计稿三张记录卡实际用的三种（蓝 / 深蓝黑 / 青），再补 2 色扩为 5 色循环
+ * 与首页鲜绿主题一致的浅薄荷、青柠和中性底色，按记录稳定循环
  *
  * ⚠️ 只此一份实现 —— 文案库列表页与提取结果页共用。
  *    同一个 _id 在两处必须得到同一个颜色，否则同一个视频在列表和详情里
  *    「缩略块颜色不一样」，正是用户 2026-09-26 要求修的那类不一致。
  *    （同 detectPlatform 的规矩：算法不许多副本，四处漂移 = 线上割裂）
  */
-const THUMB_COLORS = ['#F0EDFF', '#E4EEFF', '#D9FFF2', '#FAEFFF', '#E6E8F2'];
+const THUMB_COLORS = ['#E8FAEF', '#EEF8DC', '#E2F5E8', '#F3F9E9', '#E8EEEA'];
 
 /** 按 _id 稳定取兜底色（按数组下标取的话，筛选 / 分页一变颜色就跟着跳） */
 function thumbColor(id) {
@@ -249,7 +249,7 @@ function pad(n) {
 
 /**
  * 从链接识别平台。
- * ⚠️ 必须与云端 cloudfunctions/_common/providers.js 的 detectPlatform 保持同表同序，
+ * ⚠️ 必须与云端 cloud-common/providers.js 的 detectPlatform 保持同表同序，
  *    否则会出现「前端说已识别视频号、后端说不支持」的割裂。
  *    域名变体很多（视频号尤其：小程序卡片 / 公众号文章内嵌 / 微信短链各不同），
  *    匹配要「够用且不漏」；识别不出返回 ''（由调用方决定提示还是放行）。

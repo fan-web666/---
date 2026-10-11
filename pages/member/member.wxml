@@ -12,7 +12,7 @@
         <view class="text_7">{{heroTitle}}</view>
         <view class="text_8">{{heroSub}}</view>
       </view>
-      <view class="ui-art"><image class="ui-orb" src="/images/app-figma/member-imgUiOrb.png"/><image class="ui-symbol" src="/images/app-figma/member-imgUiSymbol.png"/><image class="ui-spark" src="/images/home-figma/imgSpark.png"/></view>
+      <view class="ui-art"><image class="ui-full" src="/images/suite-green/member.png" mode="aspectFit" aria-hidden="true" /></view>
     </view>
     <view class="text-wrapper_27 flex-row justify-between">
       <view class="text_9">选择适合你的方案</view>

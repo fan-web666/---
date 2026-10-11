@@ -9,8 +9,8 @@ const { toast } = require('../../utils/util');
 
 const app = getApp();
 
-const RING_TRACK = '#F0EDFF';
-const RING_BAR = '#8273FA';
+const RING_TRACK = '#E8FAEF';
+const RING_BAR = '#16854A';
 
 Page({
   data: {

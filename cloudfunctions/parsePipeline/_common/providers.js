@@ -337,7 +337,7 @@ function downloadToFile(url, destPath, opts) {
  * ------------------------------------------------------------------ */
 
 // 源站拒绝 Range / 限并发时，本实例内一段时间不再尝试分片，避免每次白试一遍
-let PARALLEL_OFF_UNTIL = 0;
+const PARALLEL_OFF_BY_RESOURCE = new Map();
 
 /** 探测源站是否支持 Range（返回 { ok, totalBytes }）。用 bytes=0-0，正常只回 1 字节。 */
 function probeRange(url, opts) {
@@ -450,6 +450,12 @@ function downloadChunk(url, filePath, start, end, opts) {
           res.resume();
           return done(reject, new Error('分片下载失败（HTTP ' + code + '）'));
         }
+        // 分片必须精确对应请求区间；防止等长但错位的响应污染音频。
+        const range = String(res.headers['content-range'] || '').match(/^bytes (\d+)-(\d+)\/(\d+)$/);
+        if (code !== 206 || !range || Number(range[1]) !== from || Number(range[2]) !== end) {
+          res.resume();
+          return done(reject, new Error('分片区间不符'));
+        }
         const ws = fs.createWriteStream(filePath, { flags: have > 0 ? 'a' : 'w' });
         let got = have;
         res.on('data', (c) => {
@@ -485,7 +491,7 @@ async function downloadParallel(url, destPath, totalBytes, opts) {
     chunks.push({ start, end, file: destPath + '.p' + i });
   }
 
-  await Promise.all(
+  const settledChunks = await Promise.allSettled(
     chunks.map(async (c) => {
       const want = c.end - c.start + 1;
       const r = await downloadChunk(url, c.file, c.start, c.end, {
@@ -495,6 +501,9 @@ async function downloadParallel(url, destPath, totalBytes, opts) {
       if (r.bytes !== want) throw new Error('分片不完整（' + r.bytes + '/' + want + '）');
     })
   );
+
+  const failedChunk = settledChunks.find((r) => r.status === 'rejected');
+  if (failedChunk) throw failedChunk.reason;
 
   // 合并：逐片流式追加，不把文件读进内存
   const ws = fs.createWriteStream(destPath, { flags: 'w' });
@@ -537,22 +546,29 @@ async function downloadAuto(url, destPath, opts) {
   const maxBytes = o.maxBytes || 100 * 1024 * 1024;
   const n = envInt('MEDIA_PARALLEL', 4, 1, 8);
 
-  if (n > 1 && Date.now() > PARALLEL_OFF_UNTIL) {
-    const probe = await probeRange(url, { headers: o.headers });
+  const resourceKey = new URL(url).href;
+  const deadline = Date.now() + (o.timeoutMs || 45000);
+  const remaining = () => Math.max(1, deadline - Date.now());
+  const coolDown = (ms) => {
+    if (PARALLEL_OFF_BY_RESOURCE.size >= 64) PARALLEL_OFF_BY_RESOURCE.delete(PARALLEL_OFF_BY_RESOURCE.keys().next().value);
+    PARALLEL_OFF_BY_RESOURCE.set(resourceKey, Date.now() + ms);
+  };
+  if (n > 1 && Date.now() > (PARALLEL_OFF_BY_RESOURCE.get(resourceKey) || 0)) {
+    const probe = await probeRange(url, { headers: o.headers, probeTimeoutMs: Math.min(o.probeTimeoutMs || 8000, remaining()) });
     if (!probe.ok) {
-      // 源站不吃 Range：同域名下大概率都不吃，冷却一段时间别再探
-      PARALLEL_OFF_UNTIL = Date.now() + 5 * 60 * 1000;
+      // 源站不吃 Range：只冷却当前文件，其他用户/其他文件不受影响
+      coolDown(5 * 60 * 1000);
     } else if (probe.totalBytes >= 8 * 1024 * 1024 && probe.totalBytes <= maxBytes) {
       // 小文件并发反而慢（握手开销占比高），8MB 以下走单连接
       try {
         return await downloadParallel(url, destPath, probe.totalBytes, {
           headers: o.headers,
-          timeoutMs: o.timeoutMs,
+          timeoutMs: remaining(),
           parallel: n,
         });
       } catch (e) {
         console.warn('[providers] 分片下载失败，回退单连接：', e && e.message);
-        PARALLEL_OFF_UNTIL = Date.now() + 10 * 60 * 1000;
+        coolDown(10 * 60 * 1000);
         try {
           removeMedia(destPath);
         } catch (e2) {
@@ -569,7 +585,8 @@ async function downloadAuto(url, destPath, opts) {
     }
   }
 
-  const r = await downloadToFile(url, destPath, o);
+  if (Date.now() >= deadline) throw new Error('视频下载超时');
+  const r = await downloadToFile(url, destPath, Object.assign({}, o, { timeoutMs: remaining() }));
   return { path: r.path, sizeBytes: r.sizeBytes, parallel: false, resumed: !!r.resumed };
 }
 
@@ -1122,14 +1139,36 @@ async function downloadMedia(videoMeta, taskId) {
     const cached = mediaSize(dest);
     if (cached) return { path: dest, sizeBytes: cached, mock: false, cached: true };
     const cloud = require('wx-server-sdk');
-    const r = await cloud.downloadFile({ fileID: src });
-    fs.writeFileSync(dest, r.fileContent);
-    const size = r.fileContent ? r.fileContent.length : 0;
-    if (size > 100 * 1024 * 1024) {
-      removeMedia(dest);
-      throw new Error('视频超过 100MB 上限，建议截取关键片段');
+    // 同一原文件的签名 URL，分片下载不改变音视频编码。
+    const deadline = Date.now() + envInt('MEDIA_TIMEOUT_MS', 45000, 5000, 55000);
+    const bounded = (promise, ms) => new Promise((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error('云文件下载超时')), ms);
+      Promise.resolve(promise).then(v => { clearTimeout(timer); resolve(v); }, e => { clearTimeout(timer); reject(e); });
+    });
+    const part = dest + '.part';
+    try {
+      const urls = await bounded(cloud.getTempFileURL({ fileList: [src] }), Math.min(3000, deadline - Date.now()));
+      const item = (urls.fileList || []).find(f => f.fileID === src && f.status === 0);
+      if (!item || !/^https:\/\//i.test(item.tempFileURL || '')) throw new Error('云文件临时地址不可用');
+      const r = await downloadAuto(item.tempFileURL, part, {
+        maxBytes: 100 * 1024 * 1024, timeoutMs: Math.max(1, deadline - Date.now()), probeTimeoutMs: 3000, resume: false,
+      });
+      if (!r.sizeBytes) throw new Error('云文件为空');
+      fs.renameSync(part, dest);
+      return { path: dest, sizeBytes: r.sizeBytes, mock: false, parallel: !!r.parallel, fetchMode: 'cloud-range' };
+    } catch (e) {
+      removeMedia(part);
+      console.warn('[providers] 云文件直下载未完成，回退 SDK', e && e.message);
     }
-    return { path: dest, sizeBytes: size, mock: false };
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) throw new Error('云文件下载超时');
+    const r = await bounded(cloud.downloadFile({ fileID: src }), remaining);
+    const size = r.fileContent ? r.fileContent.length : 0;
+    if (!size) throw new Error('云文件为空');
+    if (size > 100 * 1024 * 1024) throw new Error('视频超过 100MB 上限，建议截取关键片段');
+    fs.writeFileSync(part, r.fileContent);
+    fs.renameSync(part, dest);
+    return { path: dest, sizeBytes: size, mock: false, fetchMode: 'cloud-sdk' };
   }
 
   if (!src && !meta.relayFileId) throw new Error('缺少视频地址，无法下载');
@@ -1714,14 +1753,18 @@ async function asrTranscribe(media, task) {
   const fbModel = env('ASR_MODEL_FALLBACK', ASR_DEFAULT_MODEL);
   const asrModels = fbModel && fbModel !== primaryModel ? [primaryModel, fbModel] : [primaryModel];
   const asrTimeout = envInt('ASR_TIMEOUT_MS', 50000, 5000, 55000);
-  // 首试预算按「音频体积」自适应 —— 固定 20s 会**误杀长音频**：
-  //   实测 52s 音频需 8~10s、2 分 33 秒（用户实测）需 24s，音频约 16KB/s 体积 ≈ 时长。
-  //   预算太短 → 长视频首试被判超时、白多跑一轮备用模型，反而更慢；
-  //   预算太长 → 不稳模型会先吃掉全部预算，备用模型来不及。最后一次尝试始终用满 asrTimeout。
-  //   ⚠️ 仅在有「两个不同模型」时生效；主备同模型（默认）时走 asrTimeout，不受影响。
-  const sendBytes = audioInfo ? audioInfo.to_bytes : origSize;
-  const estAudioSec = Math.round(sendBytes / 16000);
-  const hedgeMs = Math.min(asrTimeout, Math.max(20000, 5000 + estAudioSec * 250));
+  // 主备共用原 ASR_TIMEOUT_MS 总预算；不按压缩音频字节数提前中断主模型。
+  // AAC 码率不是时长，提前切换可能丢掉即将完成的全文并重复排队。
+  const asrDeadline = Date.now() + asrTimeout;
+  const attemptLog = [];
+  const retryReason = e => {
+    const m = String((e && e.message) || '');
+    if (/超时|timeout/i.test(m)) return 'timeout';
+    if (/HTTP 429/.test(m)) return 'rate_limit';
+    if (/HTTP 5\d{2}/.test(m)) return 'upstream_5xx';
+    if (/未返回文本/.test(m)) return 'empty_text';
+    return 'request_error';
+  };
 
   let text = '';
   let mpTiming = null; // 上传/服务端耗时拆分（诊断用）
@@ -1732,7 +1775,13 @@ async function asrTranscribe(media, task) {
   for (let i = 0; i < asrModels.length; i++) {
     const model = asrModels[i];
     const hasNext = i + 1 < asrModels.length;
+    const remaining = asrDeadline - Date.now();
+    if (remaining <= 0 || (i > 0 && remaining < 1000)) break;
     attempts = i + 1;
+    const attemptStarted = Date.now();
+    let attemptTiming = null;
+    let outcome = 'error';
+    let reason = '';
     try {
       const raw = await postMultipart(
         asrUrl,
@@ -1746,9 +1795,9 @@ async function asrTranscribe(media, task) {
           },
         },
         { Authorization: 'Bearer ' + asrKey },
-        hasNext ? hedgeMs : asrTimeout,
+        remaining,
         (t) => {
-          mpTiming = t;
+          attemptTiming = t;
         }
       );
       lastRaw = raw;
@@ -1762,14 +1811,17 @@ async function asrTranscribe(media, task) {
       if (got) {
         text = String(got).trim();
         modelUsed = model;
+        outcome = 'ok';
         break;
       }
       // 服务端 200 却没给文本 → 这个模型（或这次调度）不可用，换一个再试
       lastErr = new Error('语音识别未返回文本：' + String(raw).slice(0, 160));
+      reason = 'empty_text';
       console.warn('[providers] ASR 模型 ' + model + ' 返回空文本' + (hasNext ? ' → 换 ' + asrModels[i + 1] + ' 重试' : ''));
       if (!hasNext) break;
     } catch (e) {
       lastErr = e;
+      reason = retryReason(e);
       const m = String((e && e.message) || '');
       // 只有「超时 / 中断 / 5xx / 429」这类「这次不行、换一个大概率行」的错误才值得换模型；
       // 4xx（429 除外）多是请求本身有问题，换模型也一样，直接收手。
@@ -1778,6 +1830,12 @@ async function asrTranscribe(media, task) {
         '[providers] ASR 模型 ' + model + ' 失败：' + m + (worthRetry && hasNext ? ' → 换 ' + asrModels[i + 1] + ' 重试' : '')
       );
       if (!(worthRetry && hasNext)) break;
+    } finally {
+      const row = { model, outcome, reason, total_ms: Date.now() - attemptStarted,
+        upload_ms: attemptTiming ? attemptTiming.upload_ms : 0,
+        wait_ms: attemptTiming ? attemptTiming.wait_ms : 0 };
+      attemptLog.push(row);
+      if (outcome === 'ok') mpTiming = attemptTiming || { total_ms: row.total_ms, upload_ms: 0, wait_ms: 0 };
     }
   }
 
@@ -1812,6 +1870,8 @@ async function asrTranscribe(media, task) {
     // 诊断：下次 timingReport 能直接看到「用的哪个模型、试了几次」
     mpTiming.model = modelUsed;
     mpTiming.attempts = attempts;
+    mpTiming.attempt_log = attemptLog;
+    mpTiming.retry_ms = attemptLog.filter(a => a.outcome !== 'ok').reduce((n, a) => n + a.total_ms, 0);
   }
   return { text: text, segments: [], mock: false, timing: mpTiming, audio: audioInfo };
 }
@@ -1847,7 +1907,7 @@ const SYSTEM_PROMPT = [
 
 function buildUserPrompt(input) {
   const o = input || {};
-  const subtitle = o.subtitle || '';
+  const subtitle = o.subtitle ? (o.transcript || o.subtitle) : '';
   const asrText = o.asrText || '';
   if (subtitle && asrText && subtitle !== asrText) {
     return [
@@ -1855,19 +1915,19 @@ function buildUserPrompt(input) {
       '【字幕版】（平台自带字幕）—— **唯一主稿，用字以此为准**',
       subtitle,
       '',
-      '【语音识别版】（机器听写，仅供定位主稿的明显错处，**不作为用字依据**）',
+      '【语音识别版】（机器听写，仅供核对同一句的明显错处）',
       asrText,
       '',
       '【校对规则】',
       '1. 以字幕版为唯一主稿，**逐字保留字幕版的用字**（含同音字、近音字、网络用语、方言词、人名地名）。',
-      '2. 只有当字幕版某处**明显不成词、断句错乱、或与上下文语义冲突**（读不通）时，才参考语音识别版修正该处。',
+      '2. 只有当字幕版某处**明显不成词、断句错乱、或与上下文语义冲突**（读不通）时，才采用语音识别版中同一句对应的合理用词，禁止整段替换。',
       '3. ⚠️ 语音识别版和字幕版写得不一样，**不代表字幕版有错**。凡字幕版读得通的写法一律保留字幕版（例：字幕「老登」、语音识别「老灯」 → 保留「老登」）。',
       '4. 字幕版正确的部分不许因为语音识别版不同而改写、删字或换词。',
       '',
       '然后按系统要求整理成结构化文案。',
     ].join('\n');
   }
-  const main = subtitle || asrText || o.transcript || '';
+  const main = o.transcript || subtitle || asrText || '';
   const bySubtitle = !!subtitle;
   return [
     bySubtitle
@@ -1877,7 +1937,7 @@ function buildUserPrompt(input) {
     '',
     bySubtitle
       ? '请按系统要求整理成结构化文案；主稿里的用字（含同音字、网络用语、方言词、专有名词）一律原样保留，只在明显读不通处修正。'
-      : '请按系统要求整理成结构化文案；遇到明显不符合上下文语境的同音错字（例如网络用语「老登」被听成「老灯」、人名/专有名词写错），按上下文最合理的写法修正。',
+      : '请按系统要求整理成结构化文案；遇到明显不符合上下文语境的同音错字（例如网络用语「老登」被听成「老灯」、人名/专有名词写错），只有固定搭配和上下文共同明确支持时才修正，例如「超出厂里的好背后」应为「超出常理的好背后」；「厂里的产能」保留厂里。不得猜改人名、地名、数字、品牌和行业术语。',
   ].join('\n');
 }
 

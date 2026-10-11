@@ -20,15 +20,15 @@ Page({
       canvas.width = 1080; canvas.height = 1440;
       const ctx = canvas.getContext('2d');
       const codeImage = canvas.createImage(); await new Promise((resolve, reject) => { codeImage.onload = resolve; codeImage.onerror = reject; codeImage.src = file; });
-      const bg = ctx.createLinearGradient(0, 0, 1080, 1440); bg.addColorStop(0, '#F2E9FF'); bg.addColorStop(1, '#D9FFF2'); ctx.fillStyle = bg; ctx.fillRect(0, 0, 1080, 1440);
-      ctx.fillStyle = '#20212C'; ctx.font = 'bold 38px sans-serif'; ctx.fillText('予行 · 文案快提', 86, 122);
-      ctx.font = 'bold 76px sans-serif'; ctx.fillText('把视频里的好文案', 86, 300); ctx.fillStyle = '#8273FA'; ctx.fillText('收进你的素材库', 86, 408);
-      ctx.fillStyle = '#727686'; ctx.font = '30px sans-serif'; ctx.fillText('无广告 · 快速提取 · 结构化整理', 86, 496);
+      const bg = ctx.createLinearGradient(0, 0, 1080, 1440); bg.addColorStop(0, '#FFFFFF'); bg.addColorStop(1, '#E8FAEF'); ctx.fillStyle = bg; ctx.fillRect(0, 0, 1080, 1440);
+      ctx.fillStyle = '#1B2620'; ctx.font = 'bold 38px sans-serif'; ctx.fillText('予行 · 文案快提', 86, 122);
+      ctx.font = 'bold 76px sans-serif'; ctx.fillText('把视频里的好文案', 86, 300); ctx.fillStyle = '#16854A'; ctx.fillText('收进你的素材库', 86, 408);
+      ctx.fillStyle = '#79817D'; ctx.font = '30px sans-serif'; ctx.fillText('无广告 · 快速提取 · 结构化整理', 86, 496);
       ctx.fillStyle = '#FFFFFF'; ctx.fillRect(86, 576, 908, 744);
       ctx.drawImage(codeImage, 325, 618, 430, 430);
-      ctx.textAlign = 'center'; ctx.fillStyle = '#8273FA'; ctx.font = 'bold 34px sans-serif'; ctx.fillText('微信扫码，开始提取', 540, 1110);
-      ctx.fillStyle = '#20212C'; ctx.font = 'bold 30px sans-serif'; ctx.fillText('专属推荐码 ' + r.code, 540, 1182);
-      ctx.fillStyle = '#727686'; ctx.font = '25px sans-serif'; ctx.fillText('首次进入自动绑定推荐来源', 540, 1240);
+      ctx.textAlign = 'center'; ctx.fillStyle = '#16854A'; ctx.font = 'bold 34px sans-serif'; ctx.fillText('微信扫码，开始提取', 540, 1110);
+      ctx.fillStyle = '#1B2620'; ctx.font = 'bold 30px sans-serif'; ctx.fillText('专属推荐码 ' + r.code, 540, 1182);
+      ctx.fillStyle = '#79817D'; ctx.font = '25px sans-serif'; ctx.fillText('首次进入自动绑定推荐来源', 540, 1240);
       const output = await new Promise((resolve, reject) => wx.canvasToTempFilePath({ canvas, fileType: 'png', success: resolve, fail: reject }, this));
       wx.hideLoading(); wx.previewImage({ current: output.tempFilePath, urls: [output.tempFilePath] });
     } catch (e) { handleError(e, '生成海报失败，请稍后重试'); } finally { wx.hideLoading(); this.setData({ posterBusy: false }); }

@@ -1,4 +1,4 @@
-/* 对应 Figma「全界面 · 淡彩焕新」，尺寸按 390px → 750rpx 换算。 */
+/* 对应 Figma「全界面 · 鲜绿统一」，尺寸按 390px → 750rpx 换算。 */
 .x-scroll {
   width:100%;
   height:0;
@@ -36,12 +36,12 @@
   display:flex;
   align-items:center;
   font-size:52rpx;
-  color:#727686;
+  color:#79817D;
 }
 
 .x-nav-action {
   font-size:23rpx;
-  color:#8273FA;
+  color:#16854A;
   white-space:nowrap;
   margin-left:auto;
 }
@@ -70,27 +70,27 @@ font-weight:700
 
 .x-cardhead-more {
   font-size:23rpx;
-color:#A1A5B2
+color:#A1AAA4
 }
 
 .x-chevron {
   font-size:40rpx;
   line-height:1;
-  color:#A1A5B2;
+  color:#A1AAA4;
 margin-left:12rpx
 }
 
 .x-empty {
   font-size:26rpx;
   line-height:1.6;
-  color:#727686;
+  color:#79817D;
   padding:30rpx 0;
 text-align:center
 }
 
 .x-udivider {
   height:1rpx;
-  background:#EDF0F5;
+  background:#E8EEEA;
   width:100%;
 margin:28rpx 0
 }
@@ -105,7 +105,7 @@ margin:28rpx 0
 
 .text_3 {
   font-size:52rpx;
-  color:#727686;
+  color:#79817D;
   line-height:72rpx;
 min-width:40rpx
 }
@@ -113,14 +113,14 @@ min-width:40rpx
 .text_4 {
   font-size:36rpx;
   font-weight:700;
-  color:#20212C;
+  color:#1B2620;
   white-space:nowrap;
 line-height:1.4
 }
 
 .text_5 {
   font-size:23rpx;
-  color:#8273FA;
+  color:#16854A;
   white-space:nowrap;
   margin-left:auto;
 }
@@ -147,7 +147,7 @@ padding-bottom:30rpx
   padding:32rpx;
   margin-top:20rpx;
   min-height:230rpx;
-  background:linear-gradient(125deg,#F7DFFF 0%,#DEE8FF 45%,#CFFFF0 100%);
+  background:linear-gradient(125deg,#FFFFFF 0%,#E6FAEF 100%);
   align-items:center;
   gap:16rpx;
 }
@@ -161,19 +161,19 @@ gap:10rpx
 .text_6 {
   font-size:40rpx;
   font-weight:900;
-color:#20212C
+color:#1B2620
 }
 
 .text_7 {
   font-size:27rpx;
-  color:#6859D9;
+  color:#16854A;
 font-weight:700
 }
 
 .text_8 {
   font-size:23rpx;
   line-height:1.6;
-  color:#727686;
+  color:#79817D;
 white-space:normal
 }
 
@@ -193,13 +193,13 @@ flex-wrap:wrap
   font-size:31rpx;
   line-height:1.4;
   font-weight:700;
-  color:#20212C;
+  color:#1B2620;
 }
 
 .text_10 {
   font-size:23rpx;
   line-height:1.6;
-  color:#727686;
+  color:#79817D;
 }
 
 .section_3,.section_5,.section_7 {
@@ -219,7 +219,7 @@ min-height:150rpx
   width:70rpx;
   height:70rpx;
   border-radius:24rpx;
-  background:#F0EDFF;
+  background:#E8FAEF;
   align-items:center;
 justify-content:center
 }
@@ -227,7 +227,7 @@ justify-content:center
 .text_11,.text_14,.text_17 {
   font-size:31rpx;
   font-weight:800;
-color:#8273FA
+color:#16854A
 }
 
 .text-group_17,.text-group_18,.text-group_19 {
@@ -244,7 +244,7 @@ font-weight:700
 .text_13,.text_16,.text_19 {
   font-size:23rpx;
   line-height:1.6;
-  color:#727686;
+  color:#79817D;
 }
 
 .section_4,.section_6 {
@@ -258,26 +258,26 @@ display:none
   border-radius:44rpx;
   margin-top:24rpx;
   padding:24rpx;
-  background:#D9FFF2;
+  background:#E8FAEF;
   gap:16rpx;
   align-items:center;
 justify-content:center
 }
 
 .text_20 {
-color:#8273FA
+color:#16854A
 }
 
 .text_21 {
   font-size:25rpx;
-color:#527769
+color:#16854A
 }
 
 .text-wrapper_9 {
   margin:20rpx 38rpx calc(24rpx + env(safe-area-inset-bottom));
   min-height:100rpx;
   padding:24rpx 32rpx;
-  background:#8273FA;
+  background:#B8F76A;
   border-radius:28rpx;
   align-items:center;
   justify-content:center;
@@ -290,3 +290,7 @@ gap:16rpx
 font-weight:700
 }
 
+
+/* 与首页共用轻阴影；激活状态只改变颜色，布局尺寸保持固定。 */
+.section_1,.section_3,.section_5,.section_7{box-shadow:var(--card-shadow);}
+.text_22,.text_23{color:#1B2620;}

@@ -110,10 +110,33 @@ async function mergeIdentity(user, { miniOpenid, gzhOpenid, unionid }) {
 }
 
 /** 建档（含新人积分发放 50，PRD 6.3：首次绑定一次性发放） */
-async function createUserWithTrial({ miniOpenid, gzhOpenid, unionid }) {
-  const u = defaultUser(miniOpenid, gzhOpenid, unionid);
-  const addRes = await COLL.users().add({ data: u });
-  u._id = addRes._id;
+async function createUserWithTrial({ miniOpenid, gzhOpenid, unionid, referralCode }) {
+  let u = defaultUser(miniOpenid, gzhOpenid, unionid);
+  // 仅首次建档时记录邀请来源；旧用户不能事后补绑来领取奖励。
+  if (miniOpenid && referralCode) u.referral_entry = { code: referralCode, state: 'pending' };
+  if (miniOpenid) {
+    // 首页刷新与 App 登录可能同时首访。固定档案 ID + 事务避免同一微信身份建两档，
+    // 并保证首次邀请来源不会被后来的请求覆盖。历史档案仍由 findUser 查找沿用。
+    const id = 'mini_' + require('crypto').createHash('sha256').update(miniOpenid).digest('hex');
+    for (let attempt = 0; attempt < 4; attempt++) {
+      const tx = await db().startTransaction();
+      try {
+        let existing;
+        try { const r = await tx.collection('users').doc(id).get(); existing = r.data; }
+        catch (e) { if (!/DOCUMENT_NOT_EXIST|document.*(?:not exist|not found)|-502005/i.test(String(e.errMsg || e.message))) throw e; }
+        if (existing) u = existing;
+        else { const { _id, ...newData } = u; await tx.collection('users').doc(id).set({ data: newData }); u._id = id; }
+        await tx.commit();
+        break;
+      } catch (e) {
+        try { await tx.rollback(); } catch (_) {}
+        if (attempt === 3 || !/conflict|transaction.*(?:fail|abort)|retry|duplicate/i.test(String(e.errMsg || e.message))) throw e;
+      }
+    }
+  } else {
+    const addRes = await COLL.users().add({ data: u });
+    u._id = addRes._id;
+  }
 
   // ⚠️ 发积分失败**绝不能让异常逃出去**。
   //    用户档案已在上一行落库，此处抛错会让 exports.main → ensureUserFromContext
@@ -188,13 +211,13 @@ async function grantTrialCreditsPlain(userId, force) {
  * 确保用户存在（getOrCreate）。source: 'mini' | 'gzh'
  * 返回 { user }，user 缺失字段做兜底补齐
  */
-async function ensureUser({ source, openid, unionid }) {
+async function ensureUser({ source, openid, unionid, referralCode }) {
   const miniOpenid = source === 'mini' ? openid : '';
   const gzhOpenid = source === 'gzh' ? openid : '';
 
   let user = await findUser({ miniOpenid, gzhOpenid, unionid });
   if (!user) {
-    user = await createUserWithTrial({ miniOpenid, gzhOpenid, unionid });
+    user = await createUserWithTrial({ miniOpenid, gzhOpenid, unionid, referralCode });
     return user;
   }
   // 已存在：补身份 + 兜底发放
@@ -493,7 +516,7 @@ async function grantMembership(userId, plan, orderId, amountCents) {
 }
 
 /** 便捷：小程序 callFunction 上下文内建档 */
-async function ensureUserFromContext() {
+async function ensureUserFromContext(options = {}) {
   const ctx = getContext();
   // ⚠️ 取不到 openid 时**必须直接失败**，不能拿空串去建档：
   //    否则 where({ openid_mini: '' }) 既查不到、又会新建，
@@ -502,7 +525,7 @@ async function ensureUserFromContext() {
   if (!ctx.openid) {
     throw { code: 401, msg: 'login required：未取到 openid（该接口需从小程序端调用）' };
   }
-  return ensureUser({ source: 'mini', openid: ctx.openid, unionid: ctx.unionid });
+  return ensureUser({ source: 'mini', openid: ctx.openid, unionid: ctx.unionid, referralCode: options.referralCode });
 }
 
 module.exports = {

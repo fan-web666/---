@@ -164,7 +164,9 @@ async function countActiveTasks(uid) {
     .tasks()
     .where({
       uid,
-      status: cmd().in(['pending', 'downloading', 'asr', 'llm']),
+      status: cmd().in(['pending', 'downloading', 'transcribing', 'asr', 'llm']),
+      // 与流水线10分钟截止时间一致：过期遗留任务不永久占用新任务名额。
+      created_at: cmd().gt(new Date(Date.now() - 10 * 60 * 1000)),
     })
     .count();
   return r.total;

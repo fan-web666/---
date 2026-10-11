@@ -12,15 +12,15 @@ page {
   --white: #FFFFFF;
 
   
-  --brand: #3CA56A;
-  --brand-deep: #3CA56A;
+  --brand: #16854A;
+  --brand-deep: #16854A;
   --brand-tint: #E9F5EE;
   --brand-soft: #BDE1CD;
   --sky: #ADD9C0;
   --navy: #1F7846;
   --hl: #C2FF00;
   
-  --brand-green: #3CA56A;
+  --brand-green: #16854A;
   
 
   
@@ -156,7 +156,7 @@ navigator {
 }
 
 .x-tabico-on {
-  background-color: #3CA56A; 
+  background-color: #16854A; 
 }
 
 .x-tabico-home {
@@ -172,7 +172,7 @@ navigator {
 
 .x-ico {
   flex-shrink: 0;
-  background-color: #3CA56A; 
+  background-color: #16854A; 
   -webkit-mask-repeat: no-repeat;
   -webkit-mask-position: center;
   -webkit-mask-size: 100% 100%;
@@ -218,11 +218,11 @@ navigator {
 
 
 /* Figma 首页统一主题：业务语义与图标保留。 */
-page{--bg:#EFF3F7;--ink:#20212C;--sub:#727686;--mute:#A1A5B2;--brand:#8273FA;--brand-green:#8273FA;--brand-dark:#6859D9;--line:#EDF0F5;background:#EFF3F7;color:#20212C;}
-page .page{background:linear-gradient(180deg,rgba(239,243,247,0),#EFF3F7),linear-gradient(90deg,#FAEFFF,#D9FFF2);width:100%;height:100vh;min-height:0;overflow:hidden;color:#20212C;}
-.x-ico{background-color:#8273FA}.x-ico-gray{background-color:#A1A5B2}.x-tabico-on{background-color:#8273FA}
+page{--bg:#F4F5F6;--ink:#1B2620;--sub:#79817D;--mute:#A1AAA4;--brand:#16854A;--brand-green:#16854A;--brand-dark:#16854A;--line:#E8EEEA;background:#F4F5F6;color:#1B2620;}
+page .page{background:linear-gradient(180deg,#E6FFD0 0%,#F4F5F6 28%,#F4F5F6 100%);width:100%;height:100vh;min-height:0;overflow:hidden;color:#1B2620;}
+.x-ico{background-color:#16854A}.x-ico-gray{background-color:#A1AAA4}.x-tabico-on{background-color:#16854A}
 .ui-art{position:relative;width:150rpx;height:160rpx;flex-shrink:0}.ui-orb{position:absolute;width:150rpx;height:145rpx;left:0;top:7rpx}.ui-symbol{position:absolute;width:72rpx;height:72rpx;left:40rpx;top:42rpx}.ui-spark{position:absolute;width:32rpx;height:32rpx;right:0;top:0}
-.ui-empty-art{margin:28rpx auto 20rpx}.ui-button{background:#8273FA;color:white;border-radius:28rpx;font-size:30rpx;font-weight:700;min-height:96rpx;display:flex;align-items:center;justify-content:center}.ui-note{font-size:23rpx;color:#727686;line-height:1.6}
+.ui-empty-art{margin:28rpx auto 20rpx}.ui-button{background:#16854A;color:white;border-radius:28rpx;font-size:30rpx;font-weight:700;min-height:96rpx;display:flex;align-items:center;justify-content:center}.ui-note{font-size:23rpx;color:#79817D;line-height:1.6}
 
 .ui-empty-art{width:150rpx}
 
@@ -242,11 +242,11 @@ page .page{background:linear-gradient(180deg,rgba(239,243,247,0),#EFF3F7),linear
 /* 三个主页面共用导航几何尺寸：激活态只改变颜色和标签字重。 */
 .app-tabbar { flex: 0 0 auto; width: 100%; box-sizing: border-box; background: #FFFFFF; border-radius: 44rpx 44rpx 0 0; padding-bottom: constant(safe-area-inset-bottom); padding-bottom: env(safe-area-inset-bottom); }
 .app-tabrow { display: flex; width: 100%; height: 120rpx; padding: 0; margin: 0; align-items: center; }
-.app-tab { display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1 1 0; width: 0; min-width: 0; height: 120rpx; padding: 0; margin: 0; gap: 8rpx; color: #A1A5B2; box-sizing: border-box; }
-.app-tab-icon { display: block; flex: 0 0 44rpx; width: 44rpx; height: 44rpx; margin: 0; padding: 0; background-color: #A1A5B2; }
+.app-tab { display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1 1 0; width: 0; min-width: 0; height: 120rpx; padding: 0; margin: 0; gap: 8rpx; color: #A1AAA4; box-sizing: border-box; }
+.app-tab-icon { display: block; flex: 0 0 44rpx; width: 44rpx; height: 44rpx; margin: 0; padding: 0; background-color: transparent; }
 .app-tab-label { display: block; flex: 0 0 32rpx; width: 100rpx; height: 32rpx; line-height: 32rpx; text-align: center; margin: 0; padding: 0; font-size: 22rpx; font-weight: 400; white-space: nowrap; }
-.app-tab-active { color: #8273FA; }
-.app-tab-active .app-tab-icon { background-color: #8273FA; }
+.app-tab-active { color: #1B2620; }
+.app-tab-active .app-tab-icon { background-color: transparent; }
 .app-tab-active .app-tab-label { font-weight: 700; }
 .app-tab-pressed { opacity: .72; }
 
@@ -258,3 +258,11 @@ page .page{background:linear-gradient(180deg,rgba(239,243,247,0),#EFF3F7),linear
 .r-page > .r-scroll {
   margin-top: -10rpx;
 }
+
+/* 全界面 · 鲜绿统一：与首页保持一致的颜色、插画和轻阴影。 */
+page{--ink:#1B2620;--ink-2:#1B2620;--sub:#79817D;--mute:#A1AAA4;--mute-2:#A1AAA4;--meta:#79817D;--ph:#A1AAA4;--brand:#16854A;--brand-deep:#16854A;--brand-green:#16854A;--brand-dark:#16854A;--brand-tint:#E8FAEF;--bg:#F4F5F6;--line:#E8EEEA;--card-shadow:0 3.85rpx 19.23rpx rgba(27,38,32,.035);}
+.x-ph{color:#A1AAA4;}
+.ui-full{display:block;width:150rpx;height:160rpx;}
+.suite-menu-icon{display:block;width:42rpx;height:42rpx;}
+.suite-video-icon{display:block;width:76rpx;height:76rpx;}
+.ui-button{background:#B8F76A;color:#1B2620;}

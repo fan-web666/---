@@ -14,9 +14,9 @@
   ],
   "window": {
     "navigationStyle": "custom",
-    "navigationBarBackgroundColor": "#FBFDFC",
+    "navigationBarBackgroundColor": "#F4F5F6",
     "navigationBarTextStyle": "black",
-    "backgroundColor": "#FBFDFC",
+    "backgroundColor": "#F4F5F6",
     "backgroundTextStyle": "light"
   },
   "style": "v2",

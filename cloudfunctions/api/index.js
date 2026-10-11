@@ -426,7 +426,9 @@ async function getTask(user, { taskId, task_id }) {
     //    用户只看到「卡了 40 秒」，反而看不出真实耗时分布。
     //    现在每一步都会回一次响应：进度条真的在走，卡在哪一环一眼可见。
     //    ⚠️ 只影响前端轮询这条路径；cronDaily 兜底仍用不限步数的调用把任务推完。
-    await runUntilDone(id, GETTASK_ADVANCE_MS, 1).catch((e) =>
+    // 本地取源和跳过预下载都是短步骤，合并返回，省去一次轮询往返；ASR仍单独执行。
+    const maxSteps = t.file_id && t.status === TASK_STATUS.PENDING ? 2 : 1;
+    await runUntilDone(id, GETTASK_ADVANCE_MS, maxSteps).catch((e) =>
       console.warn('[api] getTask 推进任务异常', e && (e.msg || e.message))
     );
     const t2 = await findTask();
@@ -582,6 +584,13 @@ async function parseLink(user, event) {
     }
   }
 
+  // 稳定提交ID按用户隔离；丢失响应/重试复用已建任务，不重复扣费。
+  const requestId = String((event && event.request_id) || '');
+  const submissionId = /^[a-zA-Z0-9_-]{8,100}$/.test(requestId)
+    ? 'submit_' + md5(user._id + ':' + requestId) : '';
+  const existing = submissionId ? await readSubmission(user._id, submissionId) : null;
+  if (existing) return submissionResponse(existing);
+
   // 并发上限（PRD 6.3：单用户同时 ≤3 个任务）
   const active = await countActiveTasks(user._id);
   if (active >= MAX_USER_CONCURRENT) {
@@ -590,8 +599,11 @@ async function parseLink(user, event) {
 
   // 建任务（pending 先落库，防丢，PRD 8.2）
   const ctx = getContext() || {};
-  const addRes = await COLL.tasks().add({
+  let addRes;
+  try {
+    addRes = await COLL.tasks().add({
     data: {
+      ...(submissionId ? { _id: submissionId, request_id: requestId } : {}),
       uid: user._id,
       userOpenid: ctx.OPENID || '',
       channel: 'B',
@@ -599,6 +611,15 @@ async function parseLink(user, event) {
       share_url: isLocal ? '' : url,
       video_url: isLocal ? '' : url,
       file_id: fileId,
+      // 客户端诊断字段不参与计费、权限或识别决策。
+      client_timing: isLocal ? {
+        upload_ms: Math.min(3600000, Math.max(0, Number(event.client_timing && event.client_timing.upload_ms) || 0)),
+        original_bytes: Math.min(104857600, Math.max(0, Number(event.client_timing && event.client_timing.original_bytes) || 0)),
+        reencoded: !!(event.client_timing && event.client_timing.reencoded),
+        prepare_ms: Math.min(60000, Math.max(0, Number(event.client_timing && event.client_timing.prepare_ms) || 0)),
+        upload_bytes: Math.min(104857600, Math.max(0, Number(event.client_timing && event.client_timing.upload_bytes) || 0)),
+        audio_only: !!(event.client_timing && event.client_timing.audio_only),
+      } : {},
       source_platform: platform,
       dedup_key: hashKey,
       status: TASK_STATUS.PENDING,
@@ -607,6 +628,13 @@ async function parseLink(user, event) {
       updated_at: new Date(),
     },
   });
+
+  } catch (e) {
+    // 同一提交并发写入时，数据库唯一 _id 保证只有一个任务。
+    const raced = submissionId ? await readSubmission(user._id, submissionId) : null;
+    if (raced) return submissionResponse(raced);
+    throw e;
+  }
 
   await track({
     uid: user._id,
@@ -624,6 +652,14 @@ async function parseLink(user, event) {
     status: 'pending',
     platform,
   };
+}
+
+async function readSubmission(uid, id) {
+  const r = await COLL.tasks().where({ _id: id, uid }).limit(1).get();
+  return r.data && r.data[0];
+}
+function submissionResponse(t) {
+  return { task_id: t._id, status: t.status, duplicated: false, platform: t.source_platform, copywriting_id: t.result_id || '' };
 }
 
 /**
@@ -721,6 +757,7 @@ async function providerStatus() {
   return Object.assign(
     {
       ok: true,
+      extractionRevision: { gateway: '20261011-speed-r4', pipeline: require('./_common/pipeline').REVISION || 'legacy' },
       hint:
         s.mode.indexOf('演示') > -1
           ? '当前仍是演示模式：请在云函数环境变量配置 PARSE_API_URL / DEEPSEEK_API_KEY 后重新部署 api'
@@ -1178,7 +1215,9 @@ function ctxOpenid() {
  */
 async function timingReport(event) {
   const limit = Math.min(Math.max(Number((event && event.limit) || 10), 1), 30);
-  const r = await COLL.tasks().where({ status: TASK_STATUS.DONE }).limit(50).get();
+  const tasks = COLL.tasks();
+  const query = event && event.include_incomplete ? tasks : tasks.where({ status: TASK_STATUS.DONE });
+  const r = await query.orderBy('updated_at', 'desc').limit(limit).get();
   const list = (r.data || [])
     .sort((a, b) => new Date(b.updated_at || 0) - new Date(a.updated_at || 0))
     .slice(0, limit);
@@ -1191,10 +1230,20 @@ async function timingReport(event) {
     const tr = tm.transcribe || {};
     return {
       task_id: t._id,
+      status: t.status,
+      source_platform: t.source_platform,
+      created_at: t.created_at,
+      updated_at: t.updated_at,
+      error_reason: t.error && t.error.reason || '',
       title: t.video_title || '',
       duration_sec: t.duration_sec || 0,
       text_source: t.text_source || '',
       total_s: s1(tm.total_ms),
+      client_upload_s: s1(t.client_timing && t.client_timing.upload_ms),
+      client_prepare_s: s1(t.client_timing && t.client_timing.prepare_ms),
+      client_upload_bytes: Number(t.client_timing && t.client_timing.upload_bytes) || 0,
+      client_audio_only: !!(t.client_timing && t.client_timing.audio_only),
+      including_upload_s: s1((tm.total_ms || 0) + ((t.client_timing && t.client_timing.upload_ms) || 0) + ((t.client_timing && t.client_timing.prepare_ms) || 0)),
       resolve_s: s1(ms('resolve')),
       download_s: s1(ms('download')),
       transcribe_s: s1(ms('transcribe')),
@@ -1204,8 +1253,9 @@ async function timingReport(event) {
       cached: !!dl.cached,
       skipped: dl.skipped || '',
       // ⚠️ 跨实例重下的信号：转写步既没命中 /tmp、也没走云存储中转 = 又下一次
-      redownload: tr.media_cached === false && !tr.media_relay,
+      redownload: !dl.skipped && !!dl.ms && tr.media_cached === false && !tr.media_relay,
       media_fetch_s: s1(tr.media_fetch_ms),
+      media_fetch_mode: tr.media_fetch_mode || '',
       // ⭐ 字幕抓取耗时（2026-09-29 提速实证：这里曾是最大的黑洞 —— 转写步 31.3s 里 ASR 只 3.1s）
       subtitle_s: s1(tr.subtitle_ms),
       asr_s: s1(tr.asr_ms),
@@ -1219,6 +1269,8 @@ async function timingReport(event) {
       //    看这一列就能确认「不快」是模型问题还是别的。
       asr_model: tr.asr_model || '',
       asr_attempts: tr.asr_attempts || 0,
+      asr_retry_s: s1(tr.asr_retry_ms),
+      asr_attempt_log: tr.asr_attempt_log || [],
       media_bytes: tr.asr_bytes || tr.media_bytes || 0,
       // ⭐ 音频轨抽取的收益（2026-09-29 提速）：原始体积 → 实际上传体积。
       //    audio_sent ≈ 0 说明这一步没生效（文件太小 / 非 AAC / 抽取失败），仍是整片上传。
@@ -1239,12 +1291,15 @@ async function timingReport(event) {
   });
 
   const avg = (key) => {
-    const arr = rows.map((x) => Number(x[key]) || 0).filter((x) => x > 0);
+    // 进行中任务只有部分阶段耗时，不能混入完成任务的平均总耗时。
+    const arr = rows.filter((x) => x.status === TASK_STATUS.DONE).map((x) => Number(x[key]) || 0);
     if (!arr.length) return 0;
     return Math.round((arr.reduce((a, b) => a + b, 0) / arr.length) * 10) / 10;
   };
 
   return {
+    diagnostic_revision: '20261011-speed-r4',
+    average_scope: 'completed_tasks_only',
     count: rows.length,
     avg_s: {
       total: avg('total_s'),

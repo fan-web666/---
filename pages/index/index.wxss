@@ -1,105 +1,75 @@
-/* Figma CmtCbYIEuq2Wh4b9RdpHT9 / 3:11；1px = 750/390 rpx。
- * 首页独立颜色变量，保留全局字体与其他页面主题。
- * 原始 Figma SVG 转为本地 PNG；系统状态栏、胶囊、手势条使用宿主原生显示。
- */
-page {
-  --home-primary: #8273FA; --home-ink: #20212C; --home-secondary: #727686;
-  --home-surface: #FFFFFF; --home-bg: #EFF3F7; --home-lavender: #F0EDFF;
-  --home-mint: #D9FFF2; --home-divider: #EDF0F5;
-  height: 100%; background: var(--home-bg); color: var(--home-ink);
-}
-.x-home { display: flex; flex-direction: column; height: 100vh; overflow: hidden; background: var(--home-bg); }
-.x-statusbar { flex-shrink: 0; }
-.x-header { display: flex; align-items: center; min-height: 103.85rpx; padding: 15rpx 38.46rpx 0 42.31rpx; flex-shrink: 0; }
-.x-brand { min-width: 0; padding: 13.85rpx 0 7.69rpx; }
-.x-brand-row { display: flex; align-items: center; gap: 15.38rpx; white-space: nowrap; }
-.x-brand-name { font-size: 46.15rpx; line-height: 65.38rpx; font-weight: 900; }
-.x-brand-dot { color: var(--home-primary); font-size: 34.62rpx; line-height: 48.08rpx; font-weight: 700; }
-.x-brand-subtitle { color: var(--home-secondary); font-size: 32.69rpx; line-height: 46.15rpx; font-weight: 500; }
-.x-brand-en { display: block; color: var(--home-secondary); font-size: 19.23rpx; line-height: 26.92rpx; white-space: nowrap; }
-.x-home-scroll { flex: 1; flex-shrink: 1; height: 0; min-height: 0; width: 100%; }
-.x-content { display: flex; flex-direction: column; padding: 53.46rpx 38.46rpx 38.46rpx 38.46rpx; gap: 30.77rpx; }
-.x-hero { position: relative; height: 338.46rpx; padding: 42.31rpx; border-radius: 50rpx; overflow: hidden; background: linear-gradient(133.101deg, #F7DFFF 0%, #DEE8FF 38.4%, #CFFFF0 80%); }
-.x-hero-copy { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: flex-start; gap: 13.46rpx; width: 394.23rpx; }
-.x-hero-eyebrow { color: var(--home-secondary); font-size: 21.15rpx; line-height: 28.85rpx; font-weight: 500; }
-.x-hero-title { white-space: pre-line; font-size: 57.69rpx; line-height: 80.77rpx; font-weight: 900; }
-.x-hero-title-line { display: block; }
-.x-hero-pill { display: flex; align-items: center; justify-content: center; width: 176.92rpx; height: 48.08rpx; border-radius: 25rpx; background: var(--home-primary); color: #FFFFFF; font-size: 17.31rpx; line-height: 25rpx; font-weight: 700; }
-.x-hero-art { position: absolute; left: 398.08rpx; top: 36.54rpx; width: 275rpx; height: 301.92rpx; }
-.x-art-orb { position: absolute; left: 19.23rpx; top: 80.77rpx; width: 223.08rpx; height: 215.38rpx; }
-.x-art-video { position: absolute; left: 26.92rpx; top: 36.54rpx; width: 173.08rpx; height: 140.38rpx; border-radius: 34.62rpx; transform: rotate(-12deg); transform-origin: 0 0; background: linear-gradient(90deg, #9F92FF, #5143CF); box-shadow: 0 15.38rpx 23.08rpx rgba(89,64,191,.2); overflow: hidden; }
-.x-art-play { position: absolute; left: 59.62rpx; top: 42.31rpx; width: 57.69rpx; height: 57.69rpx; }
-.x-art-document { position: absolute; left: 117.31rpx; top: 117.31rpx; width: 153.85rpx; height: 184.62rpx; border-radius: 28.85rpx; transform: rotate(10deg); transform-origin: 0 0; background: var(--home-surface); box-shadow: 0 15.38rpx 30.77rpx rgba(89,102,128,.12); overflow: hidden; }
-.x-art-heading { position: absolute; left: 26.92rpx; top: 36.54rpx; width: 73.08rpx; height: 11.54rpx; border-radius: 5.77rpx; background: var(--home-primary); }
-.x-art-line { position: absolute; left: 26.92rpx; width: 96.15rpx; height: 7.69rpx; border-radius: 3.85rpx; background: var(--home-lavender); }
-.x-art-line-first { top: 67.31rpx; }
-.x-art-line-second { top: 90.38rpx; width: 84.62rpx; }
-.x-art-line-third { top: 113.46rpx; }
-.x-art-wave { position: absolute; left: 26.92rpx; top: 140.38rpx; width: 96.15rpx; height: 32.69rpx; }
-.x-art-mint { position: absolute; left: 0; top: 213.46rpx; width: 59.62rpx; height: 59.62rpx; }
-.x-art-spark { position: absolute; left: 215.38rpx; top: 7.69rpx; width: 38.46rpx; height: 38.46rpx; }
-.x-icon-box { display: flex; align-items: center; justify-content: center; background: var(--home-lavender); }
-.x-icon-box-mint { background: var(--home-mint); }
-.x-icon-13 { width: 25rpx; height: 25rpx; }
-.x-icon-18 { width: 34.62rpx; height: 34.62rpx; }
-.x-icon-20 { width: 38.46rpx; height: 38.46rpx; }
-.x-icon-21 { width: 40.38rpx; height: 40.38rpx; }
-.x-icon-22 { width: 42.31rpx; height: 42.31rpx; }
-.x-icon-23 { width: 44.23rpx; height: 44.23rpx; }
-.x-guide { display: flex; align-items: center; height: 123.08rpx; padding: 26.92rpx; gap: 23.08rpx; background: var(--home-surface); border-radius: 42.31rpx; }
-.x-guide-icon { width: 69.23rpx; height: 69.23rpx; border-radius: 23.08rpx; }
-.x-guide-copy { flex: 1; flex-shrink: 1; min-width: 0; }
-.x-guide-title { display: block; font-size: 28.85rpx; line-height: 40.38rpx; font-weight: 700; }
-.x-guide-subtitle { display: block; color: var(--home-secondary); font-size: 21.15rpx; line-height: 28.85rpx; white-space: nowrap; }
-.x-balance-card { display: flex; align-items: center; min-height: 146.15rpx; padding: 30.77rpx; gap: 23.08rpx; background: var(--home-surface); border-radius: 42.31rpx; }
-.x-balance-cell { display: flex; align-items: center; flex: 1; flex-shrink: 1; min-width: 0; gap: 17.31rpx; }
-.x-balance-icon { width: 65.38rpx; height: 65.38rpx; border-radius: 21.15rpx; }
-.x-balance-copy { flex: 1; flex-shrink: 1; min-width: 0; }
-.x-balance-label { display: block; font-size: 21.15rpx; line-height: 28.85rpx; color: var(--home-secondary); white-space: nowrap; }
-.x-balance-value { display: block; font-size: 42.31rpx; line-height: 59.62rpx; font-weight: 700; color: var(--home-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.x-balance-divider { width: 1.92rpx; height: 57.69rpx; background: var(--home-divider); }
-.x-member-values { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 7.69rpx; }
-.x-member-values .x-balance-value { max-width: 100%; font-size: 34.62rpx; }
-.x-member-values .x-member-off { font-size: 26.92rpx; font-weight: 500; }
-.x-member-quota { color: var(--home-secondary); font-size: 19.23rpx; line-height: 26.92rpx; white-space: nowrap; }
-.x-extract-card { display: flex; flex-direction: column; min-height: 496.15rpx; padding: 34.62rpx; gap: 22.60rpx; border-radius: 50rpx; background: var(--home-surface); }
-.x-extract-heading { display: flex; align-items: center; min-height: 46.15rpx; gap: 15.38rpx; }
-.x-extract-title { font-size: 34.62rpx; line-height: 48.08rpx; font-weight: 700; }
-.x-extract-subtitle { font-size: 21.15rpx; line-height: 28.85rpx; color: var(--home-secondary); }
-.x-link-field { display: flex; align-items: center; height: 92.31rpx; padding: 0 23.08rpx; gap: 17.31rpx; border-radius: 28.85rpx; background: var(--home-bg); }
-.x-link-input { flex: 1; flex-shrink: 1; min-width: 0; width: 0; height: 57.69rpx; font-size: 25rpx; line-height: 34.62rpx; color: var(--home-ink); }
-.x-link-placeholder { color: var(--home-secondary); }
-.x-paste { display: flex; align-items: center; justify-content: center; width: 117.31rpx; height: 57.69rpx; border-radius: 19.23rpx; background: var(--home-lavender); font-size: 25rpx; line-height: 34.62rpx; font-weight: 700; color: var(--home-primary); }
-.x-extract-divider { height: 1.92rpx; background: var(--home-divider); }
-.x-import-row { display: flex; align-items: center; min-height: 100rpx; gap: 23.08rpx; }
-.x-import-icon { width: 76.92rpx; height: 76.92rpx; border-radius: 25rpx; }
-.x-import-copy { display: flex; flex-direction: column; flex: 1; flex-shrink: 1; min-width: 0; gap: 3.85rpx; }
-.x-import-title { font-size: 28.85rpx; line-height: 40.38rpx; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.x-import-subtitle { font-size: 21.15rpx; line-height: 28.85rpx; color: var(--home-secondary); white-space: nowrap; }
-.x-import-check { font-size: 42.31rpx; color: var(--home-primary); font-weight: 700; }
-.x-import-clear { display: flex; align-items: center; justify-content: center; width: 61.54rpx; height: 76.92rpx; color: var(--home-secondary); font-size: 42.31rpx; }
-.x-extract-action { display: flex; align-items: center; justify-content: space-between; height: 96.15rpx; padding: 0 38.46rpx; border-radius: 48.08rpx; background: var(--home-primary); color: #FFFFFF; }
-.x-extract-action-label { font-size: 32.69rpx; line-height: 46.15rpx; font-weight: 700; }
-.x-tabbar { flex-shrink: 0; background: var(--home-surface); padding-bottom: constant(safe-area-inset-bottom); padding-bottom: env(safe-area-inset-bottom); }
-.x-tabrow { display: flex; align-items: center; height: 119.23rpx; padding: 0 30.77rpx; }
-.x-tab { display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; gap: 3.85rpx; height: 103.85rpx; color: var(--home-secondary); }
-.x-tab-label { font-size: 21.15rpx; line-height: 28.85rpx; font-weight: 700; }
-/* ⭐ 2026-10-04 修复：切换 tab 时按钮位置/大小抖动。
-   根因 = `.x-tab-active` 单独加 `font-weight:700`，粗体字宽 > 常规字宽 →
-   列内居中时图标+文字整体横向重排 → 视觉上"按钮移位/变形"。
-   修法 = 三个标签**统一 700 字重**（字宽恒定），激活态**只用颜色**区分。 */
-.x-tab-active { color: var(--home-primary); }
-.x-pressed { opacity: .72; }
-.x-action-pressed { background: #7161EB; }
+/* Figma 54:12，750rpx 基准；由 apply-home.cjs 转换为项目 rpx。 */
+page { --home-primary:#16854A; --home-ink:#1B2620; --home-secondary:#79817D; --home-surface:#FFFFFF; --home-bg:#F4F5F6; --home-soft:#E8FAEF; --home-lime:#B8F76A; height:100%; color:var(--home-ink); background:var(--home-bg); }
+.x-home { display:flex; flex-direction:column; height:100vh; overflow:hidden; background:linear-gradient(180deg,#D6FFA3 0%,#F4F5F6 30%,#F4F5F6 100%); }
+.x-statusbar { flex-shrink:0; }
+.x-header { display:flex; align-items:center; min-height:123.08rpx; margin-top:30rpx; padding:0 38.46rpx 0 42.31rpx; flex-shrink:0; }
+.x-brand { min-width:0; padding:9.62rpx 0 13.46rpx; }
+.x-brand-row { display:flex; align-items:center; gap:15.38rpx; white-space:nowrap; }
+.x-brand-name { font-size:48.08rpx; line-height:69.71rpx; font-weight:700; }
+.x-brand-dot { color:var(--home-primary); font-size:38.46rpx; line-height:55.77rpx; font-weight:700; }
+.x-brand-subtitle { font-size:32.69rpx; line-height:47.40rpx; }
+.x-brand-en { display:block; font-size:19.23rpx; line-height:27.88rpx; color:var(--home-secondary); white-space:nowrap; }
+.x-home-scroll { flex:1; flex-shrink:1; min-height:0; height:0; width:100%; }
+.x-content { display:flex; flex-direction:column; padding:23.08rpx 38.46rpx; gap:23.08rpx; }
+.x-hero { position:relative; display:flex; flex-direction:column; height:334.62rpx; background:#FFFFFF; border:0; border-radius:46.15rpx; overflow:hidden; }
+.x-hero-fresh { position:absolute; left:0; top:0; width:673.08rpx; height:334.62rpx; }
+.x-hero-body { position:relative; z-index:1; display:flex; align-items:center; width:100%; height:334.62rpx; padding:0 38.46rpx; }
+.x-hero-copy { display:flex; flex-direction:column; flex:1; min-width:0; align-items:flex-start; gap:9.62rpx; }
+.x-hero-eyebrow { font-size:19.23rpx; line-height:27.88rpx; color:var(--home-primary); white-space:nowrap; }
+.x-hero-title { font-size:46.15rpx; line-height:66.92rpx; font-weight:700; white-space:nowrap; }
+.x-hero-title-line { display:block; }
+.x-hero-pill { display:flex; justify-content:center; align-items:center; width:192.31rpx; height:44.23rpx; border-radius:23.08rpx; color:var(--home-primary); background:var(--home-soft); font-size:19.23rpx; line-height:27.88rpx; font-weight:700; }
+.x-hero-illustration { flex:0 0 253.85rpx; width:253.85rpx; height:232.94rpx; }
+.x-shortcuts { display:flex; gap:23.08rpx; height:157.69rpx; }
+.x-help-entry { flex:0 0 215.38rpx; display:flex; flex-direction:column; justify-content:center; gap:9.62rpx; padding:23.08rpx 11.54rpx 23.08rpx 34.62rpx; border-radius:38.46rpx; background:var(--home-surface); }
+.x-help-heading { display:flex; align-items:center; gap:7.69rpx; }
+.x-guide-art { flex:0 0 61.54rpx; width:61.54rpx; height:61.54rpx; }
+.x-help-title { font-size:23.08rpx; line-height:33.46rpx; font-weight:700; white-space:nowrap; }
+.x-help-subtitle { font-size:19.23rpx; line-height:27.88rpx; color:var(--home-secondary); white-space:nowrap; }
+.x-invite-entry { flex:1; min-width:0; display:flex; align-items:center; gap:15.38rpx; padding:23.08rpx 23.08rpx 23.08rpx 34.62rpx; background:var(--home-surface); border-radius:38.46rpx; }
+.x-invite-copy { display:flex; flex-direction:column; flex:1; min-width:0; }
+.x-invite-title { font-size:25rpx; line-height:36.25rpx; font-weight:700; white-space:nowrap; }
+.x-invite-bonus { font-size:36.54rpx; line-height:52.98rpx; font-weight:700; color:var(--home-primary); white-space:nowrap; }
+.x-invite-rule { font-size:19.23rpx; line-height:27.88rpx; color:var(--home-secondary); white-space:nowrap; }
+.x-gift-art { flex:0 0 100rpx; width:100rpx; height:100rpx; }
+.x-balance-card { display:flex; align-items:center; min-height:150rpx; padding:26.92rpx; gap:23.08rpx; border-radius:42.31rpx; background:var(--home-surface); }
+.x-balance-cell { display:flex; align-items:center; flex:1; min-width:0; gap:13.46rpx; }
+.x-balance-art { flex:0 0 80.77rpx; width:80.77rpx; height:80.77rpx; }
+.x-balance-copy { flex:1; min-width:0; }
+.x-balance-label { display:block; font-size:19.23rpx; line-height:27.88rpx; color:var(--home-secondary); white-space:nowrap; }
+.x-balance-value { display:block; max-width:100%; font-size:42.31rpx; line-height:61.35rpx; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.x-member-values { display:flex; flex-wrap:wrap; align-items:baseline; gap:0 7.69rpx; }
+.x-member-values .x-balance-value { font-size:38.46rpx; }
+.x-member-values .x-member-off { font-size:26.92rpx; font-weight:500; }
+.x-member-quota { font-size:17.31rpx; line-height:25rpx; color:var(--home-secondary); white-space:nowrap; }
+.x-chevron-small { flex:0 0 23.08rpx; width:23.08rpx; height:23.08rpx; }
+.x-extract-card { display:flex; flex-direction:column; min-height:457.69rpx; padding:34.62rpx; gap:23.08rpx; border-radius:46.15rpx; background:var(--home-surface); }
+.x-extract-heading { display:flex; align-items:center; min-height:50rpx; gap:15.38rpx; }
+.x-extract-title { font-size:34.62rpx; line-height:50.19rpx; font-weight:700; }
+.x-extract-subtitle { font-size:21.15rpx; line-height:30.67rpx; color:var(--home-secondary); }
+.x-link-field { display:flex; align-items:center; height:92.31rpx; padding:0 23.08rpx; gap:15.38rpx; border-radius:28.85rpx; background:var(--home-bg); }
+.x-link-art { flex:0 0 34.62rpx; width:34.62rpx; height:34.62rpx; }
+.x-link-input { flex:1; flex-shrink:1; width:0; min-width:0; height:57.69rpx; font-size:23.08rpx; line-height:33.46rpx; color:var(--home-ink); }
+.x-link-placeholder { color:var(--home-secondary); }
+.x-paste { display:flex; align-items:center; justify-content:center; flex:0 0 92.31rpx; width:92.31rpx; height:57.69rpx; border-radius:19.23rpx; background:var(--home-soft); color:var(--home-primary); font-size:23.08rpx; font-weight:700; }
+.x-import-row { display:flex; align-items:center; min-height:103.85rpx; gap:23.08rpx; }
+.x-import-icon { display:flex; align-items:center; justify-content:center; flex:0 0 84.62rpx; width:84.62rpx; height:84.62rpx; }
+.x-video-art { width:84.62rpx; height:84.62rpx; }
+.x-import-check { display:flex; align-items:center; justify-content:center; width:73.08rpx; height:73.08rpx; border-radius:25rpx; background:var(--home-soft); color:var(--home-primary); font-size:46.15rpx; font-weight:700; }
+.x-import-copy { flex:1; min-width:0; display:flex; flex-direction:column; gap:3.85rpx; }
+.x-import-title { font-size:28.85rpx; line-height:41.83rpx; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.x-import-subtitle { font-size:19.23rpx; line-height:27.88rpx; color:var(--home-secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.x-import-clear { display:flex; align-items:center; justify-content:center; width:53.85rpx; height:76.92rpx; color:var(--home-secondary); font-size:46.15rpx; }
+.x-chevron { flex:0 0 30.77rpx; width:30.77rpx; height:30.77rpx; }
+.x-extract-action { display:flex; align-items:center; justify-content:space-between; height:92.31rpx; padding:0 34.62rpx; border-radius:46.15rpx; background:var(--home-lime); color:var(--home-ink); }
+.x-extract-action-label { font-size:32.69rpx; line-height:47.40rpx; font-weight:700; }
+.x-arrow-art { flex:0 0 42.31rpx; width:42.31rpx; height:42.31rpx; }
+.x-pressed { opacity:.72; }
+.x-action-pressed { background:#B5E64E; }
+/* 沿用全局导航的等宽栏位、44rpx图标和激活加粗。 */
+.x-home .app-tab-icon, .x-home .app-tab-active .app-tab-icon { background-color:transparent; }
+.x-home .app-tab-active { color:#1B2620; }
 
-/* 首页前排双入口：指南为辅助入口，邀请卡直接展示奖励规则。 */
-.x-shortcuts { display: flex; align-items: stretch; gap: 23.08rpx; height: 123.08rpx; }
-.x-help-entry { flex: 0 0 192.31rpx; display: flex; flex-direction: column; justify-content: center; padding: 0 23.08rpx 0 34.62rpx; gap: 9.62rpx; border-radius: 42.31rpx; background: var(--home-surface); }
-.x-help-title { font-size: 26.92rpx; line-height: 36.54rpx; font-weight: 700; }
-.x-help-subtitle { font-size: 19.23rpx; line-height: 26.92rpx; color: var(--home-secondary); white-space: nowrap; }
-.x-invite-entry { flex: 1; min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 7.69rpx; padding: 0 23.08rpx 0 38.42rpx; border-radius: 42.31rpx; background: var(--home-lavender); }
-.x-invite-copy { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 9.62rpx; }
-.x-invite-title { color: var(--home-primary); font-size: 26.92rpx; line-height: 36.54rpx; font-weight: 700; white-space: nowrap; }
-.x-invite-rule { display: flex; align-items: baseline; flex-wrap: nowrap; gap: 7.69rpx; white-space: nowrap; font-size: 19.23rpx; line-height: 26.92rpx; color: var(--home-secondary); }
-.x-invite-bonus { color: var(--home-primary); font-size: 23.08rpx; font-weight: 700; }
-.x-invite-arrow { flex: 0 0 42.31rpx; height: 42.31rpx; display: flex; align-items: center; justify-content: center; border-radius: 50%; color: var(--home-primary); background: var(--home-surface); font-size: 26.92rpx; line-height: 34.62rpx; }
+/* 同一层级使用相同的低对比阴影；主按钮和底部导航保持平面效果。 */
+.x-hero, .x-help-entry, .x-invite-entry, .x-balance-card, .x-extract-card { box-shadow:0 3.85rpx 19.23rpx rgba(27,38,32,.035); }
+.x-hero-headline { flex:0 0 146.15rpx; width:303.85rpx; height:146.15rpx; }

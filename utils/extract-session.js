@@ -21,6 +21,7 @@
 const { call } = require('./api');
 const { cacheLocalThumb } = require('./util');
 const tracker = require('./tracker');
+const { prepare: prepareAudio } = require('./lossless-audio');
 
 // ⚠️ 惰性取 app：本模块可能在 App() 执行完之前就被 require（utils 的规矩，同 utils/auth.js）
 const app = () => getApp();
@@ -60,6 +61,8 @@ const state = {
   errorMsg: '',
 };
 
+let generation = 0;
+let serverFailed = false;
 let payload = null; // 当前任务的启动参数（失败重试要用同一份）
 const subs = [];
 const viewers = {}; // 谁在看进度（决定终态由谁提示，避免双重弹窗）
@@ -225,14 +228,23 @@ function applyStage(stage) {
  * @param {{mode:'link'|'local', url?:string, path?:string, thumb?:string}} p
  */
 function start(p) {
+  if (state.phase === 'running') return;
+  generation += 1;
+  serverFailed = false;
   const o = p || {};
   const isLocal = o.mode === 'local';
   payload = {
     mode: isLocal ? 'local' : 'link',
     url: o.url || '',
     path: o.path || '',
+    fileID: o.fileID || '',
+    uploadMs: Number(o.uploadMs) || 0,
+    prepareMs: Number(o.prepareMs) || 0,
+    uploadBytes: Number(o.uploadBytes) || 0,
+    audioOnly: !!o.audioOnly,
+    requestId: o.requestId || ('extract_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2)),
     thumb: o.thumb || '',
-    // ⭐ 2026-09-29 提速：带上体积与时长，用来判断「值不值得压缩」（见 shouldCompress）
+    // 携带源文件体积和时长，用于上传及耗时诊断。
     sizeMB: Number(o.sizeMB) || 0,
     durationSec: Number(o.durationSec) || 0,
   };
@@ -274,16 +286,18 @@ function start(p) {
 }
 
 async function submitLink() {
+  const run = generation;
+  const input = payload;
   const a = app();
   if (!a || !a.globalData.cloudReady) return mockRun();
-  if (!payload.url) return fail(new Error('缺少视频链接'));
+  if (!input.url) return fail(new Error('缺少视频链接'));
   try {
     applyStage('parse');
     setSrvPercent(12);
 
     const tLink = Date.now();
-    const res = await call('parseLink', { url: payload.url });
-    if (state.phase !== 'running') return; // 期间被取消 / 已收尾
+    const res = await call('parseLink', { url: input.url, request_id: input.requestId });
+    if (run !== generation || state.phase !== 'running') return; // 期间被取消 / 已收尾
     console.log('[extract] 建任务 ' + (Date.now() - tLink) + 'ms（含冷启动）');
 
     state.taskId = (res && res.task_id) || '';
@@ -301,103 +315,58 @@ async function submitLink() {
     tracker.track('extract_start', { platform: res.platform || '' });
     startPoll();
   } catch (e) {
-    fail(e);
+    if (run === generation) fail(e);
   }
 }
 
-// ⭐⭐ 2026-09-29 提速（本地视频专用）：上传前先压一道 —— **但只在「真的划算」的时候压**。
-//    ASR 只吃音频轨，**视频清晰度对识别结果毫无影响** —— 所以「压低画质」≠「降低提取质量」。
-//    手机原片动辄 1080p / 4K（10 秒就 20~40MB），直传会把云函数的上行占满，
-//    实测 50 秒都传不完 → 直接撞 ASR 超时（用户看到「语音识别超时（50 秒），请更换更短的视频」）。
-//
-//    ⚠️⚠️ 但压缩本身很贵：wx.compressVideo 要把**整段视频重新解码再编码**，耗时与时长/分辨率
-//    成正比，真机上 20 秒 1080p 常见 30~60 秒。而它的唯一收益只是「少传一点体积」。
-//    所以两个维度都要判：**体积小 → 传就完事了；码率本来就低 → 压了也降不下来，白等。**
-const COMPRESS_MIN_MB = 8;        // ≤ 8MB：上传几秒就完，压缩纯亏
-const COMPRESS_MIN_MBPS = 3.5;    // ≤ 3.5Mbps：已经是低码率源，压完体积几乎不变
-const COMPRESS_TIMEOUT_MS = 20000; // 硬熔断：慢机型上宁可传原片，也不能一直卡在「解析中」
-
-/** 是否值得走压缩（导出供诊断/日志用） */
-function shouldCompress(sizeMB, durationSec) {
-  if (!sizeMB || sizeMB <= COMPRESS_MIN_MB) return false;
-  if (!durationSec || durationSec <= 0) return true; // 拿不到时长，按大文件处理
-  return (sizeMB * 8) / durationSec > COMPRESS_MIN_MBPS;
-}
-
-/**
- * 压缩（可能直接返回原路径）。
- * ⚠️ 失败 / 超时 / 老基础库不支持 → **原样上传**，主流程不受影响。
- * ⚠️ 熔断触发后压缩仍在后台跑，这里不再等它 —— 不阻塞就是目的。
- */
-function compressVideoIfPossible(path, sizeMB, durationSec) {
-  if (!path || typeof wx.compressVideo !== 'function') return Promise.resolve(path);
-  if (!shouldCompress(sizeMB, durationSec)) return Promise.resolve(path);
-  return new Promise((resolve) => {
-    let settled = false;
-    const done = (p) => {
-      if (settled) return;
-      settled = true;
-      resolve(p || path);
-    };
-    setTimeout(() => {
-      if (settled) return;
-      console.warn('[extract] 压缩超过 ' + COMPRESS_TIMEOUT_MS + 'ms，改用原片继续');
-      done(path);
-    }, COMPRESS_TIMEOUT_MS);
-    wx.compressVideo({
-      src: path,
-      quality: 'low',
-      success: (r) => done((r && r.tempFilePath) || path),
-      fail: () => done(path),
-    });
-  });
-}
-
+// 常见 MP4/MOV 优先在手机无损抽取 AAC 上传；不支持则保留原视频。
 async function submitLocal() {
+  const run = generation;
+  const input = payload;
   const a = app();
   if (!a || !a.globalData.cloudReady) return mockRun();
-  if (!payload.path) return fail(new Error('未取到视频文件'));
+  if (!input.path) return fail(new Error('未取到视频文件'));
   try {
     applyStage('parse');
     setSrvPercent(8);
 
-    // 只有「体积大 + 码率高」才值得压；压不出结果（失败 / 超时 20s）就原样传，绝不阻断主流程
-    const tCompress = Date.now();
-    if (shouldCompress(payload.sizeMB, payload.durationSec)) {
-      state.headSub = '正在压缩视频…';
-      state.stateSub = '压缩后上传更快，最长等 20 秒';
-      emit('change');
-    }
-    const uploadPath = await compressVideoIfPossible(payload.path, payload.sizeMB, payload.durationSec);
-    if (state.phase !== 'running') return;
-    console.log(
-      '[extract] 压缩' +
-        (uploadPath === payload.path ? '跳过' : '完成') +
-        ' ' + (Date.now() - tCompress) + 'ms · 源 ' + (payload.sizeMB || '?') + 'MB'
-    );
-
+    // 重试复用已经上传的原文件，避免重新上传。
+    if (!input.fileID) {
+    const prepared = await prepareAudio(input, () => run === generation && state.phase === 'running');
+    if (run !== generation || state.phase !== 'running') { prepared.cleanup(); return; }
+    const uploadPath = prepared.path;
     // 上传进度：把体积写到界面上，用户能看出「是在传，不是卡了」
-    state.headSub = '正在上传' + (payload.sizeMB ? ' · ' + payload.sizeMB.toFixed(1) + 'MB' : '') + '…';
+    state.headSub = '正在上传' + (prepared.bytes ? ' · ' + (prepared.bytes / 1048576).toFixed(1) + 'MB' : '') + '…';
     state.stateSub = '上传完成即开始识别';
     emit('change');
     const tUpload = Date.now();
-    const cloudPath = 'tmp/' + Date.now() + '_' + Math.random().toString(36).slice(2) + '.mp4';
-    const up = await wx.cloud.uploadFile({ cloudPath, filePath: uploadPath });
-    if (state.phase !== 'running') return;
-    console.log('[extract] 上传 ' + (Date.now() - tUpload) + 'ms');
+    const extMatch = uploadPath.match(/\.(m4a|mp4|mov|m4v|webm|avi)(?:[?#].*)?$/i);
+    const cloudPath = 'tmp/' + input.requestId + '.' + (extMatch ? extMatch[1].toLowerCase() : 'mp4');
+    let up;
+    try { up = await wx.cloud.uploadFile({ cloudPath, filePath: uploadPath }); }
+    finally { prepared.cleanup(); }
+    if (run !== generation || state.phase !== 'running') return;
+    input.uploadMs = Date.now() - tUpload;
+    input.audioOnly = prepared.audioOnly;
+    input.prepareMs = prepared.ms;
+    input.uploadBytes = prepared.bytes;
+    console.log('[extract] 上传 ' + input.uploadMs + 'ms');
 
     // ⭐ 把选片时拿到的缩略图转存到本地持久目录（key = 云存储 fileID）→
     //    历史 / 结果页直接用它当封面，不再出现「先一块黑图、过会才出首帧」的过程。
     //    失败静默：拿不到就回落 <video> 首帧，不影响上传主流程。
-    cacheLocalThumb(up.fileID, payload.thumb);
+    if (!up || !up.fileID) throw new Error('视频上传未完成，请重试');
+    input.fileID = up.fileID;
+    cacheLocalThumb(up.fileID, input.thumb);
+    }
 
     state.headSub = '上传完成，正在解析';
     setSrvPercent(20);
     emit('change');
 
     const tLink = Date.now();
-    const res = await call('parseLink', { file_id: up.fileID, source: 'local' });
-    if (state.phase !== 'running') return;
+    const res = await call('parseLink', { file_id: input.fileID, source: 'local', request_id: input.requestId, client_timing: { upload_ms: input.uploadMs || 0, prepare_ms: input.prepareMs || 0, upload_bytes: input.uploadBytes || 0, audio_only: !!input.audioOnly, original_bytes: Math.round((input.sizeMB || 0) * 1024 * 1024), reencoded: false } });
+    if (run !== generation || state.phase !== 'running') return;
     console.log('[extract] 建任务 ' + (Date.now() - tLink) + 'ms（含冷启动）');
 
     state.taskId = (res && res.task_id) || '';
@@ -407,7 +376,7 @@ async function submitLocal() {
     }
     startPoll();
   } catch (e) {
-    fail(e);
+    if (run === generation) fail(e);
   }
 }
 
@@ -517,9 +486,11 @@ function startTextTick() {
 }
 
 function startPoll() {
+  const run = generation;
   clearPoll();
   const tick = async () => {
-    if (state.phase !== 'running') return;
+    if (run !== generation || state.phase !== 'running') return;
+    const previousStatus = curStatus;
 
     if (Date.now() - startAt > TIMEOUT) {
       // 把服务端记录的最后一次错误带出来，否则用户只看到一句泛泛的「解析超时」
@@ -530,7 +501,7 @@ function startPoll() {
     try {
       const tPoll = Date.now();
       const res = await call('getTask', { task_id: state.taskId });
-      if (state.phase !== 'running') return;
+      if (run !== generation || state.phase !== 'running') return;
 
       // ⭐⭐ 提速诊断（2026-09-29）：把「轮询往返耗时 + 服务端状态 + 累计时间 + 分步 timing」
       //    打到 console。开发者工具 Console 面板即可看出卡在取源 / 下载 / 转写哪一步，
@@ -566,17 +537,22 @@ function startPoll() {
       emit('change');
 
       if (res && res.status === 'done') return finish(res.copywriting_id);
-      if (res && res.status === 'failed') return fail(new Error(res.msg || '解析失败'));
+      if (res && res.status === 'failed') {
+        serverFailed = true;
+        return fail(new Error(res.msg || '解析失败'));
+      }
     } catch (e) {
       // 单次失败不终止，继续轮询
       console.warn('[session] 轮询失败一次', e && e.message);
     }
 
-    pollTimer = setTimeout(tick, POLL_INTERVAL);
+    if (run !== generation || state.phase !== 'running') return;
+    // 已推进到下一阶段时立即继续；状态未变/通讯失败才按原间隔查询。
+    pollTimer = setTimeout(tick, curStatus && curStatus !== previousStatus ? 0 : POLL_INTERVAL);
   };
   pollStartAt = Date.now();
   startTextTick();
-  pollTimer = setTimeout(tick, 800);
+  pollTimer = setTimeout(tick, 0);
 }
 
 /* ---------- 终态 ---------- */
@@ -623,8 +599,18 @@ function fail(err) {
 
 /** 失败重试：⚠️ 前端判失败 ≠ 服务端已停，先取消旧任务（顺带退积分）再重开，防双边扣费 */
 function retry() {
-  cancelServerTask();
-  start(payload || { mode: 'link', url: '' });
+  if (state.taskId && !serverFailed) {
+    state.phase = 'running';
+    state.errorMsg = '';
+    startAt = Date.now();
+    startSmooth();
+    startPoll();
+    emit('change');
+    return;
+  }
+  const next = Object.assign({}, payload || { mode: 'link', url: '' });
+  if (serverFailed) delete next.requestId;
+  start(next);
 }
 
 function isTopPage(route) {
@@ -657,6 +643,7 @@ function cancel() {
 
 /** 会话复位（结果已看 / 主动取消 / 失败返回后）—— 首页按钮随之回到「立即提取」 */
 function reset() {
+  generation += 1;
   stopAll();
   state.phase = 'idle';
   state.mode = '';
