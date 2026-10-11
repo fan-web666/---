@@ -276,7 +276,14 @@ function start(p) {
   statusAt = 0;
   statusMs = {};
   pollStartAt = 0;
+  // ⭐ 步骤1 计时从「本次提取开始」起算：本地视频的抽取+上传早于任何服务端 status，
+  //    不从这一刻起算的话，上传那段既不走秒、也不计时长。
+  parseAt = Date.now();
+  localPhaseLabel = '';
   lastSnap = {}; // 强制全量外发一次
+
+  // ⭐ 本地阶段没有服务端 status，秒数只能本地走 → 从一开提取就启动（原来只在 startPoll 里启动）
+  startTextTick();
 
   emit('start');
   startSmooth();
@@ -332,11 +339,17 @@ async function submitLocal() {
 
     // 重试复用已经上传的原文件，避免重新上传。
     if (!input.fileID) {
+    // ⭐ 进入本地阶段：抽取音频 + 上传云存储都在这里，界面秒数由本地计时器续写
+    localPhaseLabel = '正在准备视频';
+    state.headSub = localPhaseLabel + ' · 0s';
+    emit('change');
+
     const prepared = await prepareAudio(input, () => run === generation && state.phase === 'running');
     if (run !== generation || state.phase !== 'running') { prepared.cleanup(); return; }
     const uploadPath = prepared.path;
     // 上传进度：把体积写到界面上，用户能看出「是在传，不是卡了」
-    state.headSub = '正在上传' + (prepared.bytes ? ' · ' + (prepared.bytes / 1048576).toFixed(1) + 'MB' : '') + '…';
+    localPhaseLabel = '正在上传' + (prepared.bytes ? ' · ' + (prepared.bytes / 1048576).toFixed(1) + 'MB' : '');
+    state.headSub = localPhaseLabel + '…';
     state.stateSub = '上传完成即开始识别';
     emit('change');
     const tUpload = Date.now();
@@ -358,6 +371,8 @@ async function submitLocal() {
     if (!up || !up.fileID) throw new Error('视频上传未完成，请重试');
     input.fileID = up.fileID;
     cacheLocalThumb(up.fileID, input.thumb);
+    // 本地阶段结束：清掉「正在上传 xx」文案（秒数此后由步骤1的 parseAt 统一续写）
+    localPhaseLabel = '';
     }
 
     state.headSub = '上传完成，正在解析';
@@ -416,17 +431,26 @@ let curStatus = ''; // 最近一次观测到的服务端 status
 let statusAt = 0; // 进入该 status 的本地时刻
 let statusMs = {}; // status → 已确认耗时（ms），用于步骤小字
 let textTimer = null; // 本地 1 秒定时器（与轮询响应解耦）
-let pollStartAt = 0; // 开始轮询的时刻（用来给「取源」那步补时长）
+let pollStartAt = 0; // 开始轮询的时刻（历史字段，保留兼容）
+/* ---------- ⭐ 2026-10-12：本地阶段（抽取音频 / 上传视频）计时 ----------
+ * 本地视频在「建任务」之前有一段纯客户端工作：无损抽音频 + 上传云存储。
+ * 这段没有服务端 status，原来的秒数定时器也只从轮询才开始 ——
+ * 于是上传那 20+ 秒界面完全静止，事后步骤 1 还只显示 1s（对不上）。
+ * 下面三个变量让这段也走本地时钟，并把耗时如实计入步骤 1。 */
+let parseAt = 0; // 步骤1（parse）计时起点 ＝ 本次提取开始时刻（含本地抽取/上传 + 服务端取源）
+let localPhaseLabel = ''; // 本地阶段动态小字前缀（如「正在上传 · 26.6MB」）；空 = 无
 
 /** 观测到服务端 status 变化 → 结算上一个 status 的时长 */
 function noteStatus(st) {
   if (!st || st === 'failed' || st === 'done') return;
   if (st === curStatus) return;
-  // 首个响应之前那段没有 status 可归属（链接视频＝取源那一步）→ 记给「解析视频链接」
-  if (!curStatus && pollStartAt && st !== 'pending') {
-    statusMs.pending = (statusMs.pending || 0) + Math.max(0, Date.now() - pollStartAt);
-  }
-  if (curStatus && statusAt) {
+  // ⭐ 首个 status 到来之前那段全部归入步骤1（parse）：
+  //    本地视频＝抽取音频 + 上传 + 建任务；链接视频＝建任务（含云函数冷启动）。
+  //    ⚠️ 起点必须用 parseAt（本次提取开始），不能用 pollStartAt（轮询开始）——
+  //       本地视频的上传发生在轮询之前，用 pollStartAt 会把那 20 秒整个丢掉 → 步骤1 只显示 1s。
+  if (!curStatus && parseAt) {
+    statusMs.pending = (statusMs.pending || 0) + Math.max(0, Date.now() - parseAt);
+  } else if (curStatus && statusAt) {
     statusMs[curStatus] = (statusMs[curStatus] || 0) + (Date.now() - statusAt);
   }
   curStatus = st;
@@ -445,6 +469,12 @@ function stepSeconds(stepKey) {
   });
   if (curStatus && STATUS_STEP[curStatus] === stepKey && statusAt) {
     ms += Date.now() - statusAt;
+    has = true;
+  }
+  // ⭐ 服务端还没给过任何 status（本地视频＝抽取/上传中）→ 步骤1 按本地时钟走秒。
+  //    从 parseAt 起算，与 noteStatus 首次结算的值连续，不会跳变。
+  if (!has && stepKey === 'parse' && parseAt && !curStatus) {
+    ms += Date.now() - parseAt;
     has = true;
   }
   return has ? Math.max(1, Math.round(ms / 1000)) + 's' : '';
@@ -477,6 +507,14 @@ function startTextTick() {
       if (stText) {
         state.headSub = stText + ' · ' + Math.round((Date.now() - statusAt) / 1000) + 's';
       }
+      decorateSteps();
+      emit('change');
+    } else if (parseAt && Date.now() - parseAt > 800) {
+      // ⭐ 服务端还没给过 status（本地视频＝抽取/上传中；链接视频＝建任务中）
+      //    → 秒数本地续写，否则界面在这段完全静止（原来上传 20 秒一动不动）。
+      //    800ms 阈值：避免刚进入本页就闪一下「· 0s」。
+      const prefix = localPhaseLabel || '正在解析视频链接';
+      state.headSub = prefix + ' · ' + Math.round((Date.now() - parseAt) / 1000) + 's';
       decorateSteps();
       emit('change');
     }

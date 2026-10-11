@@ -43,7 +43,7 @@ function demux(input, maxMs = 600) {
     return join([header, body]);
   };
   try {
-    if (src.length < 1024 || src.length > 24 * 1024 * 1024) return null;
+    if (src.length < 1024 || src.length > 40 * 1024 * 1024) return null;
     const top = boxes(0, src.length);
     if (top.some(b => b.type === 'moof')) return null;
     const moov = one(top, 'moov'), ftyp = one(top, 'ftyp');
@@ -159,20 +159,24 @@ function demux(input, maxMs = 600) {
 
 async function prepare(input, alive = () => true) {
   const original = { path: input.path, audioOnly: false, ms: 0, bytes: Math.round((input.sizeMB || 0) * 1048576), cleanup() {} };
-  // 保留已有缩略图显示；缺失封面和大文件不改变原来的上传方式。
-  if (!input.thumb || input.sizeMB < 2 || input.sizeMB > 24 || !/\.(mp4|mov|m4v)$/i.test(input.path || '') || typeof wx.getFileSystemManager !== 'function' || !wx.env || !wx.env.USER_DATA_PATH) return original;
+  // 保留已有缩略图显示；缺失封面不改变原来的上传方式。
+  // ⭐ 2026-10-12：体积上限 24MB → 40MB。原上限偏保守，26.6MB 这类常见短视频
+  //    会被直接跳过 → 原样上传 26.6MB（20+ 秒）。抽音频后仅 ~0.4MB，上传 <1 秒。
+  if (!input.thumb || input.sizeMB < 2 || input.sizeMB > 40 || !/\.(mp4|mov|m4v)$/i.test(input.path || '') || typeof wx.getFileSystemManager !== 'function' || !wx.env || !wx.env.USER_DATA_PATH) return original;
   const fs = wx.getFileSystemManager(), started = Date.now();
   let ended = false, timer, outputPath = '';
   const cleanup = () => { if (outputPath) { try { fs.unlink({ filePath: outputPath, fail() {} }); } catch (_) {} } };
   return new Promise(resolve => {
     const finish = value => { if (ended) { if (value.audioOnly) cleanup(); return; } ended = true; clearTimeout(timer); if (!value.audioOnly) value.ms = Date.now() - started; resolve(value); };
-    // 只给预处理1秒预算；不延长现有上传/提取等待时间。
-    timer = setTimeout(() => finish(original), 1000);
+    // ⭐ 2026-10-12：预算 1s → 2.5s。大文件（20~40MB）读取 + 解析本身就要几百 ms，
+    //    1s 预算会让它们大概率超时回退 → 退回原样上传大视频（20+ 秒）。
+    //    放宽后：抽音频成功可把上传体积压到 <1MB（净省 20 秒）；失败也只是多等最多 2.5s。
+    timer = setTimeout(() => finish(original), 2500);
     try {
       fs.readFile({ filePath: input.path, success(res) {
         if (ended || !alive()) return finish(original);
-        const audio = demux(res.data, Math.min(600, Math.max(0, 900 - (Date.now() - started))));
-        if (!audio || ended || !alive() || Date.now() - started > 900) return finish(original);
+        const audio = demux(res.data, Math.min(1500, Math.max(300, 2500 - (Date.now() - started))));
+        if (!audio || ended || !alive() || Date.now() - started > 2300) return finish(original);
         outputPath = wx.env.USER_DATA_PATH + '/extract_audio_' + String(input.requestId).replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 80) + '.m4a';
         try {
           fs.writeFile({ filePath: outputPath, data: audio.data, success() {
