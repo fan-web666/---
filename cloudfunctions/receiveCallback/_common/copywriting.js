@@ -99,26 +99,107 @@ function cleanTranscript(text) {
   return s;
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   修订对套用（2026-10-12 提速）
+   ══════════════════════════════════════════════════════════════════════════
+   背景：原实现让大模型把「校对后的整篇正文」原样回填一次，而输出 token 的 ~90%
+        就是这段正文 —— 大模型逐字串行生成，正文多长就要花多久。实测同一批任务
+        llm 耗时 2.2s ~ 12.1s，与正文长度强相关（差 5.5 倍）。
+   改法：模型只回「改动点」edits，正文由本函数套用到原文上生成。
+        → 输出量骤降，生成时间随之骤降；正文＝原文字面＋明确修订，不会因重写漏字。
+
+   ⚠️ 安全铁律：**宁可不改，也绝不改错位置。**
+     · o 至少 2 个字符（单字替换极易误伤，如「不」→「是」）
+     · o 至多 60 个字符（防模型给出一大段把正文整块吃掉）
+     · o 必须在原文里**恰好出现一次**（找不到 / 出现多次 → 丢弃该条：位置不确定就不动）
+     · o / n 一律当**纯字符串**处理，不做正则解析 —— 模型给的字符绝不能变成元字符
+     · 逐条套用；结果压缩长度 < 原文 60% → **整批作废**，回退原文（沿用既有 60% 阈值口径）
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/** 单条修订对允许的原文片段长度区间（字符） */
+const EDIT_O_MIN = 2;
+const EDIT_O_MAX = 60;
+/** 一次最多套用多少条（防脏数据把 CPU 打满） */
+const EDIT_MAX = 120;
+
+/**
+ * 把模型给出的「修订对」套用到原文，生成最终正文。
+ * @param {string} raw 原文（ASR 或字幕稿）
+ * @param {Array<{o:string,n:string}>} edits 修订对（n 为空串 = 删除）
+ * @returns {{text:string, applied:number, dropped:number, reverted:boolean}}
+ */
+function applyEdits(raw, edits) {
+  const src = String(raw || '');
+  const list = Array.isArray(edits) ? edits : [];
+  const compactLen = t => String(t || '').replace(/\s/g, '').length;
+  if (!src || !list.length) {
+    return { text: src, applied: 0, dropped: list.length, reverted: false };
+  }
+
+  let out = src;
+  let applied = 0;
+  let dropped = 0;
+  const cap = Math.min(list.length, EDIT_MAX);
+  for (let i = 0; i < cap; i++) {
+    const e = list[i];
+    if (!e) { dropped++; continue; }
+    const o = String(e.o == null ? '' : e.o);
+    const n = String(e.n == null ? '' : e.n);
+    if (o.length < EDIT_O_MIN || o.length > EDIT_O_MAX) { dropped++; continue; }
+    const at = out.indexOf(o);
+    if (at < 0) { dropped++; continue; }
+    // 出现多次 → 无法确定改哪一处 → 宁可不动
+    if (out.indexOf(o, at + 1) > -1) { dropped++; continue; }
+    out = out.slice(0, at) + n + out.slice(at + o.length);
+    applied++;
+  }
+
+  const srcN = compactLen(src);
+  if (applied === 0 || (srcN > 0 && compactLen(out) < srcN * 0.6)) {
+    return { text: src, applied: 0, dropped: list.length, reverted: true };
+  }
+  return { text: out, applied, dropped, reverted: false };
+}
+
 /**
  * 组装 content（原文 + 结构化并存，PRD 1.3）
- * @param {object} structured llmStructure 输出（可能缺 transcript）
+ * @param {object} structured llmStructure 输出（edits 或兼容用的 transcript）
  * @param {string} transcriptText ASR 原文
  */
 function buildContent(structured, transcriptText) {
   const s = structured || {};
   const correct = text => reconcileTranscript({ transcript: text }).text;
-  // ⭐ 2026-10-12 提取精度：优先采用大模型回填的「校对后全文」——
-  //    无字幕（语音识别主稿）时它已修掉同音错别字（夺舌→夺舍 / 京剧→金句 / 频繁→平淡），
-  //    有字幕时提示词要求原样回填字幕版，等价于原稿。
-  //    兜底防模型偷懒（返回空 / 明显变短）→ 一律回退原稿，绝不因模型失手丢内容：
   const compactLen = t => String(t || '').replace(/\s/g, '').length;
   const raw = transcriptText || '';
   const llmText = String(s.transcript || '').trim();
   const srcLen = compactLen(raw);
-  const usable = compactLen(llmText) > 0 && (srcLen === 0 || compactLen(llmText) >= srcLen * 0.6);
+
+  // ⭐⭐ 2026-10-12 提速（依据：timingReport 实测 —— llm_s 与正文长度强相关，2.2s ↔ 12.1s 差 5.5 倍）：
+  //    模型不再回填整篇正文，只回「修订对」edits，由 applyEdits 套用到原文上。
+  //    正文因此 = **原文字面 + 明确修订**：既省掉「把整篇原文再打一遍」的生成时间，
+  //    也不会像「模型重写」那样出现漏字 / 语气被改写。
+  //    兜底链（逐级退化，绝不丢内容）：
+  //      ① edits 可用            → 应用结果
+  //      ② edits 全被丢弃 / 正文塌破 60% → applyEdits 内部已回退原文
+  //      ③ 没有 edits（旧格式 / plainFallback）→ 沿用旧逻辑：模型给的完整正文 → 原文
+  let base = '';
+  if (Array.isArray(s.edits) && s.edits.length) {
+    const r = applyEdits(raw, s.edits);
+    if (r.reverted) {
+      console.warn(
+        '[copywriting] 修订对未命中或正文过短，整批作废回退原文（apply ' +
+          r.applied + '/' + s.edits.length + '，dropped ' + r.dropped + '）'
+      );
+    }
+    base = r.text;
+  }
+  if (!base) {
+    const usable = compactLen(llmText) > 0 && (srcLen === 0 || compactLen(llmText) >= srcLen * 0.6);
+    base = usable ? llmText : (raw || llmText);
+  }
   // 主稿已经过字幕/音频对照；这里只再跑一遍**本地固定搭配规则**（不依赖模型，纯确定性）——
   // ⚠️ 原实现漏掉了这一步：规则库只作用于 hook/highlights/points，「口播原文」从未被纠错。
-  const transcript = correct(usable ? llmText : (raw || llmText));
+  const transcript = correct(base);
   // ⭐ 2026-10-12：title 原先是**唯一没过纠错**的字段 → 曾出现「予行·文案快提」在标题里
   //    被写成「旅行文案快递」（截图实证）。现在一并过 correct()。
   const title = correct(s.title || '');
@@ -173,4 +254,4 @@ function splitParagraphs(text) {
     .filter(Boolean);
 }
 
-module.exports = { buildContent, markdownify, splitParagraphs, cleanTranscript, isNoiseTag, EMOJI_RE };
+module.exports = { buildContent, applyEdits, markdownify, splitParagraphs, cleanTranscript, isNoiseTag, EMOJI_RE };
