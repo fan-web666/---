@@ -159,33 +159,57 @@ function demux(input, maxMs = 600) {
 
 async function prepare(input, alive = () => true) {
   const original = { path: input.path, audioOnly: false, ms: 0, bytes: Math.round((input.sizeMB || 0) * 1048576), cleanup() {} };
-  // 保留已有缩略图显示；缺失封面不改变原来的上传方式。
-  // ⭐ 2026-10-12：体积上限 24MB → 40MB。原上限偏保守，26.6MB 这类常见短视频
-  //    会被直接跳过 → 原样上传 26.6MB（20+ 秒）。抽音频后仅 ~0.4MB，上传 <1 秒。
-  if (!input.thumb || input.sizeMB < 2 || input.sizeMB > 40 || !/\.(mp4|mov|m4v)$/i.test(input.path || '') || typeof wx.getFileSystemManager !== 'function' || !wx.env || !wx.env.USER_DATA_PATH) return original;
+  const sizeMB = Number(input.sizeMB) || 0;
+  // ⭐ 2026-10-12 二改（用户反馈「有些本地文件提取要 30+ 秒，字数少的反而更慢」）：
+  //    ① **解除与「缩略图」的耦合** —— 抽音频只跟视频文件本身有关。
+  //       原先 `!input.thumb` 就会直接放弃抽取 → 没取到封面的视频一律原样上传几十 MB，
+  //       云函数再从云存储整份下载；上传 + 下载两段叠加，正是「慢的那个」的成因。
+  //    ② 体积未知（file.size 取不到 = 0）**不再当成小文件放过**，改为照常尝试抽取。
+  //    ③ 只在四种「明确不该抽」的情况下直接放弃：环境不支持 / 扩展名不支持 /
+  //       明确过大（>40MB，怕内存爆）/ 明确过小（<2MB，抽了也省不下多少）。
+  const extOk = /\.(mp4|mov|m4v)$/i.test(input.path || '');
+  const envOk = typeof wx.getFileSystemManager === 'function' && !!(wx.env && wx.env.USER_DATA_PATH);
+  if (!envOk || !extOk || sizeMB > 40 || (sizeMB > 0 && sizeMB < 2)) {
+    console.log('[audio] 跳过抽取（原样上传）· sizeMB=' + sizeMB + ' · extOk=' + extOk + ' · envOk=' + envOk);
+    return original;
+  }
   const fs = wx.getFileSystemManager(), started = Date.now();
   let ended = false, timer, outputPath = '';
+  let why = 'demux 不支持该封装'; // 抽取未成功的原因（诊断：开发者工具可见）
   const cleanup = () => { if (outputPath) { try { fs.unlink({ filePath: outputPath, fail() {} }); } catch (_) {} } };
   return new Promise(resolve => {
-    const finish = value => { if (ended) { if (value.audioOnly) cleanup(); return; } ended = true; clearTimeout(timer); if (!value.audioOnly) value.ms = Date.now() - started; resolve(value); };
+    const finish = value => {
+      if (ended) { if (value.audioOnly) cleanup(); return; }
+      ended = true; clearTimeout(timer);
+      if (value.audioOnly) {
+        console.log('[audio] 抽取成功 · ' + (value.bytes / 1048576).toFixed(2) + 'MB ← 原 ' + sizeMB.toFixed(1) + 'MB · 耗时 ' + (Date.now() - started) + 'ms');
+      } else {
+        value.ms = Date.now() - started;
+        console.log('[audio] 抽取未成功（回退原样上传）· 原因=' + why + ' · 耗时 ' + value.ms + 'ms');
+      }
+      resolve(value);
+    };
     // ⭐ 2026-10-12：预算 1s → 2.5s。大文件（20~40MB）读取 + 解析本身就要几百 ms，
     //    1s 预算会让它们大概率超时回退 → 退回原样上传大视频（20+ 秒）。
     //    放宽后：抽音频成功可把上传体积压到 <1MB（净省 20 秒）；失败也只是多等最多 2.5s。
-    timer = setTimeout(() => finish(original), 2500);
+    timer = setTimeout(() => { why = '超过 2.5s 预算'; finish(original); }, 2500);
     try {
       fs.readFile({ filePath: input.path, success(res) {
-        if (ended || !alive()) return finish(original);
+        if (ended || !alive()) { why = '页面已离开'; return finish(original); }
         const audio = demux(res.data, Math.min(1500, Math.max(300, 2500 - (Date.now() - started))));
-        if (!audio || ended || !alive() || Date.now() - started > 2300) return finish(original);
+        if (!audio || ended || !alive() || Date.now() - started > 2300) {
+          why = !audio ? 'demux 不支持该封装' : '超过 2.5s 预算';
+          return finish(original);
+        }
         outputPath = wx.env.USER_DATA_PATH + '/extract_audio_' + String(input.requestId).replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 80) + '.m4a';
         try {
           fs.writeFile({ filePath: outputPath, data: audio.data, success() {
-            if (!alive()) { cleanup(); return finish(original); }
+            if (!alive()) { cleanup(); why = '页面已离开'; return finish(original); }
             finish({ path: outputPath, audioOnly: true, ms: Date.now() - started, bytes: audio.bytes, cleanup });
-          }, fail() { cleanup(); finish(original); } });
-        } catch (_) { cleanup(); finish(original); }
-      }, fail() { finish(original); } });
-    } catch (_) { finish(original); }
+          }, fail() { cleanup(); why = '写临时文件失败'; finish(original); } });
+        } catch (_) { cleanup(); why = '写临时文件异常'; finish(original); }
+      }, fail() { why = '读文件失败'; finish(original); } });
+    } catch (_) { why = '读文件异常'; finish(original); }
   });
 }
 

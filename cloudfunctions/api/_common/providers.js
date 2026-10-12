@@ -1708,8 +1708,16 @@ async function asrTranscribe(media, task) {
   // ⭐ 2026-09-29 提速：只传音频轨（详见 extractAudioM4a 注释）。
   //    识别输入本来就是音频，画面从未参与识别 → 对提取质量零影响，纯粹省掉白传的体积。
   //    抽不出 / 没赚到 / 出任何错 → sendPath 保持原文件，行为与改动前完全一致。
+  // ⭐ 2026-10-12 修正（排查「本地视频识别偶发 30+ 秒」时发现）：
+  //    前端已无损抽出音频轨上传时，云端下载后的**本地文件名被统一写成 wb_xxx.mp4**
+  //    （见 downloadMedia 的 cloud:// 分支），扩展名根本反映不了真实内容 ——
+  //    所以不能按扩展名判断，必须用前端随任务上报的 client_timing.audio_only 标记。
+  //    原先一律按 video/mp4 上报，等于告诉识别服务「这是视频」，
+  //    服务端可能先做一遍解封装再识别，白等一段。
+  const clientAudioOnly = !!(task && task.client_timing && task.client_timing.audio_only);
   let sendPath = media.path;
-  let sendCt = 'video/mp4';
+  let sendCt = clientAudioOnly ? 'audio/mp4' : 'video/mp4';
+  let sendName = clientAudioOnly ? 'audio.m4a' : path.basename(sendPath);
   let audioInfo = null;
   const audioOn = String(env('ASR_EXTRACT_AUDIO', 'true')).toLowerCase() !== 'false';
   if (audioOn && origSize > envInt('ASR_AUDIO_MIN_MB', 2, 0, 100) * 1024 * 1024) {
@@ -1718,6 +1726,7 @@ async function asrTranscribe(media, task) {
       if (a && a.sizeBytes > 0 && a.sizeBytes < origSize * 0.6) {
         sendPath = a.path;
         sendCt = 'audio/mp4';
+        sendName = path.basename(a.path);
         audioInfo = {
           from_bytes: origSize,
           to_bytes: a.sizeBytes,
@@ -1758,6 +1767,13 @@ async function asrTranscribe(media, task) {
   // 主备共用原 ASR_TIMEOUT_MS 总预算；不按压缩音频字节数提前中断主模型。
   // AAC 码率不是时长，提前切换可能丢掉即将完成的全文并重复排队。
   const asrDeadline = Date.now() + asrTimeout;
+  // ⭐ 2026-10-12 修复「兜底模型形同虚设」：
+  //    原实现把剩余预算**全部**交给当前模型，主模型一旦跑满总预算就超时，
+  //    此时 remaining ≤ 0 → 兜底分支永远进不去 —— 也就是「配了兜底模型，实际一次都没跑过」。
+  //    现在非最后一个模型最多用「总预算 − 预留」，保证兜底真的有机会执行。
+  //    预留值取 12s（实测兜底模型对短音频 12~25s，虽有超时风险，但总比不试好）。
+  const asrRetryReserve =
+    asrModels.length > 1 ? envInt('ASR_RETRY_RESERVE_MS', 12000, 0, 30000) : 0;
   const attemptLog = [];
   const retryReason = e => {
     const m = String((e && e.message) || '');
@@ -1779,6 +1795,9 @@ async function asrTranscribe(media, task) {
     const hasNext = i + 1 < asrModels.length;
     const remaining = asrDeadline - Date.now();
     if (remaining <= 0 || (i > 0 && remaining < 1000)) break;
+    // ⭐ 非最后一个模型：预留 asrRetryReserve 给后续兜底，避免主模型独吞全部预算
+    //    （预算耗尽后兜底分支永远进不去，等于白配）
+    const attemptBudget = hasNext ? Math.max(3000, remaining - asrRetryReserve) : remaining;
     attempts = i + 1;
     const attemptStarted = Date.now();
     let attemptTiming = null;
@@ -1792,12 +1811,12 @@ async function asrTranscribe(media, task) {
           file: {
             field: 'file',
             path: sendPath,
-            filename: path.basename(sendPath),
+            filename: sendName,
             contentType: sendCt,
           },
         },
         { Authorization: 'Bearer ' + asrKey },
-        remaining,
+        attemptBudget,
         (t) => {
           attemptTiming = t;
         }
@@ -1883,6 +1902,7 @@ async function asrTranscribe(media, task) {
       '[providers] ASR 完成 · 模型=' + (modelUsed || '-') +
       ' · 总耗时=' + (t.total_ms || 0) + 'ms' +
       '（上传 ' + (t.upload_ms || 0) + 'ms / 服务端 ' + (t.wait_ms || 0) + 'ms）' +
+      ' · 上报=' + (t.bytes || 0) + 'B/' + sendCt +
       ' · 尝试=' + attempts + ' 次' +
       (attemptLog.length > 1
         ? ' · 前序失败=' + attemptLog.filter(a => a.outcome !== 'ok').map(a => a.model + '(' + a.reason + ' ' + a.total_ms + 'ms)').join(', ')
