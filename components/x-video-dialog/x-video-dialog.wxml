@@ -1,0 +1,39 @@
+<!-- x-video-dialog · 视频教程弹层（2026-10-12 新增，**超出设计稿**）
+     用法：<x-video-dialog show="{{videoShow}}" file-id="{{guideVideoFileId}}" bind:close="closeGuideVideo" />
+     ⚠️ 与 x-dialog 的交互**刻意不同**：全屏播放器**点遮罩不关**（满屏都是视频，点哪都关会频繁误触），
+        出口只有两个 —— 右上角 × 与底部「关闭」。 -->
+<view class="x-vd-mask" wx:if="{{show}}" catchtouchmove="noop">
+  <view class="x-vd">
+    <view class="x-vd__head">
+      <text class="x-vd__title">{{title}}</text>
+      <view class="x-vd__close" catchtap="onClose" role="button" aria-label="关闭视频教程">×</view>
+    </view>
+
+    <!-- 播放区：flex 撑满剩余高度，object-fit:contain 自适应横竖屏 -->
+    <view class="x-vd__stage">
+      <video
+        wx:if="{{src && !failed}}"
+        class="x-vd__video"
+        src="{{src}}"
+        autoplay
+        show-center-play-btn
+        show-fullscreen-btn
+        enable-progress-gesture
+        object-fit="contain"
+        binderror="onVideoError"
+      ></video>
+      <view wx:elif="{{loading}}" class="x-vd__hint">视频加载中…</view>
+      <view wx:elif="{{failed}}" class="x-vd__hint">视频暂时无法播放</view>
+    </view>
+
+    <view class="x-vd__foot">
+      <view
+        class="x-vd__btn x-vd__btn--save {{downloading ? 'is-busy' : ''}}"
+        catchtap="onDownload"
+        role="button"
+        aria-label="下载视频到相册"
+      >{{downloading ? '正在准备…' : '下载到相册'}}</view>
+      <view class="x-vd__btn x-vd__btn--close" catchtap="onClose" role="button">关闭</view>
+    </view>
+  </view>
+</view>

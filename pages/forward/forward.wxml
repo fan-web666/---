@@ -49,6 +49,24 @@
           <view class="text_19">结果自动存历史记录</view>
         </view>
       </view>
+      <!-- 视频教程入口（2026-10-12 新增，**超出设计稿**）：文字三步看不明白 → 点开看一遍完整演示。
+           ⚠️ `hasGuideVideo` 为 false（config.guideVideoFileId 未配）时整块不渲染 ——
+              绝不出现「点了没反应」的坏入口。 -->
+      <view
+        wx:if="{{hasGuideVideo}}"
+        class="x-video-entry x-tap"
+        bindtap="openGuideVideo"
+        hover-class="x-pressed"
+        role="button"
+        aria-label="视频教程：看一遍完整操作演示，支持下载到相册"
+      >
+        <view class="x-video-entry-icon"></view>
+        <view class="x-video-entry-copy">
+          <text class="x-video-entry-title">视频教程</text>
+          <text class="x-video-entry-sub">看一遍就会，可下载到相册</text>
+        </view>
+        <text class="x-video-entry-arrow">›</text>
+      </view>
       <view class="text-wrapper_8 flex-row">
         <view class="text_20">✓</view>
         <view class="text_21">新人专享 {{trialCredit}} 积分</view>
@@ -59,6 +77,11 @@
       <view class="text_23">→</view>
     </view>
   </view>
+  <x-video-dialog
+    show="{{videoShow}}"
+    file-id="{{guideVideoFileId}}"
+    bind:close="closeGuideVideo"
+  />
   <x-dialog
     show="{{dlg.show}}"
     title="{{dlg.title}}"

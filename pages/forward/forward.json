@@ -1,6 +1,7 @@
 {
   "navigationStyle": "custom",
   "usingComponents": {
-    "x-dialog": "/components/x-dialog/x-dialog"
+    "x-dialog": "/components/x-dialog/x-dialog",
+    "x-video-dialog": "/components/x-video-dialog/x-video-dialog"
   }
 }

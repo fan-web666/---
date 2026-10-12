@@ -1,0 +1,15 @@
+/* 全屏播放态：与全套鲜绿 Figma 新稿同源配色，但播放态走暗底（视频观感优先）。
+   ⚠️ 组件隔离样式需独立声明；env(safe-area-inset-*) 需由页面/宿主正常传入（自定义导航栏项目已全局启用）。 */
+.x-vd-mask {position:fixed;top:0;right:0;bottom:0;left:0;z-index:1100;background:rgba(10,14,12,.94);}
+.x-vd {display:flex;flex-direction:column;width:100%;height:100%;box-sizing:border-box;}
+.x-vd__head {display:flex;align-items:center;gap:16rpx;padding:calc(env(safe-area-inset-top) + 28rpx) 38rpx 18rpx;flex-shrink:0;}
+.x-vd__title {flex:1 1 0;min-width:0;font-size:32rpx;font-weight:700;line-height:1.4;color:#FFFFFF;}
+.x-vd__close {width:64rpx;height:64rpx;line-height:60rpx;text-align:center;font-size:48rpx;color:#B9C2BC;}
+.x-vd__stage {position:relative;flex:1 1 auto;min-height:0;width:100%;}
+.x-vd__video {width:100%;height:100%;}
+.x-vd__hint {position:absolute;left:0;top:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;font-size:26rpx;color:#B9C2BC;}
+.x-vd__foot {display:flex;gap:20rpx;padding:24rpx 38rpx calc(env(safe-area-inset-bottom) + 34rpx);flex-shrink:0;}
+.x-vd__btn {flex:1 1 0;min-width:0;height:88rpx;border-radius:24rpx;font-size:29rpx;font-weight:700;line-height:88rpx;text-align:center;}
+.x-vd__btn--save {background:#B8F76A;color:#1B2620;}
+.x-vd__btn--save.is-busy {opacity:.6;}
+.x-vd__btn--close {background:rgba(255,255,255,.14);color:#E8EEEA;}

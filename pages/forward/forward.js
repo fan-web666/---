@@ -29,6 +29,13 @@ Page({
     //    按"条数"承诺会把长视频用户坑了（10~30min 要扣 10 分，实际只能提 5 条）。
     trialCredit: pricing.TRIAL_CREDIT,
 
+    // 视频教程（2026-10-12 新增，超出设计稿）
+    // ⚠️ 视频存云存储（主包 ≤2MB 放不下 8MB 视频），fileID 配在 config/index.js
+    // ⚠️ 未配置（空串）→ hasGuideVideo=false → 入口整块不渲染，绝不出现「点了没反应」的坏入口
+    guideVideoFileId: String(config.guideVideoFileId || ''),
+    hasGuideVideo: !!config.guideVideoFileId,
+    videoShow: false,
+
     // x-dialog 说明弹窗的统一状态（2026-09-27：替代原生 wx.showModal —— 原生正文对齐不可控）
     dlg: { show: false, title: '', content: '', confirmText: '知道了', cancelText: '', showCancel: false },
   },
@@ -101,6 +108,20 @@ Page({
       cancelText: '',
       showCancel: false,
     });
+  },
+
+  /* ---------- 视频教程（2026-10-12 新增，超出设计稿） ----------
+   * 文字三步看不明白 → 点开看一遍完整操作演示，并支持下载到相册。
+   * ⚠️ 入口只在 config.guideVideoFileId 配好后才渲染（hasGuideVideo）——不出现坏入口。
+   * 播放/下载/授权全在 <x-video-dialog> 内自理，本页只负责开关。 */
+
+  openGuideVideo() {
+    tracker.track('guide_video_open');
+    this.setData({ videoShow: true });
+  },
+
+  closeGuideVideo() {
+    this.setData({ videoShow: false });
   },
 
   /* ---------- 回首页（主按钮 text-wrapper_9） ----------
