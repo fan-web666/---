@@ -584,8 +584,9 @@ async function stepStructure(task) {
   }
 
   const content = buildContent(structured, transcript);
+  // ⭐ 2026-10-12：改用 content.title（已过专有名词/错字纠错），不再直接用 LLM 原始 title。
   const title =
-    (structured && structured.title) || resolved.title || task.video_title || '视频口播文案';
+    content.title || resolved.title || task.video_title || '视频口播文案';
 
   // ⭐ 2026-09-28：封面转存云存储。平台封面直链带签名时效（几小时~一两天就 403），
   //    过期后历史 / 详情页只能降级成色块 → 归档时把图下一份放进自己云存储，库里改存 fileID。

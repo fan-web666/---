@@ -16,6 +16,47 @@ const RULES = [
   { id: 'self', re: /自已/g, fix: () => '自己' },
 ];
 
+// ⭐⭐ 2026-10-12 专有名词（品牌/产品名）确定性绑定。
+//   背景：本产品名「予行·文案快提」被口播说出后，
+//     ① ASR 听错 —— 予行(yǔ xíng) ↔ 旅行(lǚ xíng) 仅 ü/u 之差、快提(kuài tí) ↔ 快递(kuài dì)；
+//     ② 大模型收到后仍会把「予行」当错字「合理化」成常见词「旅行」——**纯文本层面无法自证**。
+//   故在此显式绑定。安全策略：**只有整体模式（"XX行 + 文案快X" 连写）才替换**，
+//   绝不单词级替换 → 视频真在讲「旅行」时一字不动（已回归验证）。
+const PROPER_TERMS = [
+  {
+    canonical: '予行·文案快提',
+    alias: ['旅行文案快递', '予行文案快递', '旅行文案快提', '予行文案快提'],
+  },
+];
+
+const TERM_RULES = [
+  {
+    id: 'brand-full',
+    // 旅/予/余/雨/语/育/遇/羽/预/逾/舆 + 行 [+ 可选分隔符] + 文案快{提/递/题/替/体}
+    re: /[旅予余雨语育遇羽预逾舆]\s*行\s*[·•.\-—–_、]?\s*文案快[提递题替体]/g,
+    fix: () => '予行·文案快提',
+  },
+  {
+    id: 'brand-kuaidi',
+    // 残留的「文案快递 / 文案快题 / 文案快替」——三者均不成词，安全替换
+    re: /文案快[递题替]/g,
+    fix: () => '文案快提',
+  },
+];
+
+/** 供 LLM 提示词使用：显式告知哪些是专有名词、禁止改写（否则模型会「合理化」成常见词） */
+const TERM_HINT =
+  '【专有名词（必须原样输出，禁止改写、禁止拆开）】' +
+  PROPER_TERMS.map(
+    (t) =>
+      '「' +
+      t.canonical +
+      '」（语音识别常误作 ' +
+      t.alias.map((a) => '「' + a + '」').join('、') +
+      '，一律按正确写法输出）'
+  ).join('；') +
+  '。';
+
 function compact(s) { return String(s || '').replace(/[\s，。！？；：、,.!?;:“”"'（）()]/g, ''); }
 
 /** 字幕默认主稿；音频只用于确认同位置的局部纠错，不把不同版本全文互换。 */
@@ -40,7 +81,16 @@ function reconcileTranscript({ subtitle = '', asrText = '', transcript = '' } = 
       return after;
     });
   }
-  return { text, source, edits, ruleVersion: '2026-10-09.1' };
+  // 专有名词绑定放在固定搭配规则**之后**做，避免边界被同音规则先改动。
+  for (const rule of TERM_RULES) {
+    text = text.replace(rule.re, (before) => {
+      const after = rule.fix(before);
+      if (before === after) return before;
+      edits.push({ rule: rule.id, before, after, evidence: 'proprietary-term' });
+      return after;
+    });
+  }
+  return { text, source, edits, ruleVersion: '2026-10-12.1' };
 }
 
-module.exports = { reconcileTranscript };
+module.exports = { reconcileTranscript, TERM_HINT, PROPER_TERMS };

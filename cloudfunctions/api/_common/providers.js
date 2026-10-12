@@ -45,6 +45,8 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const crypto = require('crypto');
+// 专有名词表（品牌/产品名）——提示词里显式声明，防止模型把「予行」当错字改成「旅行」
+const { TERM_HINT } = require('./transcriptQuality');
 
 const UA =
   'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 ' +
@@ -1941,6 +1943,7 @@ const ASR_RULES = [
   '     「你对自已的了解」→「你对自己的了解」（「自已」不成词）；「不是我们的生活频繁」→「不是我们的生活平淡」（与整句语义冲突）。',
   '· 该词在本句成立、只是少见 → **保留**。网络用语、方言词、新兴热词一律不动（例：「老登」「硬控」「破防」保留）。',
   '· **一律不改**：人名、地名、品牌、机构、数字、量词、行业专有术语。',
+  '· ' + TERM_HINT,
   '· 拿不准 → 保留原字。',
   '校对只换用字：不得增删信息、不得改写句意、不得把口语改成书面腔。',
   '',

@@ -119,16 +119,20 @@ function buildContent(structured, transcriptText) {
   // 主稿已经过字幕/音频对照；这里只再跑一遍**本地固定搭配规则**（不依赖模型，纯确定性）——
   // ⚠️ 原实现漏掉了这一步：规则库只作用于 hook/highlights/points，「口播原文」从未被纠错。
   const transcript = correct(usable ? llmText : (raw || llmText));
+  // ⭐ 2026-10-12：title 原先是**唯一没过纠错**的字段 → 曾出现「予行·文案快提」在标题里
+  //    被写成「旅行文案快递」（截图实证）。现在一并过 correct()。
+  const title = correct(s.title || '');
   const hook = correct(s.hook || '');
   const highlights = Array.isArray(s.highlights) ? s.highlights.map(correct) : [];
   const points = Array.isArray(s.points) ? s.points.map(p => ({ ...p, title: correct(p.title || ''), text: correct(p.text || '') })) : [];
   return {
+    title,
     hook,
     highlights,
     points,
     transcript,
     full_markdown: markdownify({
-      title: s.title || '',
+      title,
       hook,
       highlights,
       points,
