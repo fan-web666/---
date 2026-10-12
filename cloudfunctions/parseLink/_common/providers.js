@@ -1760,19 +1760,26 @@ async function asrTranscribe(media, task) {
   //       SenseVoiceSmall 均值 23.8s / 波动 17.8s（最慢 35.0s）。9-29 的 500 已恢复。
   //       同段 TTS 语料逐字对照（9 项专有名词）：Qwen3 对 5 / SenseVoice 对 0
   //       （治补清盐 / 通易千问 / 提mi），SenseVoice 还丢标点、凭空吐 emoji。
-  //       ⇒ 默认链改为「Qwen3 主 + XingChen Ultra 备」：两者同属稳定系，串行兜底才真的跑得起来。
-  //    🚫 淘汰 `FunAudioLLM/SenseVoiceSmall` 作主模型（下面 ASR_RETIRED 会强制挡掉）：
+  //       ⇒ 主模型改为 Qwen3：实测唯一能**同时**改善均值与波动的候选；兜底选型见下方说明。
+  //    🚫 淘汰 `FunAudioLLM/SenseVoiceSmall` 作**主模型**（下面 ASR_RETIRED 会强制挡掉）：
   //       排队波动 17.8s，1 秒音频实测曾等 74.6s；用户端表现就是「第二步几十秒不动」
   //       （2026-10-12 用户反馈「上次 1s，这次 31s」即此因，与前端改动无关）。
+  //    ⚠️ 兜底位**故意仍选 SenseVoice**（2026-10-12 复盘 DETAIL-提速与精度 §二 后修正）：
+  //       它在各时长上的均值都快于 XingChen Ultra —— 9-30 实测 5 分钟音频 SenseVoice 均值 13s
+  //       （6.5~34.7s），而 Ultra 是 43.7/41.1/55.0s，物理上贴着 50s 超时线；
+  //       10-12 实测 90s 音频 SenseVoice 约 75% 在 5s 内、Ultra 却要 12.8~24.9s。
+  //       ⇒「Ultra 作兜底只会更慢」（旧记忆里"必须 Ultra"系短视频样本偏差，已作废）。
+  //       兜底是「主模型挂了才用」的救援位，此时「能出结果」优先于「稳」，故取均值最快者。
+  //       它的用字精度差只影响主模型选型，不影响救援职能。
   //    🚫 禁用 `XingChenAGI/XingChenGSR-V1.0`：实测它对英文语音**直接输出中文翻译**
   //       （输入 Sintel 英文台词 → 返回「是什么让你来到守门人的土地」），会篡改文案语言，
   //       属于「降低提取质量」，绝不可配成主/备模型。
   const ASR_DEFAULT_MODEL = 'Qwen/Qwen3-ASR-1.7B';
-  const ASR_DEFAULT_FALLBACK = 'XingChenAGI/XingChenASR-V3.2-Ultra';
-  // 🚫 实测淘汰表：**即使环境变量显式配置也会被忽略**（保护线上，避免「第二步几十秒不动」）。
-  //    要恢复某个模型，把它的键从下表删掉即可 —— 但请先看上面的复测数据。
+  const ASR_DEFAULT_FALLBACK = 'FunAudioLLM/SenseVoiceSmall';
+  // 🚫 实测淘汰表：**只作用于主模型** —— 即使环境变量显式配了也会被忽略并回退默认
+  //    （保护线上，避免「第二步几十秒不动」）。要恢复某模型，把键从下表删掉即可。
   const ASR_RETIRED = {
-    'FunAudioLLM/SenseVoiceSmall': '排队波动 17.8s（8 分钟音频均值 23.8s，最慢 35.0s）',
+    'FunAudioLLM/SenseVoiceSmall': '作主模型时排队波动 17.8s（8 分钟音频均值 23.8s，最慢 35.0s）',
   };
   function pickAsrModel(v, dft) {
     if (!v) return dft;
@@ -1783,7 +1790,8 @@ async function asrTranscribe(media, task) {
     return v;
   }
   const primaryModel = pickAsrModel(env('ASR_MODEL', ''), ASR_DEFAULT_MODEL);
-  const fbModel = pickAsrModel(env('ASR_MODEL_FALLBACK', ''), ASR_DEFAULT_FALLBACK);
+  // 兜底不做淘汰校验（它本身就是 SenseVoice）；`env()` 对空串返回空串，故这里显式兜一下
+  const fbModel = env('ASR_MODEL_FALLBACK', '') || ASR_DEFAULT_FALLBACK;
   const asrModels = fbModel && fbModel !== primaryModel ? [primaryModel, fbModel] : [primaryModel];
   const asrTimeout = envInt('ASR_TIMEOUT_MS', 50000, 5000, 55000);
   // 主备共用原 ASR_TIMEOUT_MS 总预算；不按压缩音频字节数提前中断主模型。
