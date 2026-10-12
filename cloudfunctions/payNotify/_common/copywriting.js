@@ -162,6 +162,50 @@ function applyEdits(raw, edits) {
 }
 
 /**
+ * 标题规范化（确定性兜底，不依赖模型）—— 2026-10-12
+ * 背景：标题由大模型生成，同一条视频两次提取会「漂」——
+ *   从「用手机加AI，一周逆天改命」漂成「用4个AI每天输入一段话，一周做实验拍视频」（抓了细节、丢了主题）。
+ * 口径：**高度概括、精炼直白、一般不超过 20 字**。质量靠提示词（SYSTEM_PROMPT 第 5 条），
+ *   这里只做三件安全的事：
+ *     ① 剥掉首尾引号/书名号/尖括号、结尾句读；② 折叠空白；
+ *     ③ 软上限兜底 —— 超过 TITLE_HARD_MAX 字时，在限内最后一个自然停顿标点处断开
+ *        （断开后仍有 ≥ 8 字才采纳；否则原样保留，**宁可长也不截成语义残缺的标题**）。
+ */
+const TITLE_SOFT_MAX = 20;
+const TITLE_HARD_MAX = 24;
+function normalizeTitle(raw) {
+  let t = String(raw || '').trim();
+  if (!t) return '';
+  // 剥壳：引号/书名号与句读要**交替剥两遍** —— 形如 `「标题」。` 先剥引号会漏掉末尾的 `」`
+  //   （去掉句号后 `」` 才暴露出来），单遍处理会留下半个括号。
+  const BRACKETS = '\\s"\'“”‘’「」『』《》【】<>';
+  const PUNCT = '。．.!！?？，,、；;：:';
+  for (let i = 0; i < 2; i++) {
+    t = t
+      .replace(new RegExp('^[' + BRACKETS + ']+'), '')
+      .replace(new RegExp('[' + BRACKETS + ']+$'), '')
+      .replace(new RegExp('^[' + PUNCT + ']+'), '')
+      .replace(new RegExp('[' + PUNCT + ']+$'), '');
+  }
+  t = t.replace(/\s+/g, ' ').trim();
+  if (!t) return '';
+  const len = t.replace(/\s/g, '').length;
+  if (len <= TITLE_SOFT_MAX) return t;
+  if (len > TITLE_HARD_MAX) {
+    let cut = -1;
+    for (let i = 0; i < t.length && i <= TITLE_HARD_MAX; i++) {
+      if ('，,、；;：:—–-'.indexOf(t[i]) >= 0) cut = i;
+    }
+    if (cut > 0 && t.slice(0, cut).replace(/\s/g, '').length >= 8) {
+      console.warn('[copywriting] 标题超长，按自然停顿裁剪 → ' + t.slice(0, cut) + '（原 ' + len + ' 字）');
+      return t.slice(0, cut);
+    }
+    console.warn('[copywriting] 标题超长且无可安全断点，原样保留（' + len + ' 字）');
+  }
+  return t;
+}
+
+/**
  * 组装 content（原文 + 结构化并存，PRD 1.3）
  * @param {object} structured llmStructure 输出（edits 或兼容用的 transcript）
  * @param {string} transcriptText ASR 原文
@@ -201,8 +245,9 @@ function buildContent(structured, transcriptText) {
   // ⚠️ 原实现漏掉了这一步：规则库只作用于 hook/highlights/points，「口播原文」从未被纠错。
   const transcript = correct(base);
   // ⭐ 2026-10-12：title 原先是**唯一没过纠错**的字段 → 曾出现「予行·文案快提」在标题里
-  //    被写成「旅行文案快递」（截图实证）。现在一并过 correct()。
-  const title = correct(s.title || '');
+  //    被写成「旅行文案快递」（截图实证）。现在一并过 correct()；
+  //    ⭐ 再过一道 normalizeTitle()：标题要「高概括 + ≤20 字」，只靠提示词仍会偶发漂移。
+  const title = normalizeTitle(correct(s.title || ''));
   const hook = correct(s.hook || '');
   const highlights = Array.isArray(s.highlights) ? s.highlights.map(correct) : [];
   const points = Array.isArray(s.points) ? s.points.map(p => ({ ...p, title: correct(p.title || ''), text: correct(p.text || '') })) : [];
@@ -254,4 +299,4 @@ function splitParagraphs(text) {
     .filter(Boolean);
 }
 
-module.exports = { buildContent, applyEdits, markdownify, splitParagraphs, cleanTranscript, isNoiseTag, EMOJI_RE };
+module.exports = { buildContent, applyEdits, normalizeTitle, markdownify, splitParagraphs, cleanTranscript, isNoiseTag, EMOJI_RE };
