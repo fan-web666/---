@@ -1756,12 +1756,34 @@ async function asrTranscribe(media, task) {
   //       所以**绝不能**改成两路并发竞速，也**不要**做「切片并发」。
   //    ⚠️ 时长实测（2026-09-29，52s 音频 / 串行）：Ultra 8~10s、V3.2 8.1s、GSR 10.2s、
   //       SenseVoice 3~4s（但历史上会间歇性挂死到 50s+，故不作默认）、Qwen3-ASR-1.7B 报 500。
+  //    ⭐ 2026-10-12 复测（8 分钟长音频 · 交替 3 轮）：Qwen3-ASR-1.7B 均值 16.6s / 波动 2.1s；
+  //       SenseVoiceSmall 均值 23.8s / 波动 17.8s（最慢 35.0s）。9-29 的 500 已恢复。
+  //       同段 TTS 语料逐字对照（9 项专有名词）：Qwen3 对 5 / SenseVoice 对 0
+  //       （治补清盐 / 通易千问 / 提mi），SenseVoice 还丢标点、凭空吐 emoji。
+  //       ⇒ 默认链改为「Qwen3 主 + XingChen Ultra 备」：两者同属稳定系，串行兜底才真的跑得起来。
+  //    🚫 淘汰 `FunAudioLLM/SenseVoiceSmall` 作主模型（下面 ASR_RETIRED 会强制挡掉）：
+  //       排队波动 17.8s，1 秒音频实测曾等 74.6s；用户端表现就是「第二步几十秒不动」
+  //       （2026-10-12 用户反馈「上次 1s，这次 31s」即此因，与前端改动无关）。
   //    🚫 禁用 `XingChenAGI/XingChenGSR-V1.0`：实测它对英文语音**直接输出中文翻译**
   //       （输入 Sintel 英文台词 → 返回「是什么让你来到守门人的土地」），会篡改文案语言，
   //       属于「降低提取质量」，绝不可配成主/备模型。
-  const ASR_DEFAULT_MODEL = 'XingChenAGI/XingChenASR-V3.2-Ultra';
-  const primaryModel = env('ASR_MODEL', ASR_DEFAULT_MODEL);
-  const fbModel = env('ASR_MODEL_FALLBACK', ASR_DEFAULT_MODEL);
+  const ASR_DEFAULT_MODEL = 'Qwen/Qwen3-ASR-1.7B';
+  const ASR_DEFAULT_FALLBACK = 'XingChenAGI/XingChenASR-V3.2-Ultra';
+  // 🚫 实测淘汰表：**即使环境变量显式配置也会被忽略**（保护线上，避免「第二步几十秒不动」）。
+  //    要恢复某个模型，把它的键从下表删掉即可 —— 但请先看上面的复测数据。
+  const ASR_RETIRED = {
+    'FunAudioLLM/SenseVoiceSmall': '排队波动 17.8s（8 分钟音频均值 23.8s，最慢 35.0s）',
+  };
+  function pickAsrModel(v, dft) {
+    if (!v) return dft;
+    if (ASR_RETIRED[v]) {
+      console.warn('[providers] ASR 模型 ' + v + ' 已淘汰（' + ASR_RETIRED[v] + '）→ 自动改用 ' + dft);
+      return dft;
+    }
+    return v;
+  }
+  const primaryModel = pickAsrModel(env('ASR_MODEL', ''), ASR_DEFAULT_MODEL);
+  const fbModel = pickAsrModel(env('ASR_MODEL_FALLBACK', ''), ASR_DEFAULT_FALLBACK);
   const asrModels = fbModel && fbModel !== primaryModel ? [primaryModel, fbModel] : [primaryModel];
   const asrTimeout = envInt('ASR_TIMEOUT_MS', 50000, 5000, 55000);
   // 主备共用原 ASR_TIMEOUT_MS 总预算；不按压缩音频字节数提前中断主模型。
