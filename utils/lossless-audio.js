@@ -43,7 +43,7 @@ function demux(input, maxMs = 600) {
     return join([header, body]);
   };
   try {
-    if (src.length < 1024 || src.length > 40 * 1024 * 1024) return null;
+    if (src.length < 1024 || src.length > 60 * 1024 * 1024) return null;
     const top = boxes(0, src.length);
     if (top.some(b => b.type === 'moof')) return null;
     const moov = one(top, 'moov'), ftyp = one(top, 'ftyp');
@@ -166,10 +166,16 @@ async function prepare(input, alive = () => true) {
   //       云函数再从云存储整份下载；上传 + 下载两段叠加，正是「慢的那个」的成因。
   //    ② 体积未知（file.size 取不到 = 0）**不再当成小文件放过**，改为照常尝试抽取。
   //    ③ 只在四种「明确不该抽」的情况下直接放弃：环境不支持 / 扩展名不支持 /
-  //       明确过大（>40MB，怕内存爆）/ 明确过小（<2MB，抽了也省不下多少）。
+  //       明确过大（>60MB，怕内存爆）/ 明确过小（<2MB，抽了也省不下多少）。
+  // ⭐⭐ 2026-10-12 三改（用户报「本地 7 分多钟、40多MB 视频，第一步 52s」）：
+  //    上限 40 → 60MB。此前 40MB 以上**一律整份原样上传** —— 49MB 原片直传云存储
+  //    实测 52 秒；而抽音频后只有 3~4MB（音频 ≈ 原片 5~6%，实测 71MB → 4.08MB）。
+  //    预估第一步 52s → 7s 上下，且第 2 步云端下载的也同步变小。
+  //    内存代价：readFile 峰值 ≈ 文件本身（上限 60MB）＋几 MB 输出；失败走 fail 回调
+  //    自动回退原样上传 ⇒ 最坏等同改动前的行为，不会让提取失败。
   const extOk = /\.(mp4|mov|m4v)$/i.test(input.path || '');
   const envOk = typeof wx.getFileSystemManager === 'function' && !!(wx.env && wx.env.USER_DATA_PATH);
-  if (!envOk || !extOk || sizeMB > 40 || (sizeMB > 0 && sizeMB < 2)) {
+  if (!envOk || !extOk || sizeMB > 60 || (sizeMB > 0 && sizeMB < 2)) {
     console.log('[audio] 跳过抽取（原样上传）· sizeMB=' + sizeMB + ' · extOk=' + extOk + ' · envOk=' + envOk);
     return original;
   }
@@ -192,13 +198,16 @@ async function prepare(input, alive = () => true) {
     // ⭐ 2026-10-12：预算 1s → 2.5s。大文件（20~40MB）读取 + 解析本身就要几百 ms，
     //    1s 预算会让它们大概率超时回退 → 退回原样上传大视频（20+ 秒）。
     //    放宽后：抽音频成功可把上传体积压到 <1MB（净省 20 秒）；失败也只是多等最多 2.5s。
-    timer = setTimeout(() => { why = '超过 2.5s 预算'; finish(original); }, 2500);
+    // ⭐⭐ 2026-10-12 三改：预算 2.5s → 4s，与 60MB 上限**必须同步**。
+    //    否则会出现「上限放开了、却因预算不够总超时回退」→ 白等一场、收益归零。
+    //    代价：抽不出的文件最多多等 1.5s 才回退（离开页面有 alive() 兜底，不会干等）。
+    timer = setTimeout(() => { why = '超过 4s 预算'; finish(original); }, 4000);
     try {
       fs.readFile({ filePath: input.path, success(res) {
         if (ended || !alive()) { why = '页面已离开'; return finish(original); }
-        const audio = demux(res.data, Math.min(1500, Math.max(300, 2500 - (Date.now() - started))));
-        if (!audio || ended || !alive() || Date.now() - started > 2300) {
-          why = !audio ? 'demux 不支持该封装' : '超过 2.5s 预算';
+        const audio = demux(res.data, Math.min(2500, Math.max(500, 4000 - (Date.now() - started))));
+        if (!audio || ended || !alive() || Date.now() - started > 3800) {
+          why = !audio ? 'demux 不支持该封装' : '超过 4s 预算';
           return finish(original);
         }
         outputPath = wx.env.USER_DATA_PATH + '/extract_audio_' + String(input.requestId).replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 80) + '.m4a';
