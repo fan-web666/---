@@ -353,6 +353,22 @@ Page({
   },
 
   /**
+   * 一键清除搜索（搜索框右侧 ×）
+   * ① 作废在途请求（_request++）—— 否则清空后云端可能把上一次搜索的结果盖回来；
+   * ② 先用本地全量快照立刻还原列表（不等网络），再拉一次云端全量做权威校正；
+   * ③ 不碰 scrollTop，用户停留在原位置。
+   */
+  onClearSearch() {
+    if (this.searchTimer) clearTimeout(this.searchTimer);
+    this._request++;
+    this._fetching = false;
+    this.page = 1;
+    this.setData({ keyword: '', searching: false, searchError: false });
+    this.applyLocalFilter('');
+    this.load(true);
+  },
+
+  /**
    * 本地即时过滤（乐观反馈，非权威）
    * ⚠️ 覆盖范围 = 已加载进内存的记录（含列表带回的 detail 全文）；云端正则查询才是完整口径，
    *    400ms 后的 load() 会用云端结果整体覆盖 → 本方法只负责「别让用户盯着不动的列表干等」。

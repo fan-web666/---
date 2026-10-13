@@ -27,6 +27,16 @@
           bindinput="onSearch"
           bindconfirm="onSearchConfirm"
         />
+        <view
+          wx:if="{{keyword}}"
+          class="search-clear"
+          hover-class="search-clear-hover"
+          catchtap="onClearSearch"
+          aria-role="button"
+          aria-label="清除搜索"
+        >
+          <view class="search-clear-r"><view class="search-clear-i"></view></view>
+        </view>
       </view>
       <view class="box_10 flex-row">
         <view

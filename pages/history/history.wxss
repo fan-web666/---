@@ -154,6 +154,14 @@ color:#A1AAA4
 height:46rpx
 }
 
+/* 搜索框一键清除：外圈 64rpx 保证手指点得到，内圈 34rpx 是视觉灰点，× 用双伪元素画（不依赖字体字形） */
+.search-clear{width:64rpx;height:64rpx;flex:0 0 auto;margin-left:4rpx;display:flex;align-items:center;justify-content:center}
+.search-clear-r{width:34rpx;height:34rpx;border-radius:50%;background:#C9D1CC;display:flex;align-items:center;justify-content:center}
+.search-clear-i{position:relative;width:16rpx;height:16rpx}
+.search-clear-i::before,.search-clear-i::after{content:'';position:absolute;left:0;top:50%;width:16rpx;height:2rpx;background:#fff;border-radius:2rpx;transform:translateY(-50%) rotate(45deg)}
+.search-clear-i::after{transform:translateY(-50%) rotate(-45deg)}
+.search-clear-hover .search-clear-r{background:#AEB8B1}
+
 .box_10 {
   margin:24rpx 38rpx 8rpx;
   gap:14rpx;
