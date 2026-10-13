@@ -12,6 +12,9 @@ const {
   localThumbSrc,
 } = require('../../utils/util');
 const tracker = require('../../utils/tracker');
+const cache = require('../../utils/view-cache');
+const thumbs = require('../../utils/history-thumbs');
+const searchText = require('../../utils/search-text');
 
 const app = getApp();
 
@@ -44,8 +47,12 @@ Page({
 
   onLoad(options) {
     this.id = (options && options.id) || '';
+    this.keyword = (options && options.keyword) || '';
+    this._owner = cache.uid(); this._disposed = false;
     this.raw = null;
     this.editedContent = null;
+    const cached = this.id && cache.read('result_' + this.id);
+    if (cached) { this.raw=cached;this.applyDetail(this.format(cached)); }
     this.setData({
       statusBarH: app.globalData.navStatusH || 0,
       navSafeRightRpx: app.globalData.navSafeRightRpx || 196,
@@ -58,19 +65,24 @@ Page({
     if (!app.globalData.cloudReady) return this.loadMock();
     try {
       const data = await call('getCopywriting', { id: this.id });
+      if(this._disposed || this._owner !== cache.uid() || this.data.editing)return;
       if (!data) {
+        cache.write('result_' + this.id,null);
         this.setData({ loading: false, detail: null });
         return;
       }
       this.raw = data;
+      cache.write('result_' + this.id,data);
       this.applyDetail(this.format(data));
       tracker.track('result_view');
     } catch (e) {
       // 详情是进页面自动加载的，失败不弹提示（用户没主动操作）
       handleError(e, '', { silent: true });
-      this.setData({ loading: false, detail: null });
+      if(!this.raw)this.setData({ loading: false, detail: null });
     }
   },
+
+  onUnload() { this._disposed = true; },
 
   async loadLatest() {
     if (!app.globalData.cloudReady) return this.loadMock();
@@ -93,7 +105,7 @@ Page({
   applyDetail(detail) {
     const patch = { detail, loading: false, draft: detail.transcript || '' };
     if (!detail.hasStructured && this.data.tab === 'structured') patch.tab = 'raw';
-    this.setData(patch);
+    cache.patch(this,patch);
   },
 
   /**
@@ -111,7 +123,8 @@ Page({
     const transcript = String(d.transcript || d.content || '');
     // 字数：优先按当前 transcript 实时算（编辑保存后立刻准），老数据再回落云端的 char_count
     const chars = transcript.replace(/\s/g, '').length || Number(d.char_count) || 0;
-    const cover = String(d.cover_url || '');
+    const sourceCover = String(d.cover_url || '');
+    const cover = thumbs.local(cache.uid(),d._id || this.id,sourceCover) || sourceCover;
     // ⭐ 本地视频封面：优先用「选视频时留下的缩略图」（本地文件，立即出图，无黑图过程）
     //    ⚠️ 与 pages/history 同判据，改一处必须同步另一处（utils/util.js 内为唯一实现）
     const localThumb = localThumbSrc(d.local_video_id);
@@ -132,7 +145,7 @@ Page({
       }))
       .filter((p) => p.text || p.title)
       // 序号在过滤之后再编，避免出现「01 缺号直接跳 03」
-      .map((p, i) => Object.assign(p, { no: (i + 1 < 10 ? '0' : '') + (i + 1) }));
+      .map((p, i) => Object.assign(p, { no: (i + 1 < 10 ? '0' : '') + (i + 1), titleParts: searchText.parts(p.title,this.keyword), textParts: searchText.parts(p.text,this.keyword) }));
     const hasStructured = !!(hook || highlights.length || points.length);
 
     /* ---------- ② 原文案（事实层，不删改） ---------- */
@@ -151,7 +164,7 @@ Page({
       paragraphs = splitParagraphs(transcript).map((t) => ({ time: '', text: t }));
     }
     // i = wx:key 用的稳定序号（段落文本可能重复，wx:key="*this" 不适用对象数组）
-    paragraphs = paragraphs.map((p, i) => Object.assign(p, { i }));
+    paragraphs = paragraphs.map((p, i) => Object.assign(p, { i, parts: searchText.parts(p.text,this.keyword) }));
 
     return {
       title: d.video_title || '未命名视频',
@@ -164,7 +177,7 @@ Page({
       // ① https / cloud:// 封面（http 在真机必失败，不收；cloud:// 为 2026-09-28 新增的封面转存 fileID，
       //    平台直链几小时~一两天就 403，转存后永久有效）→ ② 本地视频缩略图（本地文件，即时）
       // → ③ 视频首帧（云存储 fileID，交 <video> 显示，无缩略图时才会走到）→ ④ 都没有才回落色块 + ▶
-      cover: (/^(https:\/\/|cloud:\/\/)/i.test(cover) ? cover : '') || localThumb,
+      cover: thumbs.local(cache.uid(),d._id || this.id,sourceCover) || (/^(https:\/\/|cloud:\/\/)/i.test(sourceCover) ? sourceCover : '') || localThumb,
       coverFail: false,
       videoSrc: localThumb ? '' : d.local_video_id || '',
       thumbBg: thumbColor(d._id || this.id),
@@ -173,7 +186,9 @@ Page({
       transcript,
       // 结构化整理：直接平铺，WXML 里读 detail.hook / detail.points
       hook,
+      hookParts: searchText.parts(hook,this.keyword),
       highlights,
+      highlightParts: highlights.map(text=>({text,parts:searchText.parts(text,this.keyword)})),
       points,
       hasStructured,
       sourceUrl: d.source_url || '',
@@ -252,6 +267,9 @@ Page({
 
     try {
       await call('updateCopywriting', { id: this.id, content });
+      this.raw = Object.assign({}, this.raw, { transcript: content, content, segments: [], edited: true, char_count: chars });
+      cache.write('result_' + this.id,this.raw);
+      this.applyDetail(this.format(this.raw));
       toast('已保存', 'success');
       tracker.track('result_edit_save');
     } catch (e) {
@@ -363,6 +381,7 @@ Page({
         if (!r.confirm) return;
         try {
           await call('deleteCopywriting', { id: this.id });
+          cache.write('result_' + this.id,null);
           toast('已删除', 'success');
           setTimeout(() => back(), 600);
         } catch (e) {

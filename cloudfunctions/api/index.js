@@ -10,6 +10,10 @@ const { ensureUserFromContext, saveSessionKey, getSessionKey, addCredits } = req
 const { deliverOrder, findOrderByOutTradeNo, notifyWxProvided } = require('./_common/order');
 const { track } = require('./_common/track');
 const providers = require('./_common/providers');
+const videoExtract = require('./_common/video-extract');
+const friendInvite = require('./_common/friend-invite');
+const welcomeBonus = require('./_common/welcome-bonus');
+const copySearch = require('./_common/copy-search');
 const vpay = require('./_common/virtualpay');
 const { md5 } = require('./_common/crypto');
 const { runUntilDone } = require('./_common/pipeline');
@@ -24,6 +28,7 @@ const {
   CUSTOM_MIN_YUAN,
   CUSTOM_MAX_YUAN,
   DB_COLLECTIONS,
+  TRIAL_CREDIT,
 } = require('./_common/consts');
 
 const PAGE_SIZE = 20;
@@ -108,7 +113,7 @@ function userCenterSummary(user) {
     nickname: user.nickname || '',
     avatarUrl: user.avatarUrl || '',
     credits: user.credits || { balance: 0, total_earned: 0, total_used: 0 },
-    trial: user.trial || { granted: false, credit_total: 50 },
+    trial: user.trial || { granted: false, credit_total: TRIAL_CREDIT },
     membership: {
       tier: isActive ? mem.tier : 'none',
       status: mem.status || 'expired',
@@ -129,9 +134,9 @@ function userCenterSummary(user) {
 }
 
 /** 文案库列表（分页 20/页，软删过滤） */
-async function listCopywritings(user, { page }) {
+async function listCopywritings(user, { page, keyword, platform }) {
   const p = Math.max(1, Number(page) || 1);
-  const cond = { uid: user._id, deleted: false };
+  const cond = copySearch.condition(db(), cmd(), user._id, keyword, platform);
   // total 用于前端判「还有没有下一页」（前端把 total 当未筛选总数用）
   const cnt = await COLL.copywritings().where(cond).count();
   const total = cnt.total || 0;
@@ -142,7 +147,10 @@ async function listCopywritings(user, { page }) {
     .skip((p - 1) * PAGE_SIZE)
     .limit(PAGE_SIZE)
     .get();
-  const list = (r.data || []).map(stripContent);
+  const list = (r.data || []).map(c => {
+    const detail = shapeCopywriting(c);
+    return Object.assign(stripContent(c), { detail, search_snippet: copySearch.snippet(detail, keyword) });
+  });
   return { list, total, page: p, hasMore: p * PAGE_SIZE < total };
 }
 
@@ -177,7 +185,7 @@ async function userStats(user) {
   try {
     const r = await coll.where(visible).orderBy('created_at', 'desc').limit(1).get();
     const first = (r.data || [])[0];
-    out.latest = first ? stripContent(first) : null;
+    out.latest = first ? Object.assign(stripContent(first), { detail: shapeCopywriting(first) }) : null;
   } catch (e) { /* 集合尚未创建等：交给上层报错，不让统计拖垮整页 */ }
 
   try {
@@ -343,7 +351,7 @@ async function getCopywriting(user, { id }) {
   if (!id) throw { code: 2, msg: '缺少参数' };
   const r = await COLL
     .copywritings()
-    .where({ _id: id, uid: user._id })
+    .where({ _id: id, uid: user._id, deleted: false })
     .limit(1)
     .get();
   if (!r.data || !r.data.length) {
@@ -415,6 +423,7 @@ async function getTask(user, { taskId, task_id }) {
 
   let t = await findTask();
   if (!t) throw { code: 3, msg: '任务不存在' };
+  if (t.extract_kind === 'video') throw { code: 3, msg: '请使用视频提取进度接口' };
 
   // ⚠️ 前端轮询即「心跳」：每次 getTask 顺带把流水线推进一步。
   //    真实链路（取源 → 下载 → 转写 → 整理）串起来远超云函数单次超时上限，
@@ -435,7 +444,12 @@ async function getTask(user, { taskId, task_id }) {
     if (t2) t = t2;
   }
 
+  let resultDetail = null;
+  if (t.status === TASK_STATUS.DONE && t.result_id) {
+    try { resultDetail = await getCopywriting(user, { id: t.result_id }); } catch (_) {}
+  }
   return {
+    result_detail: resultDetail,
     task_id: t._id,
     status: t.status,
     stage: STAGE_BY_STATUS[t.status] || 'parse',
@@ -1216,7 +1230,9 @@ function ctxOpenid() {
 async function timingReport(event) {
   const limit = Math.min(Math.max(Number((event && event.limit) || 10), 1), 30);
   const tasks = COLL.tasks();
-  const query = event && event.include_incomplete ? tasks : tasks.where({ status: TASK_STATUS.DONE });
+  const filter = { extract_kind: cmd().neq('video') };
+  if (!(event && event.include_incomplete)) filter.status = TASK_STATUS.DONE;
+  const query = tasks.where(filter);
   const r = await query.orderBy('updated_at', 'desc').limit(limit).get();
   const list = (r.data || [])
     .sort((a, b) => new Date(b.updated_at || 0) - new Date(a.updated_at || 0))
@@ -1609,6 +1625,7 @@ function shapeUsage(t) {
   return {
     _id: t._id,
     platform: t.source_platform || 'other',
+    extract_kind: t.extract_kind === 'video' ? 'video' : 'text',
     duration_sec: Number(t.duration_sec) || 0,
     title: t.video_title || '',
     pay_type: d ? d.payType : '',
@@ -2127,6 +2144,10 @@ async function saveProfile(user, { nickname, avatarUrl }) {
 }
 
 const actions = {
+  redeemFriendInvite: friendInvite.redeem,
+  startVideoExtract: videoExtract.start,
+  getVideoTask: videoExtract.get,
+  videoSaved: videoExtract.saved,
   referralSummary: referral.summary,
   referralPosterCode: referral.posterCode,
   // 用户
@@ -2169,7 +2190,8 @@ exports.main = async (event) => {
   //    ① users 集合不存在时 ensureUserFromContext() 会先抛错，
   //       导致 initDb 永远执行不到 —— 那就永远建不了表（死锁）；
   //    ② 控制台调用没有 openid（会抛 401），拿不到诊断结果。
-  const OPS_ACTIONS = { initDb, diag, pushDiag, providerStatus, timingReport, grantCredits, fixOrder, sigProbe, retryWxNotify };
+  const OPS_ACTIONS = { initDb, diag, pushDiag, providerStatus, timingReport, grantCredits, fixOrder, sigProbe, retryWxNotify,
+    welcomeBonusBatch: welcomeBonus.batch, welcomeBonusReport: welcomeBonus.report };
   if (OPS_ACTIONS[action]) {
     try {
       return ok(await OPS_ACTIONS[action](event));

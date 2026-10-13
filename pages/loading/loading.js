@@ -5,6 +5,7 @@
 
    进度环配色（新稿 token：底环 --line、进度环 --brand） */
 const sess = require('../../utils/extract-session');
+const videoSession = require('../../utils/video-session');
 const { toast } = require('../../utils/util');
 
 const app = getApp();
@@ -31,6 +32,7 @@ Page({
     stateSub: '请勿退出，稍后自动跳转',
 
     steps: [],
+    bothMode: false,
   },
 
   onLoad(options) {
@@ -42,6 +44,7 @@ Page({
     // 登记「我在看进度」→ 终态弹窗 / 提示由本页或会话择一负责，不会双重弹
     sess.setViewer('loading', true);
     this._unsub = sess.subscribe((snap) => this.applySession(snap));
+    this._videoUnsub = videoSession.subscribe(s => this.setData({ bothMode: s.mode === 'both' && s.phase !== 'idle' }));
     this.initCanvas();
 
     // ⚠️ 正常情况下**没有参数**：任务已由首页 sess.start() 发起，本页只是接管展示。
@@ -62,6 +65,7 @@ Page({
   },
 
   onUnload() {
+    if (this._videoUnsub) this._videoUnsub();
     sess.setViewer('loading', false);
     if (this._unsub) {
       this._unsub();
@@ -170,9 +174,9 @@ Page({
 
   cancel() {
     wx.showModal({
-      title: '取消提取',
-      content: '已消耗的积分会在取消后自动退回，确定取消？',
-      confirmText: '取消提取',
+      title: this.data.bothMode ? '取消文案提取' : '取消提取',
+      content: this.data.bothMode ? '仅取消文案提取，文案消耗按现有规则退回；视频提取和保存仍会继续，视频单独计费。' : '已消耗的积分会在取消后自动退回，确定取消？',
+      confirmText: this.data.bothMode ? '取消文案' : '取消提取',
       cancelText: '继续等待',
       confirmColor: '#E5484D',
       success: (r) => {

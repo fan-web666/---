@@ -48,6 +48,8 @@ function describeCloudError(err) {
  * @returns {Promise<any>} code=0 时 resolve data，否则 reject {code,kind,msg,raw}
  */
 function call(action, data) {
+  const cache = require('./view-cache');
+  const owner = cache.uid();
   return new Promise((resolve, reject) => {
     if (!wx.cloud) {
       return reject(Object.assign(new Error('当前微信版本过低，请升级后使用'), { code: -2 }));
@@ -65,6 +67,14 @@ function call(action, data) {
       .then((res) => {
         const r = res && res.result;
         if (r && r.code === 0) {
+          if (owner && owner === cache.uid() && r.data) {
+            const save = d => { if(d && d._id) cache.write('result_' + d._id,d); };
+            if (action === 'getCopywriting') save(r.data);
+            if (action === 'listCopywritings') (r.data.list || []).forEach(row => save(row.detail));
+            if (r.data.result_detail) save(r.data.result_detail);
+            if (action === 'userStats' && r.data.latest) save(r.data.latest.detail);
+            if (action === 'deleteCopywriting') cache.write('result_' + data.id,null);
+          }
           if (r.data && r.data.referralEntryState) require('./referral-entry').settle(r.data.referralEntryState);
           resolve(r.data);
         } else {

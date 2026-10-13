@@ -368,3 +368,5 @@ color:white
 .suite-copy-icon::before,.suite-copy-icon::after{content:"";position:absolute;width:20rpx;height:23rpx;border:2rpx solid #1B2620;border-radius:4rpx;}
 .suite-copy-icon::before{left:0;top:0;background:#B8F76A;}
 .suite-copy-icon::after{right:0;bottom:0;background:#B8F76A;}
+
+.search-hit{background:#DCFAA9;color:#1F3327;border-radius:6rpx}

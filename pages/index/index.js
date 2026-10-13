@@ -13,6 +13,7 @@ const {
 } = require('../../utils/util');
 const tracker = require('../../utils/tracker');
 const sess = require('../../utils/extract-session');
+const video = require('../../utils/video-session');
 
 const app = getApp();
 
@@ -32,14 +33,14 @@ const VIPBAR_CACHE_KEY = 'idx_vipbar';
 function readVipbarCache() {
   try {
     const c = wx.getStorageSync(VIPBAR_CACHE_KEY);
-    if (c && typeof c === 'object') return c;
+    if (c && typeof c === 'object' && c.uid === ((app.globalData.user || {})._id || '')) return c;
   } catch (e) { /* 读失败 → 走默认空态 */ }
   return {};
 }
 
 function writeVipbarCache(patch) {
   try {
-    wx.setStorageSync(VIPBAR_CACHE_KEY, Object.assign(readVipbarCache(), patch));
+    wx.setStorageSync(VIPBAR_CACHE_KEY, Object.assign(readVipbarCache(), patch, { uid: (app.globalData.user || {})._id || '' }));
   } catch (e) { /* 写失败不影响主流程 */ }
 }
 
@@ -63,9 +64,11 @@ Page({
 
     // 输入
     url: '',
+    extractionMode: 'video',
+    videoState: {},
     // ⭐ 提取按钮三态（2026-09-28 用户：「允许后台提取，回到首页时按钮要显示提取中 + 进度」）
     //    立即提取 / 提取中 28% / 查看提取结果 —— 状态源在 utils/extract-session.js
-    extractBtn: '立即提取',
+    extractBtn: '提取视频',
     extractPhase: 'idle',
     extractPercent: 0,
     // 已选本地视频（null = 未选）→ { path, meta }
@@ -86,6 +89,9 @@ Page({
   goReferral() { wx.navigateTo({ url: '/pages/referral/referral' }); },
 
   onLoad() {
+    const c = readVipbarCache();
+    this.setData(c.balanceText ? { balance: c.balance, balanceText: c.balanceText, member: c.member, memberValue: c.memberValue, memberQuotaText: c.memberQuotaText || '' } : {balance:0,balanceText:'—',member:false,memberValue:'—',memberQuotaText:''});
+    this.applyUser(app.globalData.user);
     this.setData({
       statusBarH: app.globalData.navStatusH || 0,
       navBarH: app.globalData.navBarH || 44,
@@ -94,18 +100,35 @@ Page({
     // ⭐ 订阅全局提取会话（2026-09-28）：用户从提取中页返回后任务仍在后台跑，
     //    本页按钮要实时显示「提取中 28%」，跑完显示「查看提取结果」
     this._unsub = sess.subscribe((snap, patch, event) => this.onSession(snap, event));
+    this._videoUnsub = video.subscribe(s => {
+      this.setData({ videoState: s });
+      this.onSession(sess.snapshot());
+      if (this._visible && s.taskId && ['ready', 'saving', 'save_failed', 'saved'].indexOf(s.phase) >= 0 && this._creditRefreshedTask !== s.taskId) {
+        this._creditRefreshedTask = s.taskId;
+        this.refresh();
+      }
+    });
   },
 
   onShow() {
+    this.applyUser(app.globalData.user);
     this._visible = true;
+    // Fresh pages default to video. Returning from help or the album keeps an explicit choice;
+    // existing text/video jobs keep their own controls and progress instead of changing mode.
+    if (video.busy()) this.setData({ extractionMode: video.snapshot().mode });
+    else if (sess.phase() === 'running' || sess.phase() === 'done' || this.data.localVideo) this.setData({ extractionMode: 'text' });
+    video.setForeground(true);
+    this.onSession(sess.snapshot());
     this.refresh();
   },
 
   onHide() {
     this._visible = false;
+    video.setForeground(false);
   },
 
   onUnload() {
+    if (this._videoUnsub) this._videoUnsub();
     if (this._unsub) {
       this._unsub();
       this._unsub = null;
@@ -117,12 +140,21 @@ Page({
   /* ---------- 全局提取会话 → 按钮 ---------- */
 
   onSession(snap, event) {
-    const text =
+    let text =
       snap.phase === 'running'
         ? '提取中 ' + snap.percent + '%'
         : snap.phase === 'done'
         ? '查看提取结果'
-        : '立即提取';
+        : '提取文案';
+    const v = video.snapshot();
+    if (this.data.extractionMode === 'video') {
+      text = v.phase === 'running' ? (v.error ? '继续视频提取' : '视频提取中 ' + v.percent + '%')
+        : v.phase === 'saving' ? '保存中 ' + v.percent + '%'
+        : ['ready', 'save_failed'].indexOf(v.phase) >= 0 ? '保存视频'
+        : v.phase === 'submit_retry' ? '继续提交视频' : '提取视频';
+    } else if (this.data.extractionMode === 'both' && snap.phase !== 'running' && snap.phase !== 'done') {
+      text = video.busy() ? '查看提取进度' : '同时提取';
+    }
     const patch = {};
     if (this.data.extractBtn !== text) patch.extractBtn = text;
     if (this.data.extractPhase !== snap.phase) patch.extractPhase = snap.phase;
@@ -209,6 +241,7 @@ Page({
   //    现改为：选完**只回填已选信息、留在首页**，由「立即提取」统一触发两条路径。
   //    ⚠️ 不要再把 navigateTo 挪回这里。
   importVideo() {
+    if (this.data.extractionMode !== 'text') return toast('本地视频仅需提取文案，请切换到文案模式');
     const useMedia = typeof wx.chooseMedia === 'function';
     const choose = useMedia ? wx.chooseMedia : wx.chooseVideo;
     if (typeof choose !== 'function') return toast('请升级微信后导入视频');
@@ -281,6 +314,7 @@ Page({
   // ⚠️⚠️ 2026-09-28 新增「后台提取」两分支：任务已在后台跑时本按钮只负责「去看进度」，
   //     **绝不重复提交**（会重复扣积分）。状态源 = utils/extract-session.js。
   startExtract() {
+    if (this.data.extractionMode !== 'text') return this.startVideoMode();
     const phase = sess.phase();
 
     // ① 已有任务在后台跑 → 只跳进度页（loading 页发现会话在跑就不再新建任务）
@@ -295,6 +329,8 @@ Page({
       wx.navigateTo({ url: id ? '/pages/result/result?id=' + id : '/pages/result/result' });
       return;
     }
+
+    video.detachCopy();
 
     // ③ 本地视频：与链接路径共用「立即提取」这一个确认动作
     if (this.data.localVideo) {
@@ -331,6 +367,56 @@ Page({
     tracker.track('home_start_extract', { platform: detectPlatform(url) });
     sess.start({ mode: 'link', url });
     wx.navigateTo({ url: '/pages/loading/loading', fail: () => this.unlockSubmit() });
+  },
+
+  switchMode(e) {
+    const mode = e.currentTarget.dataset.mode;
+    if (['text', 'video', 'both'].indexOf(mode) < 0) return;
+    if (video.busy() || sess.phase() === 'running') return toast('正在提取，请完成当前任务后切换');
+    if (mode !== 'text' && this.data.localVideo) return toast('本地视频已在相册，请使用文案模式');
+    if (mode === 'both') {
+      // Selecting both starts a fresh preparation view after the previous job ended.
+      // History and billing records are server-side and remain untouched.
+      video.clearCompleted();
+      if (sess.phase() === 'done' || sess.phase() === 'failed') sess.reset();
+    }
+    this.setData({ extractionMode: mode });
+    this.onSession(sess.snapshot());
+  },
+  goModeHelp() { wx.navigateTo({ url: '/pages/extract-help/extract-help' }); },
+  startVideoMode() {
+    const v = video.snapshot();
+    const mode = this.data.extractionMode;
+    if (mode === 'both' && sess.phase() === 'done') {
+      const id = sess.resultId(); sess.reset();
+      wx.navigateTo({ url: '/pages/result/result?id=' + id }); return;
+    }
+    if (mode === 'both' && sess.phase() === 'running') { wx.navigateTo({ url: '/pages/loading/loading' }); return; }
+    if (video.busy() || v.phase === 'submit_retry') { video.retry(); return; }
+    if (['ready', 'save_failed'].indexOf(v.phase) >= 0) {
+      const entered = extractUrl((this.data.url || '').trim()) || (this.data.url || '').trim();
+      const nextUrl = /^https?:\/\//i.test(entered) ? entered : 'https://' + entered;
+      if (isValidUrl(entered) && nextUrl !== v.url) {
+        wx.showModal({ title: '开始新的提取？', content: '上一视频已提取但尚未保存。继续将切换至新链接；上一视频的消耗记录仍可在「我的 · 积分与订单」查看。',
+          confirmText: '继续提取', cancelText: '先保存', success: r => { if (r.confirm) this.beginVideoJob(nextUrl, mode); else video.retry(); } });
+      } else video.retry();
+      return;
+    }
+    if (!app.globalData.cloudReady) return toast('云服务尚未就绪，请稍后重试');
+    const raw = (this.data.url || '').trim();
+    let url = extractUrl(raw) || raw;
+    if (!isValidUrl(url)) return toast('请先粘贴视频分享链接');
+    if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+    this.beginVideoJob(url, mode);
+  },
+  beginVideoJob(url, mode) {
+    if (!this.precheckCredits() || !this.lockSubmit()) return;
+    // Both start independently. One item's failure cannot cancel the other's deliverable.
+    video.start(url, mode);
+    if (mode === 'both') {
+      sess.start({ mode: 'link', url });
+      wx.navigateTo({ url: '/pages/loading/loading', fail: () => this.unlockSubmit() });
+    }
   },
 
   /**

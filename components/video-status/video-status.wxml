@@ -1,0 +1,19 @@
+<view wx:if="{{visible}}" class="video-state-row video-state-{{location}}">
+  <view wx:if="{{snap.mode === 'both'}}" class="video-state-tile">
+    <text class="video-state-title">文案提取</text><text class="video-state-label">{{textLabel}}</text>
+    <view class="video-state-track"><view class="video-state-fill" style="width:{{snap.copyPhase === 'done' ? 100 : snap.copyPercent}}%"></view></view>
+  </view>
+  <view class="video-state-tile" bindtap="retry" role="button" aria-label="{{snap.label}}">
+    <text class="video-state-title">视频提取</text><text class="video-state-label">{{snap.label}}</text>
+    <view class="video-state-track"><view class="video-state-fill" style="width:{{snap.percent}}%"></view></view>
+    <text wx:if="{{retryable}}" class="video-state-retry">{{snap.phase === 'save_failed' ? '点此重试保存' : '点此继续'}}</text>
+  </view>
+</view>
+<view wx:if="{{showDialog}}" class="video-modal-mask" catchtouchmove="noop" catchtap="noop">
+  <view class="video-modal" catchtap="noop" role="dialog" aria-label="{{dialogTitle}}">
+    <text class="video-modal-title">{{dialogTitle}}</text>
+    <text class="video-modal-content">{{dialogContent}}</text>
+    <view class="video-modal-confirm" bindtap="confirm" role="button">{{confirmText}}</view>
+    <view wx:if="{{canRetry}}" class="video-modal-later" bindtap="close" role="button">稍后处理</view>
+  </view>
+</view>

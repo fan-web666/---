@@ -43,7 +43,7 @@ function trialLogDoc(userId, afterBalance) {
     after_balance: afterBalance,
     source: 'trial',
     ref_id: '',
-    note: '新用户一次性赠送 50 积分',
+    note: '新用户一次性赠送 ' + TRIAL_CREDIT + ' 积分',
     ts: now(),
   };
 }
@@ -109,7 +109,7 @@ async function mergeIdentity(user, { miniOpenid, gzhOpenid, unionid }) {
   }
 }
 
-/** 建档（含新人积分发放 50，PRD 6.3：首次绑定一次性发放） */
+/** 建档（含新人积分发放 100：首次绑定一次性发放） */
 async function createUserWithTrial({ miniOpenid, gzhOpenid, unionid, referralCode }) {
   let u = defaultUser(miniOpenid, gzhOpenid, unionid);
   // 仅首次建档时记录邀请来源；旧用户不能事后补绑来领取奖励。

@@ -87,9 +87,11 @@ Page({
       navSafeRightRpx: app.globalData.navSafeRightRpx || 196,
     });
     this.syncPayText();
+    this.applyMember(app.globalData.user);
   },
 
   onShow() {
+    this.applyMember(app.globalData.user);
     this.refresh();
   },
 
@@ -129,17 +131,25 @@ Page({
     try {
       const user = await refreshUser();
       if (!user) return;
-
+      this.applyMember(user);
+    } catch (e) {
+      // Background failure keeps the existing member view.
+    }
+  },
+  applyMember(user) {
+      if (!user) return;
       // ⚠️ 2026-09-29 修复：原实现读 `user.member.{active, expire_at, quota_total, used}` ——
       //    云端从不返回该形状（`userCenterSummary()` 给的是 `membership.{tier,status,expires_at,quota}`）
       //    → 买了会员本页仍停在拉新态。现统一走 `membershipInfo()`（utils/util.js 唯一实现）。
       const mem = membershipInfo(user);
       const isMember = mem.active;
+      const plan = planOf(this.data.selectedPlan);
 
       // 节点不变，只换文案（设计稿画的是拉新态，会员态换成额度展示）
       this.setData(
         {
           isMember,
+          payText: (isMember ? '一键续费 ' : '开通 ') + plan.priceText + ' · ' + (SHORT[plan.id] || plan.name),
           heroTag: isMember ? '会员生效中' : '高频用户更划算',
           heroTitle: isMember
             ? mem.tierText + ' · ' + (mem.daysText || '生效中')
@@ -150,12 +160,8 @@ Page({
               ? '不限次提取，额度内不扣积分'
               : '剩余 ' + mem.remaining + ' / ' + mem.total + ' 次额度'
             : '会员额度内提取不扣积分',
-        },
-        () => this.syncPayText()
+        }
       );
-    } catch (e) {
-      // 静默：进页面自动加载，用户没主动操作
-    }
   },
 
   /* ---------- 通用说明弹窗（x-dialog） ----------
@@ -294,6 +300,7 @@ Page({
       });
     }
     this.refresh();
+    require('../../utils/dashboard').refresh(true);
   },
 
   /* ---------- 导航 ---------- */

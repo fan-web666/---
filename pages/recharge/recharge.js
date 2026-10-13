@@ -46,7 +46,7 @@ Page({
     navSafeRightRpx: 196,
 
     balance: 0,
-    balanceText: '0',
+    balanceText: '—',
 
     // 设计稿 .text_6「1 元 = 20 积分」
     rate: pricing.CREDIT_PER_YUAN,
@@ -70,6 +70,7 @@ Page({
   },
 
   onLoad() {
+    this.applyBalance(app.globalData.user);
     this.setData({
       statusBarH: app.globalData.navStatusH || 0,
       navSafeRightRpx: app.globalData.navSafeRightRpx || 196,
@@ -78,6 +79,7 @@ Page({
   },
 
   onShow() {
+    this.applyBalance(app.globalData.user);
     this.refreshBalance();
   },
 
@@ -96,13 +98,16 @@ Page({
     if (!app.globalData.cloudReady) return;
     try {
       const user = await refreshUser();
-      if (user) {
-        const credits = (user.credits && user.credits.balance) || 0;
-        this.setData({ balance: credits, balanceText: thousands(credits) });
-      }
+      this.applyBalance(user);
     } catch (e) {
       // 静默：进页面自动加载，用户没主动操作
     }
+  },
+  applyBalance(user) {
+    if (!user) return;
+    const balance = (user.credits && user.credits.balance) || 0;
+    const balanceText = thousands(balance);
+    if (balance !== this.data.balance || balanceText !== this.data.balanceText) this.setData({ balance, balanceText });
   },
 
   /* ---------- 交互 ---------- */
@@ -307,6 +312,7 @@ Page({
       });
     }
     this.refreshBalance();
+    require('../../utils/dashboard').refresh(true);
   },
 
   /* ---------- 导航 ---------- */

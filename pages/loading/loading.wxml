@@ -6,6 +6,7 @@
     <view class="x-nav-hold"></view>
   </view>
   <scroll-view class="x-scroll flex-col" scroll-y>
+    <video-status location="loading" feedback="{{false}}" />
     <view class="x-video flex-row">
       <view class="x-video-thumb flex-col justify-center align-center">
         <image class="x-video-thumb-img" wx:if="{{cover}}" src="{{cover}}" mode="aspectFill" />
@@ -43,7 +44,7 @@
   </scroll-view>
   <view class="x-footer flex-col">
     <view class="x-foot-hint">返回首页不会取消提取，任务会在后台继续进行</view>
-    <view class="x-cancel flex-row justify-center align-center x-tap" bindtap="cancel">取消提取</view>
+    <view class="x-cancel flex-row justify-center align-center x-tap" bindtap="cancel">{{bothMode ? '取消文案提取' : '取消提取'}}</view>
     <view class="x-back flex-row justify-center align-center x-tap" bindtap="backHome">返回首页</view>
   </view>
 </view>

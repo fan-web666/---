@@ -11,6 +11,12 @@ const {
   localThumbSrc,
 } = require('../../utils/util');
 const tracker = require('../../utils/tracker');
+const thumbs = require('../../utils/history-thumbs');
+const searchText = require('../../utils/search-text');
+// ⭐ 2026-10-13：结果页详情缓存（view_result_*）。
+//    列表接口 listCopywritings 已经把详情整份带回（detail = shapeCopywriting()，与详情接口同构），
+//    所以点击进入时可以先把它写进缓存 → 结果页 onLoad 直接命中缓存，**零请求直显**，不再白屏等网络。
+const cache = require('../../utils/view-cache');
 
 const app = getApp();
 
@@ -33,10 +39,9 @@ const FILTERS = [
   //    必要性：云端 detectPlatform 只认 5 个平台（视频号/抖音/快手/小红书/B站），
   //    微博等链接**照样能解析成功**（parseLink 不硬拒），落库 source_platform = 'other'
   //    —— 以前这些记录在列表里显示「其他平台」，却**没有任何筛选标签能筛到它们**。
-  //    ⚠️ 2026-09-29 用户要求标签文字用「其他」（不用「其他平台」，否则一行文字太多）。
-  //       行内来源文字仍走 platformName('other') = 「其他平台」，此处只改筛选标签本身。
+  //    标签与行内来源统一显示「其他平台」，筛选键保持 other。
   //    ⚠️ id 必须是 'other'（= 云端 detectPlatform 的兜底 code），不能写 'other_platform'。
-  { id: 'other', label: '其他' },
+  { id: 'other', label: '其他平台' },
 ];
 
 /* PLATFORM_ALIAS / normPlatform 已提到 utils/util.js ——
@@ -46,6 +51,22 @@ const FILTERS = [
 // 缩略色块的兜底配色 thumbColor()：已提到 utils/util.js ——
 // 提取结果页要用同一套颜色（同一个 _id 两边必须同色），副本会漂移，故只留一份实现
 const PAGE_SIZE = 20;
+const HISTORY_CACHE = 'copy_history_view_v1';
+function owner() { return (app.globalData.user || {})._id || ''; }
+function readHistory() {
+  try {
+    const c = wx.getStorageSync(HISTORY_CACHE);
+    if (!owner() || !c || c.uid !== owner() || !Array.isArray(c.all)) return null;
+    c.all = c.all.map(row => {
+      const source = row.coverSource || row.cover || '';
+      const cached = thumbs.local(owner(), row._id, source);
+      return Object.assign({}, row, { coverSource: source, cover: cached || source, coverFail: cached ? false : !!row.coverFail });
+    });
+    c.groups = (c.groups || []).map(g => Object.assign({}, g, { items: g.items.map(row => c.all.find(it => it._id === row._id) || row) }));
+    return c;
+  } catch (_) { return null; }
+}
+const initial = readHistory();
 
 /* 卡片内的时间展示 timeLabel()：已提到 utils/util.js ——
    提取结果页要显示同一个时间口径（结果页不该出现列表里没有的「今天」前缀），
@@ -68,40 +89,61 @@ Page({
     statusBarH: 0,
     navSafeRightRpx: 196,
 
-    keyword: '',
-    activeFilter: 'all',
+    keyword: initial ? initial.keyword : '',
+    activeFilter: initial ? initial.activeFilter : 'all',
     filters: FILTERS,
 
-    groups: [],
-    total: 0,
-    hasMore: false,
-    loading: true,
+    groups: initial ? initial.groups : [],
+    total: initial ? initial.total : 0,
+    hasMore: initial ? initial.hasMore : false,
+    scrollTop: initial ? initial.scrollTop : 0,
+    loading: !initial,
     refreshing: false,
+    searching: false,
+    searchError: false,
   },
 
   onLoad() {
-    this.page = 1;
-    this.all = [];
+    const c = readHistory();
+    this.page = c ? c.page : 1;
+    this.all = c ? c.all : [];
+    this._cached = !!c;
+    this._owner = owner();
+    this._loadedQuery = c ? JSON.stringify([c.keyword, c.activeFilter]) : '';
+    this._scrollTop = c ? c.scrollTop : 0;
+    this._request = 0;
+    this._disposed = false;
+    // ⭐ 2026-10-13：列表项里带回的详情，**只留内存**，两个用途：
+    //    ① 点击进入详情前预热缓存 → 结果页直显
+    //    ② 搜索输入时先本地匹配给出即时反馈（不必干等云端正则查询）
+    //    ⚠️ 绝不塞进 this.all —— saveHistory() 会把 this.all 整个写进 storage，全文进去直接爆容量
+    this._details = {};
+    // 无关键词结果 = 全量基底。搜索结果会覆盖 this.all，所以本地过滤必须拿这份稳定快照当基底
+    this._fullAll = null;
+    this.setData(c ? { keyword: c.keyword, activeFilter: c.activeFilter, groups: this.groupByDate(c.all.filter(row => c.activeFilter === 'all' || row.platform === c.activeFilter)), total: c.total, hasMore: c.hasMore, scrollTop: c.scrollTop, loading: false } : { keyword: '', activeFilter: 'all', groups: [], total: 0, hasMore: false, scrollTop: 0, loading: true });
     this.searchTimer = null;
     this.setData({ statusBarH: app.globalData.navStatusH || 0, navSafeRightRpx: app.globalData.navSafeRightRpx || 196 });
+    this.warmThumbs();
   },
 
   onShow() {
-    this.page = 1;
+    if (this._owner !== owner()) {
+      this._owner = owner(); this.all = []; this.page = 1; this._cached = false;
+      this.setData({ groups: [], total: 0, hasMore: false, scrollTop: 0, loading: true });
+    }
     // silent=true：进页面自动加载，失败不弹提示（用户没主动操作）
     this.load(true, null, true);
   },
 
   /** scroll-view 触底 */
   onReachBottom() {
-    if (!this.data.hasMore || this.data.loading) return;
+    if (!this.data.hasMore || this._fetching) return;
     this.page += 1;
     this.load(false);
   },
 
   /** 下拉刷新 */
   onRefresh() {
-    this.page = 1;
     this.setData({ refreshing: true });
     this.load(true, () => this.setData({ refreshing: false }));
   },
@@ -110,43 +152,86 @@ Page({
 
   async load(reset, done, silent) {
     if (!app.globalData.cloudReady) {
-      this.setData({ loading: false, groups: [], total: 0, hasMore: false });
+      this.setData({ loading: false, searching: false, searchError: !!this.data.keyword.trim() });
       if (done) done();
       return;
     }
 
-    if (reset) this.setData({ loading: true });
+    const ticket = ++this._request;
+    const uid = owner();
+    this._fetching = true;
+    if (reset && !this._cached) this.setData({ loading: true });
 
     const params = { page: this.page, pageSize: PAGE_SIZE };
     if (this.data.keyword) params.keyword = this.data.keyword;
     if (this.data.activeFilter !== 'all') params.platform = this.data.activeFilter;
 
     try {
-      const res = await call('listCopywritings', params);
-      const list = (res && res.list) || [];
+      const pages = reset && silent && this._cached ? Math.min(this.page, 10) : 1;
+      const res = await call('listCopywritings', Object.assign({}, params, { page: reset ? 1 : this.page }));
+      let list = (res && res.list) || [];
       const total = (res && res.total) || 0;
+      const lastPage = Math.max(1, Math.min(pages, Math.ceil(total / PAGE_SIZE)));
+      if (lastPage > 1) {
+        const rest = await Promise.all(Array.from({ length: lastPage - 1 }, (_, i) => call('listCopywritings', Object.assign({}, params, { page: i + 2 }))));
+        rest.forEach(r => { list = list.concat((r && r.list) || []); });
+      }
+      if (ticket !== this._request || this._disposed || uid !== owner()) return;
 
       const mapped = list.map((it) => this.formatItem(it));
 
       this.all = reset ? mapped : this.all.concat(mapped);
+      if (reset) this.page = lastPage;
+      // 无关键词的这次结果 = 全量快照（供搜索时本地即时过滤，见 applyLocalFilter）
+      if (!params.keyword) this._fullAll = this.all;
       const hasMore = this.all.length < total;
 
       const view = this.visible(this.all);
-      this.setData({
+      const patch = {
         groups: this.groupByDate(view),
         // 「共 N 条」按当前筛选后的条数展示
-        total: view.length,
+        total,
         hasMore,
         loading: false,
-      });
+      };
+      // Unchanged keyed rows do not need another render or image reload.
+      if (JSON.stringify(this.data.groups) !== JSON.stringify(patch.groups) || this.data.total !== patch.total || this.data.hasMore !== patch.hasMore || this.data.loading) this.setData(patch);
+      this._cached = true;
+      this._loadedQuery = JSON.stringify([this.data.keyword, this.data.activeFilter]);
+      this.saveHistory();
+      this.warmThumbs();
     } catch (e) {
       // 自动加载（silent）不弹提示；下拉刷新 / 触底加载属用户主动操作，正常提示
+      if (ticket !== this._request || this._disposed || uid !== owner()) return;
       handleError(e, '', { silent: !!silent });
       this.setData({ loading: false });
-      if (reset) this.setData({ groups: [], total: 0, hasMore: false });
+      if (this.data.keyword && !silent) this.setData({ searchError: true });
+      if (!reset) this.page = Math.max(1, this.page - 1);
+    } finally {
+      if (ticket === this._request) {
+        this._fetching = false;
+        if (this.data.searching) this.setData({ searching: false });
+        if (done && !this._disposed) done();
+      }
     }
+  },
 
-    if (done) done();
+  saveHistory() {
+    if (!owner() || owner() !== this._owner || !this._cached || this._loadedQuery !== JSON.stringify([this.data.keyword, this.data.activeFilter])) return;
+    const all = this.all.slice(0, 200).map(row => Object.assign({}, row, { cover: thumbs.local(owner(), row._id, row.coverSource || row.cover) || row.cover }));
+    try { wx.setStorageSync(HISTORY_CACHE, { uid: owner(), all, groups: this.groupByDate(this.visible(all)), keyword: this.data.keyword, activeFilter: this.data.activeFilter, total: this.data.total, page: Math.max(1, Math.ceil(all.length / PAGE_SIZE)), hasMore: this.data.hasMore || all.length < this.all.length, scrollTop: this._scrollTop || 0 }); } catch (_) {}
+  },
+  onHistoryScroll(e) { this._scrollTop = e.detail.scrollTop || 0; },
+  onHide() { this.saveHistory(); },
+  onUnload() { this.saveHistory(); this._disposed = true; this._request++; clearTimeout(this.searchTimer); },
+  warmThumbs() {
+    const uid = this._owner;
+    (this.all || []).filter(row => row.cover && !row.coverFail).forEach(row => {
+      thumbs.warm(uid, row._id, row.coverSource || row.cover).then(path => {
+        // Save the local path for the NEXT view, never swap a visible image's src.
+        if (path && !this._disposed && uid === owner()) this.saveHistory();
+      });
+    });
   },
 
   /** 本地兜底过滤（服务端已按平台过滤，这里再兜一层，切回来不丢） */
@@ -157,6 +242,8 @@ Page({
   },
 
   formatItem(it) {
+    // 列表接口已把详情整份带回（与详情接口同构）→ 留在内存，供详情预热 / 本地即时搜索
+    if (it && it._id && it.detail) this._details[it._id] = it.detail;
     const code = normPlatform(it.source_platform);
     const time = timeLabel(it.created_at);
     // 字数：云端 char_count（云端落库时按 transcript 长度写入）。
@@ -167,9 +254,14 @@ Page({
     //    详见 utils/util.js 的 cacheLocalThumb / localThumbSrc。
     //    ⚠️ 没有它时（老记录 / 换设备 / 清了缓存）才回落 <video> 首帧 —— 那条路会先黑一下。
     const localThumb = localThumbSrc(it.local_video_id);
+    const source = (/^(https:\/\/|cloud:\/\/)/i.test(cover) ? cover : '') || localThumb;
+    const prior = (this.all || []).find(row => row._id === it._id && (row.coverSource || row.cover) === source);
     return {
       _id: it._id,
       title: it.video_title || '未命名视频',
+      titleParts: searchText.parts(it.video_title || '未命名视频', this.data.keyword),
+      snippet: it.search_snippet || '',
+      snippetParts: searchText.parts(it.search_snippet || '', this.data.keyword),
       // 用户 2026-09-26：格式对齐参考图「抖音 · 642 字 · 14:32」
       meta: [platformName(code), chars ? chars + ' 字' : '', time].filter(Boolean).join(' · '),
       platform: code,
@@ -180,8 +272,9 @@ Page({
       // ① 封面：收 https 与 cloud:// —— http 图片在真机上必然加载失败，收进来只会白请求 + 控制台刷错误
       //    ⭐ cloud:// 是 2026-09-28 新增的「封面转存云存储」fileID：平台直链带签名、几小时~一两天就 403，
       //       转存后永久有效，历史页不会再整片变绿块
-      cover: (/^(https:\/\/|cloud:\/\/)/i.test(cover) ? cover : '') || localThumb,
-      coverFail: false,
+      coverSource: source,
+      cover: prior && prior.cover ? prior.cover : thumbs.local(owner(), it._id, source) || source,
+      coverFail: prior ? !!prior.coverFail : false,
       // ② 首帧：本地视频在云端存的是云存储 fileID，可长期有效 → 交给 <video> 显示第一帧
       //    平台视频的 CDN 直链带签名时效与防盗链，列表里逐个起播放器既慢又大概率黑屏，不取
       //    ⚠️ 已有本地缩略图时不再挂 <video>（那是黑图来源），见上方 localThumb
@@ -202,7 +295,12 @@ Page({
         if (it._id === id) patch['groups[' + gi + '].items[' + ii + '].coverFail'] = true;
       });
     });
-    if (Object.keys(patch).length) this.setData(patch);
+    if (Object.keys(patch).length) {
+      this.setData(patch);
+      const row = this.all.find(it => it._id === id);
+      if (row) row.coverFail = true;
+      this.saveHistory();
+    }
   },
 
   /** 按 今天 / 昨天 / 更早 分组 */
@@ -233,7 +331,13 @@ Page({
 
   onSearch(e) {
     const keyword = e.detail.value || '';
-    this.setData({ keyword });
+    this._request++;
+    this._fetching = false;
+    this.setData({ keyword, searching: !!keyword.trim(), searchError: false });
+    // ⭐ 2026-10-13：先本地即时过滤一版，再去打云端。
+    //    否则从「敲第一个字」到「云端结果返回」之间列表**毫无变化**（400ms 防抖 + 云端正则全表扫描
+    //    通常 0.3~2s），用户体感就是「搜索没有任何反应」。云端返回后会整体覆盖这一版（它才是权威口径）。
+    this.applyLocalFilter(keyword);
     if (this.searchTimer) clearTimeout(this.searchTimer);
     this.searchTimer = setTimeout(() => {
       this.page = 1;
@@ -241,12 +345,76 @@ Page({
     }, 400);
   },
 
+  onSearchConfirm() {
+    clearTimeout(this.searchTimer); this.page=1;
+    this.setData({ searching: !!this.data.keyword.trim(), searchError: false });
+    this.applyLocalFilter(this.data.keyword);
+    this.load(true);
+  },
+
+  /**
+   * 本地即时过滤（乐观反馈，非权威）
+   * ⚠️ 覆盖范围 = 已加载进内存的记录（含列表带回的 detail 全文）；云端正则查询才是完整口径，
+   *    400ms 后的 load() 会用云端结果整体覆盖 → 本方法只负责「别让用户盯着不动的列表干等」。
+   * ⚠️ 命中 0 条时**故意不动列表**：否则会先闪一个空态、云端返回后又变回满屏，观感反而更差。
+   */
+  applyLocalFilter(keyword) {
+    const key = String(keyword || '').trim().toLowerCase();
+    const base = (this._fullAll && this._fullAll.length ? this._fullAll : this.all) || [];
+    // 清空关键词 → 立刻回到本地全量（云端随后再校正），并把上一轮的匹配片段清掉
+    if (!key) {
+      const view0 = this.visible(base).map((row) =>
+        row.snippet ? Object.assign({}, row, { snippet: '', snippetParts: [] }) : row
+      );
+      this.setData({ groups: this.groupByDate(view0), total: view0.length });
+      return;
+    }
+    const hit = base.filter((row) => this.localHit(row, key));
+    if (!hit.length) return;
+    const view = this.visible(hit).map((row) => this.withLocalSnippet(row));
+    this.setData({ groups: this.groupByDate(view), total: view.length });
+  },
+
+  /**
+   * 按当前关键词重算「文案匹配 · …」片段（本地阶段也要有，否则输入瞬间卡片上没有匹配上下文）
+   * ⚠️ 返回**新对象**，绝不改 this.all / this._fullAll 里的原行 —— 那是本地过滤的稳定快照，
+   *    就地改会让「换关键词再搜」拿到被污染的数据。
+   */
+  withLocalSnippet(row) {
+    const snip = searchText.snippet((this._details || {})[row._id], this.data.keyword);
+    if (snip === (row.snippet || '')) return row;
+    return Object.assign({}, row, {
+      snippet: snip,
+      snippetParts: snip ? searchText.parts(snip, this.data.keyword) : [],
+    });
+  },
+
+  /**
+   * 本地匹配口径 —— 必须与云端 cloud-common/copy-search.js 的 FIELDS 对齐：
+   * 标题 / 来源平台 / 金句 / 要点（标题+正文）/ 原文案（含分段）。改一处必须同步另一处。
+   */
+  localHit(row, key) {
+    const d = (this._details || {})[row._id] || null;
+    const bag = [row.title, row.platform, row.meta];
+    if (d) {
+      const s = d.structured || {};
+      bag.push(d.transcript, d.content, s.hook);
+      (s.highlights || []).forEach((h) => bag.push(h));
+      (s.points || []).forEach((p) => bag.push((p && p.title) || '', (p && p.text) || ''));
+      (d.segments || []).forEach((x) => bag.push((x && x.text) || ''));
+    }
+    return bag.some((t) => String(t || '').toLowerCase().includes(key));
+  },
+
   onFilter(e) {
     const id = e.currentTarget.dataset.id;
     if (id === this.data.activeFilter) return;
     this.setData({ activeFilter: id }, () => {
+      this._request++;
+      this._fetching = false;
       this.page = 1;
-      this.all = [];
+      const view = this.visible(this.all);
+      this.setData({ groups: this.groupByDate(view), total: view.length });
       this.load(true);
     });
     tracker.track('history_filter', { platform: id });
@@ -257,8 +425,13 @@ Page({
   openDetail(e) {
     const id = e.currentTarget.dataset.id;
     if (!id) return;
+    // ⭐ 2026-10-13：进详情前把列表已带回的详情写进结果页缓存 → 结果页 onLoad 直接命中，
+    //    首帧就是完整内容（没有 loading 白屏），随后 result 页自己再静默校正一次。
+    //    ⚠️ 写失败（storage 满等）不影响进去，只是退回「先 loading 再出内容」的老行为。
+    const pre = this._details && this._details[id];
+    if (pre) cache.write('result_' + id, pre);
     tracker.track('history_open_detail');
-    wx.navigateTo({ url: '/pages/result/result?id=' + id });
+    wx.navigateTo({ url: '/pages/result/result?id=' + id + (this.data.keyword.trim() ? '&keyword=' + encodeURIComponent(this.data.keyword.trim()) : '') });
   },
 
   onLongPress(e) {
@@ -329,8 +502,12 @@ Page({
           wx.hideLoading();
           toast('已删除', 'success');
           tracker.track('history_delete');
-          this.page = 1;
-          this.load(true);
+          this._request++; // Do not let an older background response restore a deleted row.
+          this.all = this.all.filter(row => row._id !== id);
+          const view = this.visible(this.all);
+          this.setData({ groups: this.groupByDate(view), total: view.length });
+          this.saveHistory();
+          this.load(true, null, true);
         } catch (err) {
           wx.hideLoading();
           handleError(err, '删除失败');

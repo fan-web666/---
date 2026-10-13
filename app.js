@@ -1,7 +1,7 @@
 // app.js - 全局入口（蓝湖版 · 2026-09-26 新稿重做）
 // 逻辑与 Pixso 版一致，仅视觉换新稿；云环境 / 登录流程沿用
 const config = require('./config/index');
-const { ensureLogin } = require('./utils/auth');
+const { ensureLogin, restoreUser } = require('./utils/auth');
 const tracker = require('./utils/tracker');
 const referralEntry = require('./utils/referral-entry');
 
@@ -21,14 +21,32 @@ App({
   },
 
   onLaunch(options) {
+    // Restore the last confirmed identity synchronously, before page modules read their caches.
+    restoreUser();
     referralEntry.capture(options);
     this.initCloud();
     this.fetchSystemInfo();
+    this.watchDashboardChanges();
     this.ensureReady();
   },
 
   onShow(options) {
     if (referralEntry.capture(options) && this.globalData.cloudReady) this.ensureReady();
+    require('./utils/dashboard').foreground(true);
+  },
+  onHide() { require('./utils/dashboard').foreground(false); },
+  watchDashboardChanges() {
+    const dashboard=require('./utils/dashboard');
+    require('./utils/extract-session').subscribe(s=>{
+      if(!['done','failed'].includes(s.phase))return;
+      const key=(s.taskId||s.resultId||'')+s.phase;
+      if(key!==this._dashboardCopyKey){this._dashboardCopyKey=key;dashboard.refresh(true);}
+    });
+    require('./utils/video-session').subscribe(s=>{
+      if(!['ready','failed'].includes(s.phase))return;
+      const key=s.taskId+s.phase;
+      if(key!==this._dashboardVideoKey){this._dashboardVideoKey=key;dashboard.refresh(true);}
+    });
   },
 
   initCloud() {
@@ -82,7 +100,9 @@ App({
     if (!this.globalData.cloudReady) return;
     ensureLogin()
       .then((user) => {
+        if (!user) return; // Offline login must not erase the last confirmed display snapshot.
         this.globalData.user = user;
+        require('./utils/dashboard').refresh(true);
         tracker.track('app_launch');
         // ⭐ 链路 A 结果回推（方案 D）：登录成功后立刻尝试把「待推送」的 A 链路文案发回服务号聊天窗口。
         //    必须由小程序端触发 —— 云调用自动鉴权的前提；云端（HTTP 触发）发会报 -501001。

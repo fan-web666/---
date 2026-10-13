@@ -49,6 +49,7 @@
           <view class="x-stat-l">可用积分</view>
         </view>
       </view>
+      <view class="friend-entry" bindtap="openFriendInvite" role="button" hover-class="x-tap"><text class="friend-entry-title">亲友免费用</text><text class="friend-entry-action">兑换邀请码</text><text class="x-chevron">›</text></view>
     </view>
     <view class="x-card x-reccard flex-col{{usageMain ? '' : ' x-reccard-slim'}}">
       <view class="x-cardhead flex-row justify-between x-tap" bindtap="goUsage">
@@ -101,19 +102,19 @@
         <view class="x-row-t">帮助与反馈</view>
         <view class="x-chevron">›</view>
       </view>
+      <view class="x-row flex-row align-center x-tap" bindtap="goCommunity">
+        <view class="x-row-ico flex-col align-center justify-center">
+          <image class="suite-menu-icon community-menu-icon" src="/images/community/community.png" mode="aspectFit" aria-hidden="true" />
+        </view>
+        <view class="x-row-t">加入共创社群</view>
+        <view class="x-chevron">›</view>
+      </view>
       <view class="x-row flex-row align-center x-tap" bindtap="openPrivacy">
         <view class="x-row-ico flex-col align-center justify-center">
           <image class="suite-menu-icon" src="/images/suite-green/shield.png" mode="aspectFit" aria-hidden="true" />
         </view>
         <view class="x-row-t">用户协议与隐私政策</view>
         <view class="x-chevron">›</view>
-      </view>
-      <view class="x-row flex-row align-center">
-        <view class="x-row-ico flex-col align-center justify-center">
-          <image class="suite-menu-icon" src="/images/suite-green/info.png" mode="aspectFit" aria-hidden="true" />
-        </view>
-        <view class="x-row-t">版本信息</view>
-        <view class="x-row-v">{{version}}</view>
       </view>
     </view>
   </scroll-view>
@@ -127,6 +128,30 @@
     bind:confirm="onDialogConfirm"
     bind:cancel="onDialogCancel"
   />
+  <view wx:if="{{friendPopup}}" class="friend-modal">
+    <view class="friend-mask" bindtap="closeFriendInvite"></view>
+    <view class="friend-card">
+      <block wx:if="{{!friendFull}}">
+        <text class="friend-title">亲友免费用</text>
+        <text class="friend-description">输入邀请码，领取亲友积分礼包</text>
+        <view class="friend-reward-panel">
+          <view class="friend-reward-row"><text class="friend-reward-amount">10000</text><text class="friend-reward-unit">积分</text><text class="friend-reward-expiry">永久有效</text></view>
+          <text class="friend-reward-quota">亲友专属 · 本期开放30个名额</text>
+        </view>
+        <view class="friend-field"><text class="friend-field-label">邀请码</text><input class="friend-input" value="{{friendCode}}" bindinput="onFriendCode" bindconfirm="redeemFriendInvite" placeholder="请输入亲友邀请码" maxlength="64" disabled="{{friendSubmitting}}" confirm-type="done" adjust-position="{{true}}" /></view>
+        <text wx:if="{{friendError}}" class="friend-error">{{friendError}}</text>
+        <button class="friend-button" bindtap="redeemFriendInvite" disabled="{{friendSubmitting}}" loading="{{friendSubmitting}}">{{friendSubmitting ? '正在兑换' : '确认兑换'}}</button>
+        <view class="friend-footer"><view class="friend-cancel" bindtap="closeFriendInvite">暂不兑换</view><view class="friend-link" bindtap="goFriendHelp">使用说明 ›</view></view>
+      </block>
+      <block wx:else>
+        <text class="friend-title">本期亲友名额已用尽</text>
+        <text class="friend-description">当前邀请码的30个名额已全部使用，暂时无法兑换。</text>
+        <view class="friend-full-note"><text class="friend-full-title">还想加入？联系开发者</text><text class="friend-description">申请新的邀请码，获得后再回来兑换。</text></view>
+        <button class="friend-button" bindtap="friendContact">联系开发者</button>
+        <view class="friend-link" bindtap="friendRetry">更换邀请码</view>
+      </block>
+    </view>
+  </view>
   <view wx:if="{{wechatPopup}}" class="x-wx">
     <view class="x-wx-mask" bindtap="hideWechatPopup"></view>
     <view class="x-wx-card flex-col align-center">

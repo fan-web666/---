@@ -1,16 +1,19 @@
 {
   "pages": [
     "pages/index/index",
+    "pages/extract-help/extract-help",
     "pages/forward/forward",
     "pages/loading/loading",
     "pages/result/result",
     "pages/history/history",
     "pages/mine/mine",
+    "pages/friend-help/friend-help",
     "pages/usage/usage",
     "pages/recharge/recharge",
     "pages/member/member",
     "pages/settings/settings",
-    "pages/referral/referral"
+    "pages/referral/referral",
+    "pages/community/community"
   ],
   "window": {
     "navigationStyle": "custom",

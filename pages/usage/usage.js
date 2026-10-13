@@ -22,6 +22,9 @@ const {
   TIER_TEXT,
 } = require('../../utils/util');
 const tracker = require('../../utils/tracker');
+const cache = require('../../utils/view-cache');
+const dashboard = require('../../utils/dashboard');
+const VIEW_FIELDS = ['list','page','total','hasMore','emptyText','monthCreditText','totalCreditText','quotaText','quotaPct','orders','scrollTop'];
 
 const app = getApp();
 
@@ -66,51 +69,82 @@ Page({
 
     // 订单
     orders: [],
+    scrollTop: 0,
+    ...(cache.read('usage') || {}),
   },
 
   onLoad() {
+    const c = cache.read('usage');
+    cache.patch(this,c || {list:[],page:1,total:0,hasMore:false,emptyText:'还没有消耗记录',monthCreditText:'—',totalCreditText:'—',quotaText:'—',quotaPct:0,orders:[],scrollTop:0});
+    this._cached = !!c;
+    this._owner = cache.uid();
+    this._request = 0;
+    const raw=dashboard.read('usage');if(raw)this.applyBackground(raw);
+    if(!c&&!raw)this.setData({loading:true});
+    this._dashboardOff=dashboard.subscribe((type,data)=>{if(type==='usage')this.applyBackground(data);});
     this.setData({ statusBarH: app.globalData.navStatusH || 0, navSafeRightRpx: app.globalData.navSafeRightRpx || 196 });
     tracker.track('usage_view');
   },
 
   onShow() {
     // 每次进页都拉最新（消耗是会变的；从别处返回时也应是新数据）
-    this.reload();
+    dashboard.refresh();
   },
 
   /* ---------- 拉取 ---------- */
+  applyBackground(res) {
+    if(this._disposed||this._busy)return;
+    if((res._pages||1)<this.data.page)return;
+    cache.patch(this,{...this.applySummary(res),list:(res.list||[]).map(formatUsage),page:res._pages||1,total:res.total||0,hasMore:!!res.hasMore,orders:(res.orders||[]).map(formatOrder),loading:false,emptyText:'还没有消耗记录'});
+    this._cached=true;this.saveView();
+  },
 
   /** 首屏 / 下拉刷新：重置到第 1 页 */
   reload() {
     if (!app.globalData.cloudReady) return Promise.resolve();
-    this.setData({ loading: true });
+    const ticket = ++this._request, uid = cache.uid();
+    this._busy = true;
+    if (!this._cached) this.setData({ loading: true });
+    const depth = Math.min(this.data.page || 1, 10);
     return call('listUsage', { page: 1 })
-      .then((res) => {
-        this.applySummary(res);
-        this.setData({
-          list: (res.list || []).map(formatUsage),
-          page: 1,
+      .then(async (res) => {
+        const lastPage = Math.max(1, Math.min(depth, Math.ceil((res.total || 0) / 20)));
+        let list = res.list || [];
+        if (lastPage > 1) {
+          const rest = await Promise.all(Array.from({length:lastPage-1},(_,i)=>call('listUsage',{page:i+2})));
+          rest.forEach(r=>{list=list.concat(r.list||[]);});
+        }
+        if (ticket !== this._request || this._disposed || uid !== cache.uid()) return;
+        cache.patch(this, {
+          ...this.applySummary(res),
+          list: list.map(formatUsage),
+          page: lastPage,
           total: res.total || 0,
-          hasMore: !!res.hasMore,
+          hasMore: list.length < (res.total || 0),
           orders: (res.orders || []).map(formatOrder),
           loading: false,
           emptyText: '还没有消耗记录',
         });
+        this._cached = true;
+        this.saveView();
       })
       .catch((err) => {
+        if (ticket !== this._request || this._disposed || uid !== cache.uid()) return;
         // 自动加载失败：不弹 toast，把空态文案换掉即可（用户没主动操作）
-        this.setData({ loading: false, emptyText: '加载失败，下拉可重试' });
+        this.setData({ loading: false, ...(this._cached ? {} : {emptyText:'加载失败，下拉可重试'}) });
         console.warn('[usage] listUsage 失败', err && (err.msg || err.errMsg || err));
-      });
+      }).finally(()=>{if(ticket===this._request)this._busy=false;});
   },
 
   /** 上拉加载下一页 */
   loadMore() {
-    if (this.data.loading || !this.data.hasMore) return Promise.resolve();
+    if (this._busy || this.data.loading || !this.data.hasMore) return Promise.resolve();
     const next = this.data.page + 1;
+    const ticket=++this._request,uid=cache.uid();
     this.setData({ loading: true });
     return call('listUsage', { page: next })
       .then((res) => {
+        if(ticket!==this._request||this._disposed||uid!==cache.uid())return;
         this.setData({
           list: this.data.list.concat((res.list || []).map(formatUsage)),
           page: next,
@@ -118,8 +152,9 @@ Page({
           hasMore: !!res.hasMore,
           loading: false,
         });
+        this.saveView();
       })
-      .catch(() => this.setData({ loading: false }));
+      .catch(() => {if(ticket===this._request&&!this._disposed)this.setData({ loading: false });});
   },
 
   onPull() {
@@ -140,8 +175,8 @@ Page({
 
     const patch = {
       // ⚠️ 云端聚合拿不到时给 null → 显示「—」
-      monthCreditText: !s || s.month_credit == null ? '—' : shortNumber(s.month_credit),
-      totalCreditText: !s || s.total_credit == null ? '—' : shortNumber(s.total_credit),
+      monthCreditText: !s || s.month_credit == null ? this.data.monthCreditText : shortNumber(s.month_credit),
+      totalCreditText: !s || s.total_credit == null ? this.data.totalCreditText : shortNumber(s.total_credit),
     };
 
     if (q && q.total > 0) {
@@ -152,14 +187,14 @@ Page({
       patch.quotaPct = 0;
     } else if (tier && tier !== 'none') {
       // 是会员但没拿到额度字段 → 不编数字
-      patch.quotaText = '—';
-      patch.quotaPct = 0;
+      patch.quotaText = this.data.quotaText;
+      patch.quotaPct = this.data.quotaPct;
     } else {
       patch.quotaText = '未开通';
       patch.quotaPct = 0;
     }
 
-    this.setData(patch);
+    return patch;
   },
 
   /* ---------- 交互 ---------- */
@@ -184,6 +219,9 @@ Page({
               total: Math.max(0, this.data.total - 1),
               emptyText: list.length ? '还没有消耗记录' : '还没有消耗记录',
             });
+            this._request++;
+            this._busy = false;
+            this.saveView();
             toast('已移除');
           })
           .catch((err) => toast((err && err.msg) || '移除失败，请稍后重试'));
@@ -196,6 +234,18 @@ Page({
     if (pages.length > 1) wx.navigateBack();
     else wx.reLaunch({ url: '/pages/mine/mine' }); // 直接进入本页时的兜底
   },
+  saveView() {
+    if (!this._cached || this._owner !== cache.uid()) return;
+    const snapshot = {};
+    VIEW_FIELDS.forEach(k=>{snapshot[k]=this.data[k];});
+    snapshot.list = snapshot.list.slice(0,200);
+    snapshot.hasMore = snapshot.hasMore || snapshot.list.length < this.data.list.length;
+    snapshot.page = Math.max(1,Math.ceil(snapshot.list.length/20));
+    cache.write('usage',snapshot);
+  },
+  onScroll(e) { this._scrollTop=e.detail.scrollTop||0; },
+  onHide() { if(this._scrollTop!==undefined)this.data.scrollTop=this._scrollTop; this.saveView(); },
+  onUnload() { this.onHide(); this._disposed=true; this._request++; if(this._dashboardOff)this._dashboardOff(); },
 
   onShareAppMessage() {
     return { title: '把视频里的好文案，变成你的素材库', path: '/pages/index/index' };
@@ -231,6 +281,7 @@ function formatUsage(it) {
   //    ⚠️ 按「字符」而非 UTF-16 码元截断（Array.from）—— emoji / 生僻字不会被劈成半个。
   const name = String(it.title || '').trim();
   const metaBits = [stamp(it.ts), RESULT_TEXT[it.result] || ''];
+  metaBits.unshift(it.extract_kind === 'video' ? '视频提取' : '文案提取');
   if (name) metaBits.unshift(plat);
   return {
     _id: it._id,

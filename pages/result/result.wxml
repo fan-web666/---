@@ -6,6 +6,7 @@
     <view class="text_5 x-tap" bindtap="onMore">•••</view>
   </view>
   <scroll-view class="x-scroll flex-col" scroll-y>
+    <video-status location="result" feedback="{{false}}" />
     <view class="group_1 flex-row x-tap" bindtap="copySource">
       <view
         class="text-wrapper_3 x-thumb flex-col"
@@ -76,21 +77,21 @@
       <view class="text_12">提炼出的可用表达</view>
           <view class="box_2 flex-row justify-between" wx:if="{{detail.hook}}">
             <view class="section_1 flex-col"></view>
-            <view class="text_13"><text selectable>“{{detail.hook}}”</text></view>
+            <view class="text_13"><text selectable>“<text wx:for="{{detail.hookParts}}" wx:for-item="part" wx:key="index" class="{{part.hit ? 'search-hit' : ''}}">{{part.text}}</text>”</text></view>
           </view>
       <view class="text_14">适合做标题 / 开场钩子</view>
       <view
         class="box_2 flex-row justify-between"
-        wx:for="{{detail.highlights}}"
-        wx:key="*this"
+        wx:for="{{detail.highlightParts}}"
+        wx:key="text"
       >
         <view class="section_1 flex-col"></view>
-        <view class="text_13"><text selectable>“{{item}}”</text></view>
+        <view class="text_13"><text selectable>“<text wx:for="{{item.parts}}" wx:for-item="part" wx:key="index" class="{{part.hit ? 'search-hit' : ''}}">{{part.text}}</text>”</text></view>
       </view>
       <view class="list_3 flex-col">
         <view class="group_5-0 flex-col" wx:for="{{detail.points}}" wx:key="no">
-          <view class="text_15-0"><text selectable>{{item.no}}  {{item.title}}</text></view>
-          <view class="paragraph_1-0"><text selectable>{{item.text}}</text></view>
+          <view class="text_15-0"><text selectable>{{item.no}}  <text wx:for="{{item.titleParts}}" wx:for-item="part" wx:key="index" class="{{part.hit ? 'search-hit' : ''}}">{{part.text}}</text></text></view>
+          <view class="paragraph_1-0"><text selectable><text wx:for="{{item.textParts}}" wx:for-item="part" wx:key="index" class="{{part.hit ? 'search-hit' : ''}}">{{part.text}}</text></text></view>
         </view>
       </view>
       <view class="x-empty" wx:if="{{!detail.hasStructured}}">
@@ -103,7 +104,7 @@
         class="x-para"
         wx:for="{{detail.paragraphs}}"
         wx:key="i"
-      ><text selectable>{{item.text}}</text></view>
+      ><text selectable><block wx:if="{{item.parts}}"><text wx:for="{{item.parts}}" wx:for-item="part" wx:key="index" class="{{part.hit ? 'search-hit' : ''}}">{{part.text}}</text></block><text wx:else>{{item.text}}</text></text></view>
       <view class="x-raw-empty" wx:if="{{!detail.paragraphs.length}}">这条记录还没有原文内容。</view>
     </block>
   </scroll-view>
@@ -116,4 +117,5 @@
       <view class="suite-copy-icon" aria-hidden="true"></view>
     </view>
   </view>
+  <video-status location="result" enabled="{{false}}" />
 </view>

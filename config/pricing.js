@@ -3,7 +3,7 @@
 
 module.exports = {
   // 新人积分（一次性，仅首次建档发放）
-  TRIAL_CREDIT: 50,
+  TRIAL_CREDIT: 100,
 
   // 兑换比例：1 元 = 20 积分
   CREDIT_PER_YUAN: 20,

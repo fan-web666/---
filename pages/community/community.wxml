@@ -1,0 +1,42 @@
+<view class="community-page" style="--nav-safe-r:{{navSafeRightRpx}}rpx">
+  <view class="community-status" style="height:{{statusBarH}}px"></view>
+  <view class="community-nav">
+    <view class="community-back x-tap" bindtap="goBack" role="button" aria-label="返回">
+      <image class="community-back-icon" src="/images/community/back.png" mode="aspectFit" />
+    </view>
+    <text class="community-nav-title">加入共创社群</text>
+  </view>
+  <scroll-view class="community-scroll" scroll-y>
+    <view class="community-content">
+      <view class="community-hero">
+        <view class="community-title">让文案提取更好用</view>
+        <view class="community-subtitle">反馈使用问题，一起完善功能与体验</view>
+      </view>
+      <view class="community-qr-card">
+        <view class="community-qr-header">
+          <text class="community-group">予行共创营</text>
+          <text class="community-badge">扫码入群</text>
+        </view>
+        <view class="community-qr-crop x-tap" bindtap="previewQr" role="button" aria-label="放大查看入群二维码">
+          <image class="community-qr-source" src="{{qrImage}}" mode="aspectFit" />
+        </view>
+        <view class="community-qr-hint">扫描入群，或保存后用微信识别</view>
+        <button class="community-save {{qrExpired ? 'community-save-disabled' : ''}}" hover-class="community-save-pressed" bindtap="saveQr" loading="{{saving}}" disabled="{{saving || qrExpired}}">{{qrExpired ? '群二维码已到期' : '保存入群二维码'}}</button>
+      </view>
+      <view class="community-benefits">
+        <view class="community-benefits-title">一起参与应用共创</view>
+        <view class="community-benefit-grid">
+          <view class="community-benefit" wx:for="{{benefits}}" wx:key="icon">
+            <image class="community-benefit-icon" src="{{'/images/community/' + item.icon + '.png'}}" mode="aspectFit" aria-hidden="true" />
+            <view class="community-benefit-copy">
+              <view class="community-benefit-title">{{item.title}}</view>
+              <view class="community-benefit-desc">{{item.description}}</view>
+            </view>
+          </view>
+        </view>
+      </view>
+      <view class="community-expiry" wx:if="{{!qrExpired}}">本二维码有效至 {{expiresLabel}}<view>如失效，请返回页面获取最新二维码</view></view>
+      <view class="community-expiry" wx:else>二维码已到期<view>请联系管理员更新群二维码</view></view>
+    </view>
+  </scroll-view>
+</view>

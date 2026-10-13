@@ -1,11 +1,13 @@
 const { call, handleError } = require('../../utils/api');
 const { toast } = require('../../utils/util');
 const app = getApp();
+const cache = require('../../utils/view-cache');
 Page({
-  data: { statusBarH: 0, navBarH: 44, navSafeRightRpx: 196, code: '', invitedCount: '—', rewardTotal: '—', loading: true, error: '', posterBusy: false },
-  onLoad() { this.setData({ statusBarH: app.globalData.navStatusH || 0, navBarH: app.globalData.navBarH || 44, navSafeRightRpx: app.globalData.navSafeRightRpx || 196 }); wx.showShareMenu({ menus: ['shareAppMessage'] }); },
+  data: { statusBarH: 0, navBarH: 44, navSafeRightRpx: 196, code: '', invitedCount: '—', rewardTotal: '—', loading: true, error: '', posterBusy: false, ...(cache.read('referral') || {}) },
+  onLoad() { const c=cache.read('referral'); cache.patch(this,c||{code:'',invitedCount:'—',rewardTotal:'—',loading:true,error:''});this._cached=!!c;this._owner=cache.uid();this.setData({ statusBarH: app.globalData.navStatusH || 0, navBarH: app.globalData.navBarH || 44, navSafeRightRpx: app.globalData.navSafeRightRpx || 196 }); wx.showShareMenu({ menus: ['shareAppMessage'] }); },
   onShow() { this.load(); },
-  async load() { if (this._loading) return; this._loading = true; this.setData({ loading: true, error: '' }); try { const s = await call('referralSummary'); this.setData({ code: s.code, invitedCount: s.invitedCount, rewardTotal: s.rewardTotal }); } catch (e) { this.setData({ error: e.message || '加载失败' }); } finally { this._loading = false; this.setData({ loading: false }); } },
+  async load() { if (this._loading) return; this._loading = true; if(!this._cached)this.setData({ loading: true, error: '' }); try { const s = await call('referralSummary'); if(this._disposed||cache.uid()!==this._owner)return;const p={ code:s.code,invitedCount:s.invitedCount,rewardTotal:s.rewardTotal,loading:false,error:'' };cache.patch(this,p);cache.write('referral',p);this._cached=true; } catch (e) { if(!this._cached&&!this._disposed)this.setData({ error:e.message||'加载失败' }); } finally { this._loading=false;if(!this._disposed)cache.patch(this,{loading:false}); } },
+  onUnload() { this._disposed=true; },
   goBack() { if (getCurrentPages().length > 1) wx.navigateBack(); else wx.reLaunch({ url: '/pages/index/index' }); },
   copyCode() { if (!this.data.code) return toast('推荐码尚未加载，请稍后重试'); wx.setClipboardData({ data: this.data.code }); },
   onShareAppMessage() { return { title: '视频一键转文案，整理你的灵感素材库', path: '/pages/index/index' + (this.data.code ? '?ref=' + encodeURIComponent(this.data.code) : '') }; },

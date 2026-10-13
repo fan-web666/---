@@ -1,0 +1,15 @@
+<view class="friend-help" style="--nav-safe-r:{{navSafeRightRpx}}rpx">
+  <view style="height:{{statusBarH}}px" class="friend-help-status"></view>
+  <view class="friend-help-nav"><view class="friend-help-back" bindtap="goBack" role="button" aria-label="返回">‹</view><text>亲友免费用</text></view>
+  <scroll-view scroll-y class="friend-help-scroll"><view class="friend-help-body">
+    <text class="friend-help-headline">把好用的工具，分享给亲友</text>
+    <text class="friend-help-subtitle">凭邀请码领取10000积分，永久有效</text>
+    <view class="friend-help-card"><text class="friend-help-title">兑换后获得什么？</text><text class="friend-help-description">兑换成功赠送10000积分，立即计入余额。
+可用于视频、文案或同时提取，按正常规则扣减；积分永久有效。</text></view>
+    <view class="friend-help-card"><text class="friend-help-title">30个名额，怎么算？</text><text class="friend-help-description">当前邀请码最多绑定30位不同用户。
+每位用户成功绑定占用1个名额；同一用户重复兑换，不重复占用名额，也不会重复赠送积分。</text></view>
+    <view class="friend-help-card friend-help-soft"><text class="friend-help-title">名额满了怎么办？</text><text class="friend-help-description">绑定满30位后，当前邀请码失效。
+请联系开发者申请新的邀请码。</text></view>
+    <text class="friend-help-note">亲友邀请码用于领取10000积分；推荐码用于邀请好友得积分，两者独立。</text>
+  </view></scroll-view>
+</view>

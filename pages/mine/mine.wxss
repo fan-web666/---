@@ -325,6 +325,8 @@ background:#E8FAEF
 height:30rpx
 }
 
+.community-menu-icon { width:40.38rpx; height:40.38rpx; }
+
 .x-row-t {
   font-size:27rpx;
   line-height:1.5;
@@ -508,3 +510,20 @@ line-height:1.6
 .x-card{box-shadow:var(--card-shadow);}
 .x-wx-copy,.x-modal-ok{color:#1B2620;}
  .x-avatar-def{background:#E8FAEF;}
+.friend-entry{position:relative;z-index:1;display:flex;align-items:center;gap:15.38rpx;padding-top:23.08rpx;margin-top:7.69rpx;min-height:53.85rpx;}
+.friend-entry-title{font-size:25rpx;font-weight:700;color:#1B2620;}.friend-entry-action{margin-left:auto;font-size:23.08rpx;color:#16854A;}
+.friend-modal{position:fixed;inset:0;z-index:1200;display:flex;align-items:center;justify-content:center;}
+.friend-mask{position:absolute;inset:0;background:rgba(27,38,32,.32);}
+.friend-card{position:relative;display:flex;flex-direction:column;gap:26.92rpx;width:634.62rpx;box-sizing:border-box;padding:46.15rpx;background:#fff;border-radius:53.85rpx;max-height:85vh;overflow-y:auto;}
+.friend-title{font-size:38.46rpx;font-weight:700;line-height:1.55;color:#1B2620;}.friend-description{font-size:25rpx;color:#79817D;line-height:1.55;}
+.friend-badge{padding:15.38rpx 23.08rpx;border-radius:23.08rpx;background:#E8FAEF;color:#16854A;font-size:23.08rpx;font-weight:700;}
+.friend-field{padding:19.23rpx 26.92rpx;background:#F4F5F6;border-radius:26.92rpx;display:flex;flex-direction:column;gap:9.62rpx;}.friend-field-label{font-size:21.15rpx;color:#79817D;}.friend-input{height:53.85rpx;font-size:34.62rpx;font-weight:700;color:#1B2620;}
+.friend-button{width:100%;height:84.62rpx;min-height:84.62rpx;line-height:84.62rpx;border-radius:42.31rpx;background:#B8F76A;color:#1B2620;font-size:28.85rpx;font-weight:700;padding:0;margin:0;}.friend-button::after{border:0;}.friend-button[disabled]{background:#E8EEE5;color:#79817D;}
+.friend-note{font-size:21.15rpx;line-height:1.55;color:#79817D;}.friend-link,.friend-cancel{font-size:23.08rpx;line-height:1.55;text-align:center;color:#16854A;}.friend-cancel{color:#79817D;}.friend-error{font-size:23rpx;color:#B04F36;line-height:1.55;}
+.friend-full-note{display:flex;flex-direction:column;gap:11.54rpx;padding:26.92rpx;background:#E8FAEF;border-radius:30.77rpx;}.friend-full-title{font-size:26.92rpx;color:#16854A;font-weight:700;}
+.friend-card{gap:30.77rpx;}
+.friend-reward-panel{display:flex;flex-direction:column;gap:15.38rpx;padding:30.77rpx;border-radius:34.62rpx;background:#E8FAEF;color:#16854A;}
+.friend-reward-row{display:flex;align-items:center;gap:11.54rpx;min-height:76.92rpx;}.friend-reward-amount{font-size:61.54rpx;line-height:1.25;font-weight:700;}.friend-reward-unit{font-size:25rpx;font-weight:700;}.friend-reward-expiry{margin-left:auto;font-size:21.15rpx;font-weight:700;}.friend-reward-quota{font-size:21.15rpx;line-height:1.55;font-weight:400;}
+.friend-footer{display:flex;align-items:center;justify-content:space-between;min-height:61.54rpx;}
+.friend-card .friend-button{display:block;align-self:stretch;width:100%;box-sizing:border-box;margin:0;flex-shrink:0;}
+.friend-card .friend-input{font-weight:500;font-size:30.77rpx;}

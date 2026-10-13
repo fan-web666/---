@@ -1,0 +1,38 @@
+<view class="mode-help-page" style="--nav-safe-r:{{navSafeRightRpx}}rpx">
+  <view class="mode-help-status" style="height:{{statusBarH}}px"></view>
+  <view class="mode-help-nav">
+    <view class="mode-help-back" bindtap="goBack" role="button" aria-label="返回">‹</view>
+    <text class="mode-help-nav-title">提取模式说明</text>
+  </view>
+  <scroll-view class="mode-help-scroll" scroll-y enhanced show-scrollbar="{{false}}">
+    <view class="mode-help-content">
+      <view class="mode-help-intro"><view class="mode-help-headline">三种模式，按需提取</view><view class="mode-help-subtitle">视频保存与文案整理，各取所需</view></view>
+      <view class="mode-help-card mode-help-modes">
+        <view class="mode-help-section">
+          <view class="mode-help-section-heading"><text class="mode-help-title">提取视频</text><text class="mode-help-default">默认</text></view>
+          <text class="mode-help-description">保存至本地相册，不生成文案。
+首页显示进度，不进入提取二级页。</text>
+        </view>
+        <view class="mode-help-divider"></view>
+        <view class="mode-help-section"><text class="mode-help-title">提取文案</text><text class="mode-help-description">提取并整理文案，存入历史素材库。
+支持分享链接与本地视频。</text></view>
+        <view class="mode-help-divider"></view>
+        <view class="mode-help-section"><text class="mode-help-title">同时提取</text><text class="mode-help-description">视频与文案分别显示进度、分别完成。
+视频保存至相册，文案存入历史。</text></view>
+      </view>
+      <view class="mode-help-card mode-fees">
+        <text class="mode-help-title">积分与会员额度</text>
+        <view class="mode-fee-row mode-fee-header"><text class="mode-fee-cell mode-fee-duration">时长</text><text class="mode-fee-cell">视频</text><text class="mode-fee-cell">文案</text><text class="mode-fee-cell">同时</text></view>
+        <view class="mode-fee-row"><text class="mode-fee-cell mode-fee-duration">≤10分钟</text><text class="mode-fee-cell">{{basic}}积分</text><text class="mode-fee-cell">{{basic}}积分</text><text class="mode-fee-cell mode-fee-total">{{bothBasic}}积分</text></view>
+        <view class="mode-fee-row"><view class="mode-fee-cell mode-fee-duration"><text>{{longDurationLabel}}</text><text class="mode-fee-duration-hint">最长30分钟</text></view><text class="mode-fee-cell">{{long}}积分</text><text class="mode-fee-cell">{{long}}积分</text><text class="mode-fee-cell mode-fee-total">{{bothLong}}积分</text></view>
+        <text class="mode-help-note">同时提取按两项积分叠加，会员分别核算。</text>
+        <text class="mode-help-note">会员按现有规则抵扣，超过30分钟暂不支持。</text>
+      </view>
+      <view class="mode-help-card mode-records"><text class="mode-help-title">视频记录在哪里看？</text><text class="mode-help-description">我的 → 积分与订单 → 积分消耗明细
+视频不入历史，文案照常保存在历史素材库。</text></view>
+      <view class="mode-help-reminders"><text class="mode-help-reminder-title">使用提醒</text><text class="mode-help-note">视频 / 同时仅支持分享链接；本地视频请选择文案。
+
+两项分别计费，单项失败不影响另一项。视频提取失败不扣费；保存未完成可重试，不重复扣费。</text></view>
+    </view>
+  </scroll-view>
+</view>

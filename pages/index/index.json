@@ -1,4 +1,4 @@
 {
   "navigationStyle": "custom",
-  "usingComponents": {}
+  "usingComponents": {"video-status":"/components/video-status/video-status"}
 }

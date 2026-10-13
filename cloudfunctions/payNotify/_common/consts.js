@@ -54,7 +54,7 @@ const RECHARGE_PRESETS = [
 ];
 
 // 新人积分（一次性）
-const TRIAL_CREDIT = 50;
+const TRIAL_CREDIT = 100;
 
 // 兑换 1 元 = 20 积分
 const CREDIT_PER_YUAN = 20;

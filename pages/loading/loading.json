@@ -1,5 +1,5 @@
 {
   "navigationStyle": "custom",
   "disableScroll": true,
-  "usingComponents": {}
+  "usingComponents": {"video-status":"/components/video-status/video-status"}
 }

@@ -22,6 +22,8 @@ const {
   membershipInfo,
 } = require('../../utils/util');
 const tracker = require('../../utils/tracker');
+const thumbs = require('../../utils/history-thumbs');
+const dashboard = require('../../utils/dashboard');
 
 const app = getApp();
 
@@ -74,7 +76,7 @@ const MINE_CACHE_KEY = 'mine_view';
 function readMineCache() {
   try {
     const c = wx.getStorageSync(MINE_CACHE_KEY);
-    return c && typeof c === 'object' ? c : {};
+    return c && typeof c === 'object' && c.uid === ((app.globalData.user || {})._id || '') ? c : {};
   } catch (e) {
     return {};
   }
@@ -82,7 +84,7 @@ function readMineCache() {
 
 function writeMineCache(patch) {
   try {
-    wx.setStorageSync(MINE_CACHE_KEY, Object.assign(readMineCache(), patch));
+    wx.setStorageSync(MINE_CACHE_KEY, Object.assign(readMineCache(), patch, { uid: (app.globalData.user || {})._id || '' }));
   } catch (e) {
     /* 写失败不影响本次会话（data 里已经更新过了） */
   }
@@ -114,6 +116,11 @@ Page({
     // 昵称编辑弹层（2026-09-27 新增）
     nickEdit: false,
     nickInput: '',
+    friendPopup: false,
+    friendFull: false,
+    friendCode: '',
+    friendError: '',
+    friendSubmitting: false,
 
     // 三栏统计（'—' = 云端没给，绝不伪造 0）
     // ⚠️ 初值一律取**上次渲染结果**缓存（见文件顶部「首帧缓存」）——
@@ -145,6 +152,10 @@ Page({
   },
 
   onLoad() {
+    const c = readMineCache();
+    const cached = {creditsText:'—',vipText:'开通会员',memberRowText:'未开通',totalText:'—',charsText:'—',usageCount:0,usageMain:'',usageSub:'',usageEmpty:'还没有消耗记录，去首页试试'};
+    ['creditsText','vipText','memberRowText','totalText','charsText','usageCount','usageMain','usageSub','usageEmpty'].forEach(k => { if (c[k] !== undefined) cached[k] = c[k]; });
+    this.setData(cached);
     const pref = wx.getStorageSync(PREF_KEY) || '';
     const hit = PREF_OPTS.find((o) => o.v === pref) || PREF_OPTS[1];
     this.setData({
@@ -155,29 +166,28 @@ Page({
     });
     this.applyCachedProfile();
     this.applyUser(app.globalData.user);
+    const stats=dashboard.read('stats');if(stats)this.applyStats(stats);
+    this._dashboardOff=dashboard.subscribe((type,data)=>{if(type==='user')this.applyUser(data);else if(type==='stats')this.applyStats(data);});
     tracker.track('mine_view');
   },
 
   onShow() {
+    this.applyUser(app.globalData.user);
     this.setData({ version: realVersion() });
     this.refresh();
   },
 
   /** 进页面自动加载：两条请求并发，任一失败都静默（用户没主动操作，不该弹 toast） */
   refresh() {
-    if (!app.globalData.cloudReady) return;
-    return Promise.all([refreshUser().catch(() => null), call('userStats').catch(() => null)]).then(
-      ([user, stats]) => {
-        if (user) this.applyUser(user);
-        if (stats) this.applyStats(stats);
-      }
-    );
+    return dashboard.refresh();
   },
+  onUnload() { if(this._dashboardOff)this._dashboardOff(); },
 
   /* ---------- 数据整形 ---------- */
 
   applyUser(user) {
     if (!user) return;
+    if (this._walletRevision) this._redeemedUser = user;
     const cached = readProfileCache() || {};
     const credits = (user.credits && user.credits.balance) || 0;
     const name = String(user.nickname || user.nick_name || '').trim();
@@ -196,11 +206,15 @@ Page({
     const memberRowText = mem.active
       ? (mem.daysText || '生效中') + (mem.quotaText ? ' / ' + mem.quotaText : '')
       : '未开通';
+    const avatarSource = pickAvatar(user, cached);
+    const cachedAvatar = thumbs.local(user._id, 'profile-avatar', avatarSource);
+    const avatarUrl = this._avatarSource === avatarSource && this.data.avatarUrl ? this.data.avatarUrl : cachedAvatar || avatarSource;
+    this._avatarSource = avatarSource;
 
     const patch = {
       // ⚠️ 三层兜底：云端 → 本地缓存 → 默认头像/昵称。云端没写过时它恒为空串，
       //    不能让它把本地刚设好的值冲掉。
-      avatarUrl: pickAvatar(user, cached),
+      avatarUrl,
       nickName: name || cached.nickname || DEFAULT_NAME,
       creditsText: thousands(credits),
       // 间隔空格用真实不换行空格（\u00A0），不要写 HTML 实体
@@ -216,16 +230,17 @@ Page({
       memberRowText: patch.memberRowText,
     });
     this.setData(patch);
+    if (avatarSource) thumbs.warm(user._id, 'profile-avatar', avatarSource);
   },
 
   applyStats(s) {
     const patch = {
       // ⚠️ 云端聚合不可用时给的是 **null**（不是 0）→ 显示「—」
       // 2026-09-28 用户：「提取数据改成累计提取」→ 左栏改用 total（全时段条数，含软删），不再用 month_count
-      totalText: s.total == null ? '—' : shortNumber(s.total),
-      charsText: s.total_chars == null ? '—' : shortNumber(s.total_chars),
+      totalText: s.total == null ? this.data.totalText : shortNumber(s.total),
+      charsText: s.total_chars == null ? this.data.charsText : shortNumber(s.total_chars),
       // 提取记录卡：消费摘要（云端顺带在同一次 userStats 里给，省一次往返）
-      ...usageCard(s.usage),
+      ...(s.usage ? usageCard(s.usage) : {}),
     };
     // ⭐ 整包都是**渲染后的文本/数字** → 直接缓存，下次进页面首帧即为正确值
     writeMineCache(patch);
@@ -236,6 +251,38 @@ Page({
 
   goSettings() {
     wx.navigateTo({ url: '/pages/settings/settings' });
+  },
+
+  goCommunity() {
+    wx.navigateTo({ url: '/pages/community/community' });
+  },
+
+  openFriendInvite() { this.setData({ friendPopup: true, friendFull: false, friendError: '', friendCode: '' }); },
+  closeFriendInvite() { if (!this.data.friendSubmitting) this.setData({ friendPopup: false }); },
+  onFriendCode(e) { this.setData({ friendCode: e.detail.value, friendError: '' }); },
+  goFriendHelp() { wx.navigateTo({ url: '/pages/friend-help/friend-help' }); },
+  friendContact() { this.setData({ friendPopup: false }); this.showHelp(); },
+  friendRetry() { this.setData({ friendFull: false, friendError: '', friendCode: '' }); },
+  async redeemFriendInvite() {
+    if (this.data.friendSubmitting) return;
+    const code = this.data.friendCode.trim();
+    if (!code) { this.setData({ friendError: '请输入邀请码' }); return; }
+    this.setData({ friendSubmitting: true, friendError: '' });
+    try {
+      const result = await call('redeemFriendInvite', { code });
+      this._walletRevision = (this._walletRevision || 0) + 1;
+      this._redeemedUser = Object.assign({}, app.globalData.user || {}, { credits: result.credits });
+      app.globalData.user = this._redeemedUser;
+      require('../../utils/auth').saveUser(this._redeemedUser);
+      this.applyUser(this._redeemedUser);
+      dashboard.refresh(true);
+      this.setData({ friendPopup: false });
+      wx.showModal({ title: result.status === 'already_redeemed' ? '你已兑换过' : '10000积分已到账',
+        content: result.status === 'already_redeemed' ? '你已领取亲友赠送积分，无需重复兑换。积分永久有效。' : '已加入你的积分余额，可用于视频和文案提取，积分永久有效。', showCancel: false });
+    } catch (e) {
+      if (e.code === 409) this.setData({ friendFull: true });
+      else this.setData({ friendError: e.message || '兑换结果暂未确认，请重试；不会重复领分或占用名额。' });
+    } finally { this.setData({ friendSubmitting: false }); }
   },
 
   goMember() {

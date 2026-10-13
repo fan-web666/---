@@ -1,0 +1,30 @@
+/* Figma 125:363，390px -> 750rpx；状态栏、胶囊及手势条由微信系统渲染。 */
+.community-page{height:100vh;display:flex;flex-direction:column;background:linear-gradient(180deg,#E6FFD0 0%,#F4F5F6 28%,#F4F5F6 100%);color:#1B2620;}
+.community-status{flex-shrink:0;}
+.community-nav{height:104rpx;flex-shrink:0;display:flex;align-items:center;gap:23rpx;padding:0 38rpx;padding-right:var(--nav-safe-r,196rpx);}
+.community-back{height:72rpx;min-width:38rpx;display:flex;align-items:center;}
+.community-back-icon{width:38.46rpx;height:46.15rpx;}
+.community-nav-title{font-size:30.77rpx;font-weight:700;white-space:nowrap;}
+.community-scroll{height:0;min-height:0;flex:1;}
+.community-content{display:flex;flex-direction:column;gap:23.08rpx;padding:2rpx 38.46rpx 38rpx;padding-bottom:calc(38rpx + env(safe-area-inset-bottom));}
+.community-title{font-size:44.23rpx;line-height:66.35rpx;font-weight:700;}
+.community-subtitle{margin-top:5.77rpx;font-size:23.08rpx;line-height:34.62rpx;color:#79817D;}
+.community-qr-card{display:flex;flex-direction:column;align-items:center;gap:15.38rpx;padding:30.77rpx;background:#FFF;border-radius:53.85rpx;box-shadow:0 3.85rpx 19.23rpx rgba(27,38,32,.035);}
+.community-qr-header{display:flex;align-items:center;gap:161.54rpx;}
+.community-group{font-size:30.77rpx;line-height:46.15rpx;font-weight:700;white-space:nowrap;}
+.community-badge{padding:5.77rpx 19.23rpx;background:#E8FAEF;border-radius:23.08rpx;color:#16854A;font-size:19.23rpx;line-height:28.85rpx;white-space:nowrap;}
+.community-qr-crop{position:relative;width:403.85rpx;height:403.85rpx;overflow:hidden;background:#FFF;}
+.community-qr-source{position:absolute;width:569.39rpx;height:849.34rpx;left:-82.77rpx;top:-293.66rpx;max-width:none;}
+.community-qr-hint{font-size:21.15rpx;line-height:31.73rpx;color:#79817D;text-align:center;}
+.community-save{display:flex;justify-content:center;align-items:center;width:100%;height:73.08rpx;min-height:0;margin:0;padding:0;border:0;border-radius:36.54rpx;background:#B8F76A;color:#1B2620;font-size:26.92rpx;line-height:40.38rpx;font-weight:500;}
+.community-save::after{border:0;}
+.community-save-pressed{opacity:.82;}
+.community-save-disabled{background:#E8FAEF;color:#79817D;}
+.community-benefits-title{margin-bottom:17.31rpx;font-size:28.85rpx;line-height:43.27rpx;font-weight:700;}
+.community-benefit-grid{display:flex;flex-wrap:wrap;gap:19.23rpx 23.08rpx;}
+.community-benefit{width:calc((100% - 23.08rpx)/2);min-height:115.38rpx;padding:19.23rpx;display:flex;align-items:center;gap:15.38rpx;background:#E8FAEF;border-radius:38.46rpx;box-sizing:border-box;}
+.community-benefit-icon{width:53.85rpx;height:53.85rpx;flex-shrink:0;}
+.community-benefit-copy{min-width:0;}
+.community-benefit-title{font-size:25rpx;line-height:36.54rpx;font-weight:500;}
+.community-benefit-desc{font-size:21.15rpx;line-height:32.69rpx;color:#79817D;}
+.community-expiry{text-align:center;font-size:21.15rpx;line-height:32.69rpx;color:#79817D;}

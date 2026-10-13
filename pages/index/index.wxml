@@ -2,15 +2,15 @@
 <view class="x-home">
   <view class="x-statusbar" style="height:{{statusBarH}}px"></view>
   <view class="x-header" style="padding-right:{{navSafeRightRpx}}rpx; min-height:{{navBarH}}px">
-    <view class="x-brand"><view class="x-brand-row"><text class="x-brand-name">予行</text><text class="x-brand-dot">·</text><text class="x-brand-subtitle">文案快提</text></view><text class="x-brand-en">YuShine · Quick Extraction</text></view>
+    <view class="x-brand"><text class="x-brand-name">予行</text><text class="x-brand-dot">·</text><text class="x-brand-subtitle">视频与文案提取</text><text class="x-brand-en x-brand-en-name">YuShine</text><text class="x-brand-en x-brand-en-dot">·</text><text class="x-brand-en">Quick Extraction</text></view>
   </view>
   <scroll-view class="x-home-scroll" scroll-y enhanced show-scrollbar="{{false}}">
     <view class="x-content">
       <view class="x-hero">
         <image class="x-hero-fresh" src="/images/home-green/hero-fresh.png" mode="aspectFit" aria-hidden="true" />
         <view class="x-hero-body">
-          <view class="x-hero-copy"><text class="x-hero-eyebrow">让好文案，触手可得</text><image class="x-hero-headline" src="/images/home-green/hero-headline.png" mode="aspectFit" aria-label="提取精彩，一键成稿" /><view class="x-hero-pill">VIDEO → TEXT</view></view>
-          <image class="x-hero-illustration" src="/images/home-green/hero.png" mode="aspectFit" aria-hidden="true" />
+          <view class="x-hero-copy"><text class="x-hero-eyebrow">视频保存 · 文案提取</text><image class="x-hero-headline" src="/images/home-green/hero-headline-dual.png" mode="aspectFit" aria-label="视频轻松保存，文案一键提取" /><view class="x-hero-pill">视频 / 文案 / 同时提取</view></view>
+          <image class="x-hero-illustration" src="/images/home-green/hero-dual.png" mode="aspectFit" aria-hidden="true" />
         </view>
       </view>
       <view class="x-shortcuts">
@@ -22,14 +22,15 @@
         <view class="x-balance-cell" bindtap="goMember" hover-class="x-pressed" role="button" aria-label="会员额度，点击会员中心"><image class="x-balance-art" src="/images/home-green/member.png" mode="aspectFit" aria-hidden="true" /><view class="x-balance-copy"><text class="x-balance-label">会员额度</text><view class="x-member-values"><text class="x-balance-value {{memberValue === '未开通' ? 'x-member-off' : ''}}">{{memberValue}}</text><text wx:if="{{memberQuotaText}}" class="x-member-quota">{{memberQuotaText}}</text></view></view><image class="x-chevron-small" src="/images/home-green/chevron.png" mode="aspectFit" aria-hidden="true" /></view>
       </view>
       <view class="x-extract-card">
-        <view class="x-extract-heading"><text class="x-extract-title">开始提取</text><text class="x-extract-subtitle">把灵感变成文字</text></view>
-        <view class="x-link-field"><image class="x-link-art" src="/images/home-green/link.png" mode="aspectFit" aria-hidden="true" /><input class="x-link-input" value="{{url}}" placeholder="粘贴视频链接或分享口令" placeholder-class="x-link-placeholder" confirm-type="go" maxlength="-1" bindinput="onInput" bindconfirm="startExtract" aria-label="视频链接或口令" /><view class="x-paste" bindtap="readClipboard" hover-class="x-pressed" role="button">粘贴</view></view>
-        <view class="x-import-row" bindtap="importVideo" hover-class="x-pressed" role="button" aria-label="从相册导入本地视频">
+        <view class="x-extract-heading"><text class="x-extract-title">开始提取</text><view class="x-mode-controls"><view class="x-mode-help" bindtap="goModeHelp" role="button">说明</view><view class="x-mode-switch"><view class="x-mode-slider x-mode-slider-{{extractionMode}}" aria-hidden="true"></view><view class="x-mode {{extractionMode === 'video' ? 'x-mode-active' : ''}}" data-mode="video" bindtap="switchMode" role="button" aria-label="提取视频">视频</view><view class="x-mode {{extractionMode === 'text' ? 'x-mode-active' : ''}}" data-mode="text" bindtap="switchMode" role="button" aria-label="提取文案">文案</view><view class="x-mode {{extractionMode === 'both' ? 'x-mode-active' : ''}}" data-mode="both" bindtap="switchMode" role="button" aria-label="同时提取文案和视频">同时</view></view></view></view>
+        <view class="x-link-field"><image class="x-link-art" src="/images/home-green/link.png" mode="aspectFit" aria-hidden="true" /><input class="x-link-input" value="{{url}}" placeholder="{{extractionMode === 'text' ? '粘贴视频链接或分享口令' : '粘贴视频分享链接'}}" placeholder-class="x-link-placeholder" confirm-type="go" maxlength="-1" bindinput="onInput" bindconfirm="startExtract" aria-label="视频链接或口令" /><view class="x-paste" bindtap="readClipboard" hover-class="x-pressed" role="button">粘贴</view></view>
+        <view wx:if="{{extractionMode !== 'both' || videoState.phase === 'idle'}}" class="x-import-row {{extractionMode !== 'text' ? 'x-import-muted' : ''}}" bindtap="importVideo" hover-class="x-pressed" role="button" aria-label="从相册导入本地视频">
           <view class="x-import-icon"><text wx:if="{{localVideo}}" class="x-import-check">✓</text><image wx:else class="x-video-art" src="/images/home-green/video.png" mode="aspectFit" aria-hidden="true" /></view>
-          <view class="x-import-copy"><text class="x-import-title">{{localVideo ? '已选择本地视频' : '导入本地视频'}}</text><text class="x-import-subtitle">{{localVideo ? localVideo.meta : '相册视频，≤100MB · ≤30 分钟'}}</text></view>
+          <view class="x-import-copy"><text class="x-import-title">{{extractionMode !== 'text' ? '本地视频仅提取文案' : localVideo ? '已选择本地视频' : '导入本地视频'}}</text><text class="x-import-subtitle">{{extractionMode !== 'text' ? '切换到文案模式后导入' : localVideo ? localVideo.meta : '相册视频，≤100MB · ≤30 分钟'}}</text></view>
           <view wx:if="{{localVideo}}" class="x-import-clear" catchtap="clearLocalVideo" role="button" aria-label="取消已选择的视频">×</view><image wx:else class="x-chevron" src="/images/home-green/chevron1.png" mode="aspectFit" aria-hidden="true" />
         </view>
-        <view class="x-extract-action" bindtap="startExtract" hover-class="x-action-pressed" role="button" aria-label="{{extractBtn}}"><text class="x-extract-action-label">{{extractBtn}}</text><image class="x-arrow-art" src="/images/home-green/arrow.png" mode="aspectFit" aria-hidden="true" /></view>
+        <video-status wx:if="{{extractionMode === 'both' && videoState.phase !== 'idle'}}" location="index" feedback="{{false}}" />
+        <view class="x-extract-action" bindtap="startExtract" hover-class="x-action-pressed" role="button" aria-label="{{extractBtn}}"><view wx:if="{{extractionMode === 'video' && (videoState.phase === 'running' || videoState.phase === 'saving')}}" class="x-video-action-progress" style="width:{{videoState.percent}}%"></view><text class="x-extract-action-label">{{extractBtn}}</text><image class="x-arrow-art" src="/images/home-green/arrow.png" mode="aspectFit" aria-hidden="true" /></view>
       </view>
     </view>
   </scroll-view>
@@ -38,4 +39,5 @@
     <view class="app-tab" bindtap="goLibrary" hover-class="app-tab-pressed" role="button" aria-label="历史"><image class="app-tab-icon" src="/images/tabbar-fun/tab-history-off.png" mode="aspectFit" aria-hidden="true" /><text class="app-tab-label">历史</text></view>
     <view class="app-tab" bindtap="goMine" hover-class="app-tab-pressed" role="button" aria-label="我的"><image class="app-tab-icon" src="/images/tabbar-fun/tab-user-off.png" mode="aspectFit" aria-hidden="true" /><text class="app-tab-label">我的</text></view>
   </view></view>
+  <video-status location="index" enabled="{{false}}" />
 </view>

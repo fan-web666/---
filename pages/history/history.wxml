@@ -2,12 +2,14 @@
   <view class="group_10 flex-row">
     <view class="text-wrapper_29" style="height:{{statusBarH}}px"></view>
       <view class="text-wrapper_30 flex-row">
-        <view class="text_3">历史记录</view>
+        <view class="text_3">文案提取记录</view>
         <view class="text_4">共 {{total}} 条</view>
       </view>
 <scroll-view
       class="box_9 flex-col"
       scroll-y
+      scroll-top="{{scrollTop}}"
+      bindscroll="onHistoryScroll"
       refresher-enabled
       refresher-triggered="{{refreshing}}"
       bindrefresherrefresh="onRefresh"
@@ -19,10 +21,11 @@
         <input
           class="text_6"
           value="{{keyword}}"
-          placeholder="搜索标题、金句或来源"
+          placeholder="搜索标题、金句、来源或文案内容"
           placeholder-class="x-ph"
           confirm-type="search"
           bindinput="onSearch"
+          bindconfirm="onSearchConfirm"
         />
       </view>
       <view class="box_10 flex-row">
@@ -37,6 +40,7 @@
           <view class="x-pill-t">{{item.label}}</view>
         </view>
       </view>
+      <view class="search-feedback" wx:if="{{keyword}}">{{searching ? '正在搜索…' : searchError ? '搜索失败，请点键盘搜索重试' : '找到 ' + total + ' 条匹配记录'}}</view>
       <block wx:for="{{groups}}" wx:for-item="g" wx:for-index="gi" wx:key="label">
         <view class="text-wrapper_31 flex-row justify-between">
           <view class="text_11">{{g.label}}</view>
@@ -61,33 +65,15 @@
               class="x-thumb-media"
               src="{{it.cover}}"
               mode="aspectFill"
-              lazy-load
               data-id="{{it._id}}"
               binderror="onCoverError"
             />
-            <video
-              wx:elif="{{it.videoSrc}}"
-              class="x-thumb-media"
-              src="{{it.videoSrc}}"
-              object-fit="cover"
-              controls="{{false}}"
-              autoplay="{{false}}"
-              loop="{{false}}"
-              muted
-              show-center-play-btn="{{false}}"
-              show-play-btn="{{false}}"
-              show-fullscreen-btn="{{false}}"
-              show-progress="{{false}}"
-              show-mute-btn="{{false}}"
-              enable-progress-gesture="{{false}}"
-              data-id="{{it._id}}"
-              bindtap="openDetail"
-            ></video>
             <image wx:else class="suite-video-icon" src="/images/home-green/video.png" mode="aspectFit" aria-hidden="true" />
           </view>
           <view class="box_11 flex-col justify-between">
             <view class="text-group_17 flex-col justify-between">
-              <view class="text_14">{{it.title}}</view>
+              <view class="text_14"><block wx:if="{{it.titleParts}}"><text wx:for="{{it.titleParts}}" wx:for-item="part" wx:key="index" class="{{part.hit ? 'search-hit' : ''}}">{{part.text}}</text></block><text wx:else>{{it.title}}</text></view>
+              <view class="search-snippet" wx:if="{{it.snippet}}"><text class="search-snippet-label">文案匹配 · </text><text wx:for="{{it.snippetParts}}" wx:for-item="part" wx:key="index" class="{{part.hit ? 'search-hit' : ''}}">{{part.text}}</text></view>
               <view class="x-metaline flex-row justify-between">
                 <view class="text_15">{{it.meta}}</view>
                 <view class="x-actions flex-row">
@@ -113,8 +99,8 @@
       </block>
       <view class="x-tip" wx:if="{{loading && !groups.length}}">正在加载…</view>
       <view class="x-empty" wx:elif="{{!groups.length}}">
-        <view class="ui-empty-art"><view class="ui-art"><image class="ui-full" src="/images/suite-green/document.png" mode="aspectFit" aria-hidden="true" /></view></view><view class="x-empty-t">还没有提取记录</view>
-        <view class="x-empty-s">粘贴视频链接或导入本地视频，开始积累素材</view>
+        <view class="ui-empty-art"><view class="ui-art"><image class="ui-full" src="/images/suite-green/document.png" mode="aspectFit" aria-hidden="true" /></view></view><view class="x-empty-t">{{keyword ? (searching ? '正在查找匹配内容' : searchError ? '暂时无法搜索' : '没有找到匹配记录') : '还没有提取记录'}}</view>
+        <view class="x-empty-s">{{keyword ? '可尝试其他关键词，或切换到全部平台' : '粘贴视频链接或导入本地视频，开始积累素材'}}</view>
       </view>
       <view class="box_5 flex-row">
         <view class="group_5 flex-col"></view>

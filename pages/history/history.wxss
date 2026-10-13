@@ -384,3 +384,5 @@ font-weight:700
 
 
 .x-ico-copy,.x-ico-trash{width:28rpx;height:28rpx;background:#7C9285;mask-size:contain;mask-position:center;mask-repeat:no-repeat;}
+
+.search-feedback{margin:20rpx 38rpx 0;color:#79817D;font-size:23rpx;line-height:1.6}.search-hit{background:#DCFAA9;color:#1F3327;border-radius:6rpx}.search-snippet{font-size:24rpx;line-height:1.65;color:#65736C;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}.search-snippet-label{color:#16854A}
