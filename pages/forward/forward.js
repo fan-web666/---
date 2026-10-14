@@ -193,4 +193,14 @@ Page({
       path: '/pages/forward/forward',
     };
   },
+
+  /**
+   * 分享到朋友圈。⚠️ 必须与 onShareAppMessage **同时存在**，朋友圈按钮才会亮（缺一则灰）。
+   * 差异：无 path（只能分享当前页），用 query 传参；imageUrl 为 1:1。
+   */
+  onShareTimeline() {
+    return {
+      title: '视频文案提取，三步搞定',
+    };
+  },
 });

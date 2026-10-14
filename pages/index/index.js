@@ -88,7 +88,15 @@ Page({
 
   goReferral() { wx.navigateTo({ url: '/pages/referral/referral' }); },
 
-  onLoad() {
+  onLoad(options) {
+    // ⭐ 朋友圈「单页模式」适配（scene 1154）：从朋友圈点开本页时，微信会在顶部**固定**一条
+    //    自己的导航栏（含状态栏高度），我们自定义的 statusbar + header 会与之重复
+    //    → 双层标题 + 约 88px 空白，所以整块交给条件渲染隐藏。
+    //    该模式另有三条硬限制，页面必须能"无登录态"地静态展示：
+    //      ① 无登录态（wx.login 不可用）② 不允许跳转到其它页面 ③ 本地存储与普通模式不共用
+    //    故本页所有按钮在单页模式下点击会由微信统一弹「请前往小程序使用完整服务」，属预期行为。
+    const scene = Number((options && options.scene) || (wx.getLaunchOptionsSync && wx.getLaunchOptionsSync().scene));
+    if (scene === 1154) this.setData({ timelineMode: true });
     const c = readVipbarCache();
     this.setData(c.balanceText ? { balance: c.balance, balanceText: c.balanceText, member: c.member, memberValue: c.memberValue, memberQuotaText: c.memberQuotaText || '' } : {balance:0,balanceText:'—',member:false,memberValue:'—',memberQuotaText:''});
     this.applyUser(app.globalData.user);
@@ -469,6 +477,22 @@ Page({
     return {
       title: '把视频里的好文案，变成你的素材库，支持视频提取',
       path: '/pages/index/index' + (code ? '?ref=' + encodeURIComponent(code) : ''),
+    };
+  },
+
+  /**
+   * 分享到朋友圈（基础库 ≥2.11.3；iOS 需微信 ≥8.0.24，Android 无版本要求）。
+   * ⚠️ 与 onShareAppMessage 的**两个关键差异**：
+   *   ① 没有 `path` —— 分享的永远是当前页，只能靠 `query` 传参（不带 `?`）；
+   *   ② `imageUrl` 是 **1:1**（朋友圈列表为方形缩略图），不传则用小程序 Logo。
+   * ⚠️ 两个方法**必须同时存在**，朋友圈按钮才会点亮 —— 这正是修复前"分享到朋友圈"灰掉的原因。
+   * 另见 onLoad 对 scene 1154（单页模式）的适配说明。
+   */
+  onShareTimeline() {
+    const code = app.globalData.user && app.globalData.user.referralCode;
+    return {
+      title: '把视频里的好文案，变成你的素材库，支持视频提取',
+      query: code ? 'ref=' + encodeURIComponent(code) : '',
     };
   },
 });

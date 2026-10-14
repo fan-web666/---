@@ -1,9 +1,12 @@
 <!-- Figma 青柠首页 54:12；状态栏与微信胶囊由系统绘制。 -->
 <view class="x-home">
-  <view class="x-statusbar" style="height:{{statusBarH}}px"></view>
-  <view class="x-header" style="padding-right:{{navSafeRightRpx}}rpx; min-height:{{navBarH}}px">
-    <view class="x-brand"><text class="x-brand-name">予行</text><text class="x-brand-dot">·</text><text class="x-brand-subtitle">视频与文案提取</text><text class="x-brand-en x-brand-en-name">YuShine</text><text class="x-brand-en x-brand-en-dot">·</text><text class="x-brand-en">Quick Extraction</text></view>
-  </view>
+  <!-- 单页模式（朋友圈打开，scene 1154）下微信已自带顶部导航栏，隐藏本页自定义顶栏避免双层 -->
+  <block wx:if="{{!timelineMode}}">
+    <view class="x-statusbar" style="height:{{statusBarH}}px"></view>
+    <view class="x-header" style="padding-right:{{navSafeRightRpx}}rpx; min-height:{{navBarH}}px">
+      <view class="x-brand"><text class="x-brand-name">予行</text><text class="x-brand-dot">·</text><text class="x-brand-subtitle">视频与文案提取</text><text class="x-brand-en x-brand-en-name">YuShine</text><text class="x-brand-en x-brand-en-dot">·</text><text class="x-brand-en">Quick Extraction</text></view>
+    </view>
+  </block>
   <scroll-view class="x-home-scroll" scroll-y enhanced show-scrollbar="{{false}}">
     <view class="x-content">
       <view class="x-hero">
