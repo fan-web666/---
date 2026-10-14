@@ -467,7 +467,7 @@ Page({
   onShareAppMessage() {
     const code = app.globalData.user && app.globalData.user.referralCode;
     return {
-      title: '把视频里的好文案，变成你的素材库',
+      title: '把视频里的好文案，变成你的素材库，支持视频提取',
       path: '/pages/index/index' + (code ? '?ref=' + encodeURIComponent(code) : ''),
     };
   },

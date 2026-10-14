@@ -142,6 +142,6 @@ Page({
   },
 
   onShareAppMessage() {
-    return { title: '把视频里的好文案，变成你的素材库', path: '/pages/index/index' };
+    return { title: '把视频里的好文案，变成你的素材库，支持视频提取', path: '/pages/index/index' };
   },
 });
