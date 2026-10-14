@@ -35,7 +35,16 @@ async function redeem(user, event) {
         total_earned: Number((u.credits || {}).total_earned || 0) + REWARD,
       });
       const ts = new Date();
-      await tx.collection('app_config').doc(CAMPAIGN).set({ data: Object.assign({}, campaign, { used: used + 1, updated_at: ts }) });
+      // ⚠️⚠️ 事务里 `doc.get()` 的返回值**带 `_id`**（与普通查询不同！普通 doc.get() 不含，事务含），
+      //    而 `set` 的 data **不允许出现 `_id`**，否则报：
+      //      document.set:fail -501007 invalid parameters. 不能更新_id的值
+      //    表现极具迷惑性：**第一个人能兑换，之后所有人都失败** ——
+      //      因为文档不存在时走的是下面的默认对象（无 _id），set 顺带把文档创建了出来；
+      //      从此每次 `read` 都能读到该文档（带 _id），于是全体卡死。
+      //    `cloud-common/user.js:128` 用的是正确写法 `const { _id, ...newData } = u`，此处漏了，现补齐。
+      const campaignData = Object.assign({}, campaign, { used: used + 1, updated_at: ts });
+      delete campaignData._id;
+      await tx.collection('app_config').doc(CAMPAIGN).set({ data: campaignData });
       await tx.collection('users').doc(u._id).update({ data: { credits, friend_invite: { code: campaign.code, amount: REWARD, redeemed_at: ts, expires_at: null } } });
       await tx.collection('credit_logs').doc(id).set({ data: {
         uid: u._id, change: REWARD, after_balance: credits.balance, source: 'friend_invite', ref_id: CAMPAIGN,
