@@ -645,24 +645,62 @@ function finish(copywritingId) {
   tracker.track('extract_done');
 }
 
+/**
+ * 把技术性报错翻成用户看得懂的话（2026-10-15）
+ *
+ * ⭐ 起因：用户「刘可」提交了一条**纯音乐、没有人声口播**的抖音视频，ASR 正确返回空文本，
+ *    但弹窗把原始 JSON 原样甩给了用户（`语音识别未返回文本：{"duration":26.7899375,...}`），
+ *    还配了个「重试」按钮 —— 用户连点 6~7 次，每一次都注定失败。
+ *    🔬 实测（同一条链路对比验证过）：换别的抖音视频一切正常，抽音频/ASR 都没问题，
+ *    两个 ASR 模型一致判定这条视频「只有音乐」（SenseVoice 直接返回 🎼 音乐标记）。
+ * ⇒ 这是「这条视频本来就没有人声」，属于**选材问题而不是故障** → 必须讲清楚，
+ *   并且不给「重试」（重试必然再失败，还白扣一次任务）。
+ */
+function friendlyError(msg) {
+  const m = String(msg || '');
+  // ① ASR 正常应答、但整段没有任何人声 → 纯音乐 / 只有画面文字的短视频。重试无意义。
+  if (/未返回文本|没有检测到人声/.test(m)) {
+    return {
+      text: '这条视频里没有检测到人声（多半是纯音乐伴奏、或只有画面文字的短视频），没有可提取的口播文案。换一条有人讲解、口播的视频再试试吧～',
+      retryable: false,
+    };
+  }
+  // ② 服务商临时抽风（5xx / 超时 / 连接中断）→ 值得重试
+  if (/HTTP 5\d{2}|超时|timeout|中断|socket|ECONN|EAI_AGAIN/i.test(m)) {
+    return { text: '识别服务暂时繁忙，稍等一下再试一次通常就好了。', retryable: true };
+  }
+  // ③ 解析不到视频地址 → 链接过期 / 内容不公开 / 服务商限流，多半可重试
+  if (/未返回视频地址|不支持此链接|链接已失效/.test(m)) {
+    return { text: '没能解析出这条链接里的视频，可能是链接已失效或该内容未公开。重新复制一次分享链接再试试。', retryable: true };
+  }
+  // ④ 其他明确的请求错误（4xx）→ 重试无用
+  if (/HTTP 4\d{2}/.test(m)) {
+    return { text: '这条视频暂时处理不了，换一条试试吧～', retryable: false };
+  }
+  // ⑤ 认不出来的 → 原文照旧，保持可重试
+  return { text: m || '解析失败，请稍后重试', retryable: true };
+}
+
 function fail(err) {
   if (state.phase !== 'running') return;
   state.phase = 'failed';
-  const msg = (err && err.message) || '解析失败，请稍后重试';
-  state.errorMsg = msg;
+  const raw = (err && err.message) || '解析失败，请稍后重试';
+  const f = friendlyError(raw);
+  state.errorMsg = f.text;
   stopAll();
-  tracker.track('extract_failed', { msg });
+  tracker.track('extract_failed', { msg: raw });
 
   // 终态弹窗放在这里而不是页面里：后台提取时用户可能已经回到首页，
   // 由页面弹的话没人订阅就静默丢了。⚠️ 只此一处，别在页面里再弹一次。
   wx.showModal({
-    title: '提取失败',
-    content: msg,
-    showCancel: true,
+    title: f.retryable ? '提取失败' : '这条视频提取不了',
+    content: f.text,
+    // 「没有人声」这类确定性失败不给重试按钮 —— 点了也是白点（2026-10-15）
+    showCancel: f.retryable,
     cancelText: '返回',
-    confirmText: '重试',
+    confirmText: f.retryable ? '重试' : '知道了',
     success: (r) => {
-      if (r.confirm) return retry();
+      if (f.retryable && r.confirm) return retry();
       // 返回：不取消服务端任务 —— 超时只是「这边等不及了」，服务端可能正常跑完，
       // 结果会进文案库，用户回首页在历史里还能看到（白丢一条结果对用户更亏）。
       if (isLoadingOnTop()) wx.navigateBack();
