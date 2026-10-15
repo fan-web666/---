@@ -43,6 +43,9 @@ Page({
     tab: wx.getStorageSync('copy_pref') === 'full' ? 'raw' : 'structured',
     editing: false,
     draft: '',
+
+    // 首次提取成功后的「设置头像昵称」轻提示（只出现一次，见 maybeShowProfileTip）
+    showProfileTip: false,
   },
 
   onLoad(options) {
@@ -57,7 +60,35 @@ Page({
       statusBarH: app.globalData.navStatusH || 0,
       navSafeRightRpx: app.globalData.navSafeRightRpx || 196,
     });
+    this.maybeShowProfileTip();
     this.load();
+  },
+
+  /**
+   * 首次提取成功后的「设置头像昵称」一次性引导（2026-10-14）
+   * ⚠️ 只在「没设过资料」且「从没关过」时出现；与「我的」页**共用** `profile_tip_shown` 标记，
+   *    两处任一关掉，另一处也不再出现，避免重复打扰。
+   * ⚠️ 微信 2.27.1 起头像昵称只能由用户主动设置 → 这里**只做提醒、不强制、不阻断**。
+   */
+  maybeShowProfileTip() {
+    try {
+      if (wx.getStorageSync('profile_tip_shown')) return;
+      const u = app.globalData.user || {};
+      const c = wx.getStorageSync('user_profile') || {};
+      if (u.nickname || u.avatarUrl || c.nickname || c.avatarUrl) return; // 已设过 → 不打扰
+      this.setData({ showProfileTip: true });
+    } catch (e) { /* 拿不到存储就不显示，不影响主流程 */ }
+  },
+
+  dismissProfileTip() {
+    try { wx.setStorageSync('profile_tip_shown', 1); } catch (e) { /* ignore */ }
+    this.setData({ showProfileTip: false });
+  },
+
+  /** 去「我的」页设置头像昵称（与 index.js#goMine 同款跳法：本项目无 tabBar 配置，用 reLaunch） */
+  goSetProfile() {
+    try { wx.setStorageSync('profile_tip_shown', 1); } catch (e) { /* ignore */ }
+    wx.reLaunch({ url: '/pages/mine/mine' });
   },
 
   async load() {
@@ -124,7 +155,8 @@ Page({
     // 字数：优先按当前 transcript 实时算（编辑保存后立刻准），老数据再回落云端的 char_count
     const chars = transcript.replace(/\s/g, '').length || Number(d.char_count) || 0;
     const sourceCover = String(d.cover_url || '');
-    const cover = thumbs.local(cache.uid(),d._id || this.id,sourceCover) || sourceCover;
+    // 已缓存的封面文件（history-thumbs 目录，本机文件，秒开）；没有就是 ''
+    const cachedCover = thumbs.local(cache.uid(), d._id || this.id, sourceCover);
     // ⭐ 本地视频封面：优先用「选视频时留下的缩略图」（本地文件，立即出图，无黑图过程）
     //    ⚠️ 与 pages/history 同判据，改一处必须同步另一处（utils/util.js 内为唯一实现）
     const localThumb = localThumbSrc(d.local_video_id);
@@ -173,11 +205,12 @@ Page({
       // 留原料：编辑保存后要就地重算信息行（字数会变）
       charCount: chars,
       platform,
-      // 缩略图三级降级，与历史列表页逐条对应（见 format 方法头 ⭐）：
-      // ① https / cloud:// 封面（http 在真机必失败，不收；cloud:// 为 2026-09-28 新增的封面转存 fileID，
-      //    平台直链几小时~一两天就 403，转存后永久有效）→ ② 本地视频缩略图（本地文件，即时）
-      // → ③ 视频首帧（云存储 fileID，交 <video> 显示，无缩略图时才会走到）→ ④ 都没有才回落色块 + ▶
-      cover: thumbs.local(cache.uid(),d._id || this.id,sourceCover) || (/^(https:\/\/|cloud:\/\/)/i.test(sourceCover) ? sourceCover : '') || localThumb,
+      // 缩略图降级，与历史列表页逐条对应（见 format 方法头 ⭐）：
+      // ① 本机缩略图（选视频时留下的本机文件，零网络直显）→ ② 已缓存的封面文件
+      // → ③ 云端封面（cloud:// 封面转存 fileID / https；http 在真机必失败，不收）
+      // → ④ 视频首帧（云存储 fileID，交 <video> 显示，没有封面时才会走到）→ ⑤ 色块 + ▶
+      // ⭐ 2026-10-15：本地视频的封面也会转存云存储并落库成 cover_url → 换设备 / 清缓存后仍有封面
+      cover: localThumb || cachedCover || (/^(https:\/\/|cloud:\/\/)/i.test(sourceCover) ? sourceCover : ''),
       coverFail: false,
       videoSrc: localThumb ? '' : d.local_video_id || '',
       thumbBg: thumbColor(d._id || this.id),

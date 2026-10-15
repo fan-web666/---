@@ -4,3 +4,8 @@ page{background:#F4F5F6;color:#1B2620;height:100%;}button::after{border:none;}.r
 .r-hero,.r-card{box-shadow:var(--card-shadow);}
 .r-primary{color:#1B2620;}
 .r-page{background:linear-gradient(180deg,#E6FFD0 0%,#F4F5F6 28%,#F4F5F6 100%);}
+/* 昵称引导（2026-10-14）：给昵称一个用处 —— 邀请场景署名。未设昵称时才出现 */
+.r-nick-tip{display:flex;align-items:center;gap:12rpx;padding:18rpx 24rpx;background:#E8FAEF;border:1rpx solid #CBE7D9;border-radius:20rpx;}
+.r-nick-tip-t{flex:1;font-size:24rpx;color:#16854A;}
+.r-nick-tip-go{font-size:22rpx;color:#16854A;font-weight:600;white-space:nowrap;}
+.r-nick-tip-hover{opacity:.75;}

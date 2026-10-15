@@ -552,6 +552,11 @@ async function parseLink(user, event) {
   const rawUrl = String((event && (event.url || event.shareUrl)) || '').trim();
   const fileId = String((event && event.file_id) || '').trim();
   const isLocal = !!fileId;
+  // ⭐ 2026-10-15：本地视频封面（客户端把选片缩略图传到云存储 tmp/<requestId>.jpg 后的 fileID）。
+  //    落库进 copywritings.cover_url → 历史 / 结果页有真封面，换设备、清缓存后都还在。
+  //    只认 cloud:// 且限长，别的值一律丢弃（防脏数据写进封面字段）。
+  const rawCover = String((event && event.cover_file_id) || '').trim();
+  const coverFileId = /^cloud:\/\//.test(rawCover) && rawCover.length <= 512 ? rawCover : '';
 
   // 链接常混着口令 / 分享文案（抖音、小红书尤甚），兜底再抽一次；裸域名自动补协议头
   const url = isLocal ? '' : normalizeShareUrl(rawUrl);
@@ -625,6 +630,8 @@ async function parseLink(user, event) {
       share_url: isLocal ? '' : url,
       video_url: isLocal ? '' : url,
       file_id: fileId,
+      // 本地视频封面 fileID（归档时写进 copywritings.cover_url，见 cloud-common/pipeline.js）
+      cover_file_id: coverFileId,
       // 客户端诊断字段不参与计费、权限或识别决策。
       client_timing: isLocal ? {
         upload_ms: Math.min(3600000, Math.max(0, Number(event.client_timing && event.client_timing.upload_ms) || 0)),

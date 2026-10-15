@@ -514,11 +514,29 @@ function localThumbSrc(fileID) {
   }
 }
 
+/**
+ * 本机持久文件是否还在（历史记录缓存里存的封面路径要用它二次校验）
+ * ⚠️ 微信会清理小程序的文件缓存 → 缓存的路径随时可能变成死链，
+ *    死链交给 <image> 只会触一次 binderror + 白图，不如提前判掉。
+ * @param {string} p 本地路径（http(s):// 与 cloud:// 一律返回 false，它们不是本机文件）
+ */
+function localFileExists(p) {
+  if (typeof p !== 'string' || !p) return false;
+  if (/^(https?|cloud):\/\//i.test(p)) return false;
+  try {
+    wx.getFileSystemManager().accessSync(p);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
 module.exports = {
   toast,
   durationText,
   cacheLocalThumb,
   localThumbSrc,
+  localFileExists,
   platformName,
   normPlatform,
   thumbColor,

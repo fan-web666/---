@@ -56,6 +56,13 @@ const DEFAULT_NAME = '文案小林';
  */
 const PROFILE_KEY = 'user_profile';
 
+/**
+ * 「设置头像昵称」引导条的展示标记（2026-10-14 新增）
+ * ⚠️ 只在**首次**出现，用户关掉后**永久不再出现** → 用一个本地布尔标记即可，不必上云。
+ * ⚠️ 与结果页的引导共用同一个 key（两处任一关掉，另一处也不再出现），避免重复打扰。
+ */
+const PROFILE_TIP_KEY = 'profile_tip_shown';
+
 /* ---------- 首帧缓存：消除切页「先空后跳」的闪现（2026-09-27） ----------
    用户：「界面切换，比如从历史切换到我的，里面的数据总是要有一个闪现的过程，
         能不能不要每次点进去都要闪现，而是跟随页面自然呈现出来」
@@ -111,6 +118,12 @@ Page({
     // 用户卡（头像/昵称三层兜底：云端 → 本地缓存 → 默认值）
     avatarUrl: '',
     nickName: DEFAULT_NAME,
+    // 「我的编号」= 用户ID 后 8 位 —— 用户可复制报给运营，运营在后台按用户ID模糊搜即可精确定位
+    userCode: '',
+    // 从没设过头像/昵称 → 显示一行轻提示（微信 2.27.1 起只有用户主动设置才拿得到）
+    needsProfile: false,
+    // 引导条：仅「没设过资料」且「从没关过」时出现一次（关掉后永久消失）
+    showProfileTip: false,
     vipText: cachedOr('vipText', '开通会员'),
 
     // 昵称编辑弹层（2026-09-27 新增）
@@ -193,6 +206,17 @@ Page({
     const name = String(user.nickname || user.nick_name || '').trim();
     const mem = membershipInfo(user);
 
+    // 「我的编号」= 用户ID 后 8 位（_id = 'mini_' + sha256(openid)，这里取末 8 位 hex）。
+    // 用途：用户复制报给运营 → 运营在后台「用户ID」一搜即中（后台走正则模糊匹配，且大小写不敏感）。
+    const userCode = String(user._id || '').slice(-8);
+    // 云端与本地都没有头像/昵称 ⇒ 从没设过 → 显示一行轻提示（微信 2.27.1 起只能用户主动设置）
+    const cloudAvatar = String(user.avatarUrl || '').trim();
+    const needsProfile = !name && !cloudAvatar && !cached.nickname && !cached.avatarUrl;
+    // 引导条：没设过资料 且 从没关过 → 只出现一次
+    let tipShown = false;
+    try { tipShown = !!wx.getStorageSync(PROFILE_TIP_KEY); } catch (e) { /* 隐私模式下按未显示处理 */ }
+    const showProfileTip = needsProfile && !tipShown;
+
     // 2026-09-29 用户：「除了显示剩余天数，还要显示剩余次数」
     // ⚠️ 统一走 membershipInfo()（utils/util.js 唯一实现），本页不再自行解析 membership。
     // 胶囊「不限次」档不重复后缀（档位名里已含「不限次」），否则读作「不限次会员 · 剩余 30 天 · 不限次」
@@ -216,6 +240,9 @@ Page({
       //    不能让它把本地刚设好的值冲掉。
       avatarUrl,
       nickName: name || cached.nickname || DEFAULT_NAME,
+      userCode,
+      needsProfile,
+      showProfileTip,
       creditsText: thousands(credits),
       // 间隔空格用真实不换行空格（\u00A0），不要写 HTML 实体
       vipText,
@@ -322,6 +349,23 @@ Page({
     const a = pickAvatar(null, c);
     if (a) d.avatarUrl = a;
     if (Object.keys(d).length) this.setData(d);
+  },
+
+  /** 关闭「设置头像昵称」引导条 —— 记到本地，之后永久不再出现 */
+  dismissProfileTip() {
+    try { wx.setStorageSync(PROFILE_TIP_KEY, 1); } catch (e) { /* ignore */ }
+    this.setData({ showProfileTip: false });
+  },
+
+  /** 复制「我的编号」—— 用户报给运营，用于在后台精确定位其账号 */
+  copyUserCode() {
+    const code = this.data.userCode;
+    if (!code) return;
+    wx.setClipboardData({
+      data: code,
+      success: () => wx.showToast({ title: '编号已复制', icon: 'none' }),
+      fail: () => {},
+    });
   },
 
   /** 选中微信头像（chooseAvatar 回调） */

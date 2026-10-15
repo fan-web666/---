@@ -3,12 +3,28 @@ const { toast } = require('../../utils/util');
 const app = getApp();
 const cache = require('../../utils/view-cache');
 Page({
-  data: { statusBarH: 0, navBarH: 44, navSafeRightRpx: 196, code: '', invitedCount: '—', rewardTotal: '—', loading: true, error: '', posterBusy: false, ...(cache.read('referral') || {}) },
+  data: { statusBarH: 0, navBarH: 44, navSafeRightRpx: 196, code: '', invitedCount: '—', rewardTotal: '—', loading: true, error: '', posterBusy: false, nickname: '', ...(cache.read('referral') || {}) },
   onLoad() { const c=cache.read('referral'); cache.patch(this,c||{code:'',invitedCount:'—',rewardTotal:'—',loading:true,error:''});this._cached=!!c;this._owner=cache.uid();this.setData({ statusBarH: app.globalData.navStatusH || 0, navBarH: app.globalData.navBarH || 44, navSafeRightRpx: app.globalData.navSafeRightRpx || 196 }); wx.showShareMenu({ menus: ['shareAppMessage', 'shareTimeline'] }); },
-  onShow() { this.load(); },
+  onShow() { this.syncNickname(); this.load(); },
   async load() { if (this._loading) return; this._loading = true; if(!this._cached)this.setData({ loading: true, error: '' }); try { const s = await call('referralSummary'); if(this._disposed||cache.uid()!==this._owner)return;const p={ code:s.code,invitedCount:s.invitedCount,rewardTotal:s.rewardTotal,loading:false,error:'' };cache.patch(this,p);cache.write('referral',p);this._cached=true; } catch (e) { if(!this._cached&&!this._disposed)this.setData({ error:e.message||'加载失败' }); } finally { this._loading=false;if(!this._disposed)cache.patch(this,{loading:false}); } },
   onUnload() { this._disposed=true; },
   goBack() { if (getCurrentPages().length > 1) wx.navigateBack(); else wx.reLaunch({ url: '/pages/index/index' }); },
+  /**
+   * 取当前昵称，用于邀请页「署名」（2026-10-14）
+   * 目的：**给昵称一个用处** —— 邀请场景是用户有动机做的事（得积分），署名需要昵称，动机自然成立。
+   * ⚠️ 昵称设置率天然很低（微信 2.27.1 起只能用户主动设置），所以这里**只读本地、不请求云端**：
+   *    本地缓存优先 → globalData 兜底；都没有就显示「去设置」引导。
+   */
+  syncNickname() {
+    try {
+      const c = wx.getStorageSync('user_profile') || {};
+      const u = app.globalData.user || {};
+      const n = String(c.nickname || u.nickname || '').trim();
+      if (n !== this.data.nickname) this.setData({ nickname: n });
+    } catch (e) { /* 拿不到就不显示署名，不影响邀请主流程 */ }
+  },
+  /** 去「我的」页设置昵称（无 tabBar 配置，照 index.js#goMine 用 reLaunch） */
+  goSetProfile() { wx.reLaunch({ url: '/pages/mine/mine' }); },
   copyCode() { if (!this.data.code) return toast('推荐码尚未加载，请稍后重试'); wx.setClipboardData({ data: this.data.code }); },
   onShareAppMessage() { return { title: '视频一键转文案，整理你的灵感素材库', path: '/pages/index/index' + (this.data.code ? '?ref=' + encodeURIComponent(this.data.code) : '') }; },
   // 分享到朋友圈：无 path，邀请码只能走 query；与 onShareAppMessage 并存才点亮按钮

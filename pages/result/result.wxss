@@ -370,3 +370,11 @@ color:white
 .suite-copy-icon::after{right:0;bottom:0;background:#B8F76A;}
 
 .search-hit{background:#DCFAA9;color:#1F3327;border-radius:6rpx}
+
+/* 首次提取成功后的「设置头像昵称」引导（2026-10-14）：一次性，出现即代表该用户还没设过资料 */
+.x-profile-tip-card{display:flex;align-items:center;gap:12rpx;margin:16rpx 24rpx 0;padding:18rpx 22rpx;background:#EAF7F0;border:1rpx solid #CBE7D9;border-radius:14rpx;}
+.x-profile-tip-main{flex:1;display:flex;align-items:center;gap:12rpx;min-width:0;}
+.x-profile-tip-text{flex:1;font-size:23.08rpx;color:#16854A;}
+.x-profile-tip-go{font-size:22rpx;color:#16854A;font-weight:600;white-space:nowrap;}
+.x-profile-tip-close{width:44rpx;height:44rpx;display:flex;align-items:center;justify-content:center;font-size:30rpx;color:#7C9A88;line-height:1;}
+.x-profile-tip-hover{opacity:.75;}

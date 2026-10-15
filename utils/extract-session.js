@@ -23,6 +23,36 @@ const { cacheLocalThumb } = require('./util');
 const tracker = require('./tracker');
 const { prepare: prepareAudio } = require('./lossless-audio');
 
+/**
+ * 把「选片缩略图」传到云存储（tmp/<requestId>.jpg，与视频同名同目录）
+ *
+ * ⭐⭐ 2026-10-15 用户报「本地视频昨天还有封面图，今天没有了」——
+ *    根因：封面只存在**本机**（utils/util.js 的 lvthumb_*.jpg）。微信清理小程序
+ *    文件缓存 / 换设备 / 重装后，本机文件没了 → 历史与结果页只剩一块通用图标。
+ *    ⇒ 现在同时留两份：
+ *      ① 本机持久目录 → 本机零网络秒开（见 cacheLocalThumb）；
+ *      ② 云存储 fileID → 带回 parseLink 落库成 cover_url，与平台视频一个口径，
+ *         换设备、清缓存、重装都还在。
+ *
+ * ⚠️ 失败一律静默：封面缺失不该拖垮提取主流程（拿不到就退回本机缩略图）。
+ * @param {string} thumbPath wx.chooseMedia 给的本机缩略图路径（与视频上传并行调用）
+ * @param {string} requestId 本次提交的稳定 ID（同时是视频的云存储文件名主干）
+ * @returns {Promise<string>} fileID；没有缩略图 / 上传失败 → ''
+ */
+async function uploadCover(thumbPath, requestId) {
+  if (!thumbPath || !requestId) return '';
+  try {
+    const r = await wx.cloud.uploadFile({
+      cloudPath: 'tmp/' + requestId + '.jpg',
+      filePath: thumbPath,
+    });
+    return (r && r.fileID) || '';
+  } catch (e) {
+    console.warn('[extract] 封面转存失败（回落本机缩略图）', e && (e.errMsg || e.message));
+    return '';
+  }
+}
+
 // ⚠️ 惰性取 app：本模块可能在 App() 执行完之前就被 require（utils 的规矩，同 utils/auth.js）
 const app = () => getApp();
 
@@ -355,6 +385,9 @@ async function submitLocal() {
     const tUpload = Date.now();
     const extMatch = uploadPath.match(/\.(m4a|mp4|mov|m4v|webm|avi)(?:[?#].*)?$/i);
     const cloudPath = 'tmp/' + input.requestId + '.' + (extMatch ? extMatch[1].toLowerCase() : 'mp4');
+    // ⭐ 封面转存与视频上传**并行**（封面只依赖 requestId，不依赖视频的 fileID）→ 不额外拖长上传耗时。
+    //    失败静默（uploadCover 内部已 try/catch，永不 reject），绝不影响提取主流程。
+    const coverPromise = uploadCover(input.thumb, input.requestId);
     let up;
     try { up = await wx.cloud.uploadFile({ cloudPath, filePath: uploadPath }); }
     finally { prepared.cleanup(); }
@@ -365,12 +398,15 @@ async function submitLocal() {
     input.uploadBytes = prepared.bytes;
     console.log('[extract] 上传 ' + input.uploadMs + 'ms');
 
-    // ⭐ 把选片时拿到的缩略图转存到本地持久目录（key = 云存储 fileID）→
-    //    历史 / 结果页直接用它当封面，不再出现「先一块黑图、过会才出首帧」的过程。
-    //    失败静默：拿不到就回落 <video> 首帧，不影响上传主流程。
+    // ⭐ 把选片时拿到的缩略图存两份：
+    //    ① 本机持久目录（key = 云存储 fileID）→ 历史 / 结果页零网络秒开；
+    //    ② 云存储 tmp/<requestId>.jpg（上面 coverPromise，与视频并行传的）→ 落库成 cover_url，
+    //       换设备 / 清缓存后仍有封面。
+    //    ⚠️ 2026-10-15 之前只有 ①：微信清理文件缓存后封面整片消失，只剩一块通用图标。
     if (!up || !up.fileID) throw new Error('视频上传未完成，请重试');
     input.fileID = up.fileID;
     cacheLocalThumb(up.fileID, input.thumb);
+    input.coverFileId = await coverPromise;
     // 本地阶段结束：清掉「正在上传 xx」文案（秒数此后由步骤1的 parseAt 统一续写）
     localPhaseLabel = '';
     }
@@ -380,7 +416,7 @@ async function submitLocal() {
     emit('change');
 
     const tLink = Date.now();
-    const res = await call('parseLink', { file_id: input.fileID, source: 'local', request_id: input.requestId, client_timing: { upload_ms: input.uploadMs || 0, prepare_ms: input.prepareMs || 0, upload_bytes: input.uploadBytes || 0, audio_only: !!input.audioOnly, original_bytes: Math.round((input.sizeMB || 0) * 1024 * 1024), reencoded: false } });
+    const res = await call('parseLink', { file_id: input.fileID, cover_file_id: input.coverFileId || '', source: 'local', request_id: input.requestId, client_timing: { upload_ms: input.uploadMs || 0, prepare_ms: input.prepareMs || 0, upload_bytes: input.uploadBytes || 0, audio_only: !!input.audioOnly, original_bytes: Math.round((input.sizeMB || 0) * 1024 * 1024), reencoded: false } });
     if (run !== generation || state.phase !== 'running') return;
     console.log('[extract] 建任务 ' + (Date.now() - tLink) + 'ms（含冷启动）');
 

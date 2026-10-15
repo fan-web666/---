@@ -9,6 +9,7 @@ const {
   timeLabel,
   localDateStr,
   localThumbSrc,
+  localFileExists,
 } = require('../../utils/util');
 const tracker = require('../../utils/tracker');
 const thumbs = require('../../utils/history-thumbs');
@@ -59,8 +60,23 @@ function readHistory() {
     if (!owner() || !c || c.uid !== owner() || !Array.isArray(c.all)) return null;
     c.all = c.all.map(row => {
       const source = row.coverSource || row.cover || '';
+      // ⭐ 2026-10-15：显示值优先「本机缩略图」（本机文件，零网络直显）；
+      //    ⚠️ 缓存里的本机路径必须**二次校验** —— 微信会清小程序文件缓存，
+      //       老路径随时是死链，交给 <image> 只会白图 + 一次 binderror，不如提前判掉。
+      const localCover = localFileExists(row.localCover) ? row.localCover : '';
       const cached = thumbs.local(owner(), row._id, source);
-      return Object.assign({}, row, { coverSource: source, cover: cached || source, coverFail: cached ? false : !!row.coverFail });
+      const remote = /^(https:\/\/|cloud:\/\/)/i.test(source) ? source : '';
+      const cover = localCover || cached || remote;
+      // ⚠️ 失败标记只对**同一个显示值**成立：本机缩略图失效后显示值换成了云端封面，
+      //    上一轮那条（针对死链的）失败记录必须清掉 —— 否则它会永久遮住一个其实能加载的封面
+      //    （wxml 的 wx:if="{{it.cover && !it.coverFail}}"，一遮就退回占位图）。
+      const coverFail = (!localCover && !cached) && row.cover === cover ? !!row.coverFail : false;
+      return Object.assign({}, row, {
+        coverSource: source,
+        localCover,
+        cover,
+        coverFail,
+      });
     });
     c.groups = (c.groups || []).map(g => Object.assign({}, g, { items: g.items.map(row => c.all.find(it => it._id === row._id) || row) }));
     return c;
@@ -226,7 +242,9 @@ Page({
   onUnload() { this.saveHistory(); this._disposed = true; this._request++; clearTimeout(this.searchTimer); },
   warmThumbs() {
     const uid = this._owner;
-    (this.all || []).filter(row => row.cover && !row.coverFail).forEach(row => {
+    // ⚠️ 本机缩略图本身已经是本地文件（零网络），再往 history-thumbs 目录拷一份纯属浪费，
+    //    还会挤占那 32MB 配额 → 只预热真正需要走网络的封面（https / cloud://）。
+    (this.all || []).filter(row => row.cover && !row.coverFail && !localFileExists(row.localCover)).forEach(row => {
       thumbs.warm(uid, row._id, row.coverSource || row.cover).then(path => {
         // Save the local path for the NEXT view, never swap a visible image's src.
         if (path && !this._disposed && uid === owner()) this.saveHistory();
@@ -250,11 +268,15 @@ Page({
     // 老数据可能是 0 → 该段直接不显示，不写「0 字」这种占位（见下方 filter(Boolean)）
     const chars = Number(it.char_count) || 0;
     const cover = String(it.cover_url || '');
-    // ⭐ 本地视频封面：优先用「选视频时留下的缩略图」（本地文件，立即出图），
+    // ⭐ 本地视频封面：优先用「选视频时留下的缩略图」（本机文件，立即出图，零网络等待），
     //    详见 utils/util.js 的 cacheLocalThumb / localThumbSrc。
-    //    ⚠️ 没有它时（老记录 / 换设备 / 清了缓存）才回落 <video> 首帧 —— 那条路会先黑一下。
+    //    ⚠️ 没有它时（老记录 / 换设备 / 清了缓存）才回落「云端封面」——
+    //       2026-10-15 起本地视频的封面也会转存云存储并落库成 cover_url，不再只靠本机文件。
+    //    再没有才回落 <video> 首帧（那条路会先黑一下），最后才是色块。
     const localThumb = localThumbSrc(it.local_video_id);
-    const source = (/^(https:\/\/|cloud:\/\/)/i.test(cover) ? cover : '') || localThumb;
+    // 云端封面才是长期稳定的那一个 → 缓存键（coverSource）以它为准；本机缩略图只作「首帧直显」
+    const cloudCover = /^(https:\/\/|cloud:\/\/)/i.test(cover) ? cover : '';
+    const source = cloudCover || localThumb;
     const prior = (this.all || []).find(row => row._id === it._id && (row.coverSource || row.cover) === source);
     return {
       _id: it._id,
@@ -268,12 +290,17 @@ Page({
       created_at: it.created_at,
       dateKey: localDateStr(it.created_at),
 
-      // 缩略图三级降级：原视频封面 → 本地视频缩略图（本地文件，即时）→ 视频首帧 → 设计稿色块
+      // 缩略图三级降级：本机缩略图（零网络直显）→ 云端封面（cloud:// / https，长期有效）
+      //                → 视频首帧（云存储 fileID，交 <video> 显示）→ 设计稿色块
       // ① 封面：收 https 与 cloud:// —— http 图片在真机上必然加载失败，收进来只会白请求 + 控制台刷错误
       //    ⭐ cloud:// 是 2026-09-28 新增的「封面转存云存储」fileID：平台直链带签名、几小时~一两天就 403，
       //       转存后永久有效，历史页不会再整片变绿块
+      //    ⭐ 2026-10-15 本地视频也走同一条路（选片缩略图转存云存储）→ 换设备 / 清缓存后封面仍在
       coverSource: source,
-      cover: prior && prior.cover ? prior.cover : thumbs.local(owner(), it._id, source) || source,
+      // localCover：本机缩略图（秒开用）。保留它在行上，缓存行下次回读时才能二次校验它是否还在
+      localCover: localThumb,
+      // src 一经确定就不轻易换（先沿用上一次已显示的那张），避免 <image> 重新加载闪一下
+      cover: prior && prior.cover ? prior.cover : localThumb || thumbs.local(owner(), it._id, source) || source,
       coverFail: prior ? !!prior.coverFail : false,
       // ② 首帧：本地视频在云端存的是云存储 fileID，可长期有效 → 交给 <video> 显示第一帧
       //    平台视频的 CDN 直链带签名时效与防盗链，列表里逐个起播放器既慢又大概率黑屏，不取

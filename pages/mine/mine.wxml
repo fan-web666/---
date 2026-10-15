@@ -27,6 +27,7 @@
             <view class="x-uname">{{nickName}}</view>
             <view class="x-ico x-ico-pencil x-nick-edit"></view>
           </view>
+          <view wx:if="{{needsProfile}}" class="x-nick-hint">点头像 / 昵称，可设置成你自己的</view>
           <view class="x-vip flex-row align-center x-tap" bindtap="goMember">
             <view class="x-ico x-ico-crown x-vip-ico"></view>
             <view class="x-vip-t">{{vipText}}</view>
@@ -34,6 +35,17 @@
         </view>
         <view class="x-chevron x-tap" bindtap="goMember">›</view>
       </view>
+      <button
+        wx:if="{{showProfileTip}}"
+        class="x-profile-tip"
+        open-type="chooseAvatar"
+        bindchooseavatar="onChooseAvatar"
+        hover-class="none"
+        aria-label="点头像设置，记录里一眼认出你"
+      >
+        <text class="x-profile-tip-text">点头像设置，记录里一眼认出你</text>
+        <view class="x-profile-tip-close" catchtap="dismissProfileTip" role="button" aria-label="不再提示">×</view>
+      </button>
       <view class="x-udivider"></view>
       <view class="x-stats flex-row">
         <view class="x-stat flex-col">
@@ -49,6 +61,7 @@
           <view class="x-stat-l">可用积分</view>
         </view>
       </view>
+      <view wx:if="{{userCode}}" class="x-usercode-row"><text class="x-usercode-label">我的编号</text><text class="x-usercode-value" user-select="{{true}}" aria-label="我的编号，可长按选中">{{userCode}}</text><view class="x-usercode-copy x-tap" bindtap="copyUserCode" role="button" hover-class="x-tap">复制</view></view>
       <view class="friend-entry" bindtap="openFriendInvite" role="button" hover-class="x-tap"><text class="friend-entry-title">亲友免费用</text><text class="friend-entry-action">兑换邀请码</text><text class="x-chevron">›</text></view>
     </view>
     <view class="x-card x-reccard flex-col{{usageMain ? '' : ' x-reccard-slim'}}">

@@ -601,7 +601,10 @@ async function stepStructure(task) {
       source_platform: task.source_platform || 'other',
       video_title: title,
       video_url: resolved.url || '',
-      cover_url: coverFileId || resolved.cover || '',
+      // ⭐ 2026-10-15：本地视频的封面由客户端上传（task.cover_file_id = tmp/<requestId>.jpg 的 fileID）。
+      //    以前本地视频这条恒为空 → 端上只能退回落「本机缩略图」，微信一清文件缓存就只剩通用图标。
+      //    优先级：客户端封面 → relayCover 转存结果 → 平台原始封面直链。
+      cover_url: task.cover_file_id || coverFileId || resolved.cover || '',
       author: task.author || '',
       duration_sec: task.duration_sec || 0,
       char_count: (content.transcript || '').length,

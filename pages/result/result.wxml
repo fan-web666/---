@@ -7,6 +7,13 @@
   </view>
   <scroll-view class="x-scroll flex-col" scroll-y>
     <video-status location="result" feedback="{{false}}" />
+    <view wx:if="{{showProfileTip}}" class="x-profile-tip-card">
+      <view class="x-profile-tip-main" bindtap="goSetProfile" role="button" hover-class="x-profile-tip-hover">
+        <text class="x-profile-tip-text">设个头像昵称，记录里一眼认出你自己</text>
+        <text class="x-profile-tip-go">去设置 ›</text>
+      </view>
+      <view class="x-profile-tip-close" catchtap="dismissProfileTip" role="button" aria-label="不再提示">×</view>
+    </view>
     <view class="group_1 flex-row x-tap" bindtap="copySource">
       <view
         class="text-wrapper_3 x-thumb flex-col"
