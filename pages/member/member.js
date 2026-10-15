@@ -73,9 +73,12 @@ const SHORT = {
 };
 
 const PLANS = {
-  month: { id: 'vip_month', tag: '轻量使用', unit: '/ 月', line1: '每月 60 次', line2: '未用完可结转' },
-  year: { id: 'vip_year', tag: '推荐', unit: '/ 年', line1: '720 次额度', line2: '平均 ¥5.7 / 月' },
-  quarter: { id: 'vip_quarter', name: '季度会员', line1: '180 次额度', line2: '平均 ¥8.3 / 月' },
+  // ⚠️ 2026-10-15 用户明确：额度 60→90 / 180→240 / 720→1000；
+  //   且「结转」**有前提** —— 只有继续续费才生效，到期不续费一律清零。
+  //   原写法「未用完可结转」读起来像无条件承诺，故改成带前提的表述。
+  month: { id: 'vip_month', tag: '轻量使用', unit: '/ 月', line1: '每月 90 次', line2: '续费可结转，到期清零' },
+  year: { id: 'vip_year', tag: '推荐', unit: '/ 年', line1: '1000 次额度', line2: '平均 ¥5.7 / 月' },
+  quarter: { id: 'vip_quarter', name: '季度会员', line1: '240 次额度', line2: '平均 ¥8.3 / 月' },
   unlimited: { id: 'vip_unlimited', name: '不限次会员', line1: '30 天不限次', line2: '不扣积分' },
 };
 

@@ -5,17 +5,17 @@ module.exports = {
   // 新人积分（一次性，仅首次建档发放）
   TRIAL_CREDIT: 100,
 
-  // 兑换比例：1 元 = 20 积分
-  CREDIT_PER_YUAN: 20,
+  // 兑换比例：1 元 = 30 积分（2026-10-15 由 20 上调）
+  CREDIT_PER_YUAN: 30,
 
-  // 充值快捷档位（元 / 积分）
+  // 充值快捷档位（元 / 积分）—— 与 CREDIT_PER_YUAN 同源，改比例必须同步重算这几档
   RECHARGE_PRESETS: [
-    { amount: 5, credits: 100 },
-    { amount: 10, credits: 200 },
-    { amount: 20, credits: 400 },
-    { amount: 50, credits: 1000 },
-    { amount: 100, credits: 2000 },
-    { amount: 200, credits: 4000 },
+    { amount: 5, credits: 150 },
+    { amount: 10, credits: 300 },
+    { amount: 20, credits: 600 },
+    { amount: 50, credits: 1500 },
+    { amount: 100, credits: 3000 },
+    { amount: 200, credits: 6000 },
   ],
 
   // 充值页默认选中档位（20 元）
@@ -46,7 +46,8 @@ module.exports = {
     { scene: '经常提取', action: '会员额度更划算' },
   ],
 
-  // 会员档位（限次档按 60 次/月 × 月数；不限次档 19.9/月）
+  // 会员档位（2026-10-15 额度上调：月 90 / 季 240 / 年 1000；不限次档 19.9/月）
+  // ⚠️ 价格一分没动 ⇒ 微信后台已发布的会员道具无需重新发布。
   MEMBER_PLANS: [
     {
       id: 'vip_month',
@@ -54,9 +55,9 @@ module.exports = {
       price: 9.9,
       priceText: '¥9.9',
       durationDays: 30,
-      quotaTotal: 60,
-      meta: '60 次 · 30 天',
-      desc: '每月 60 次解析额度',
+      quotaTotal: 90,
+      meta: '90 次 · 30 天',
+      desc: '每月 90 次解析额度',
     },
     {
       id: 'vip_quarter',
@@ -64,9 +65,9 @@ module.exports = {
       price: 25,
       priceText: '¥25',
       durationDays: 90,
-      quotaTotal: 180,
-      meta: '180 次 · 90 天 · 月均 ¥8.3',
-      desc: '90 天共 180 次',
+      quotaTotal: 240,
+      meta: '240 次 · 90 天 · 月均 ¥8.3',
+      desc: '90 天共 240 次',
     },
     {
       id: 'vip_year',
@@ -74,9 +75,9 @@ module.exports = {
       price: 68,
       priceText: '¥68',
       durationDays: 365,
-      quotaTotal: 720,
-      meta: '720 次 · 365 天 · 月均 ¥5.7',
-      desc: '365 天共 720 次',
+      quotaTotal: 1000,
+      meta: '1000 次 · 365 天 · 月均 ¥5.7',
+      desc: '365 天共 1000 次',
       recommend: true,
     },
     {
@@ -99,9 +100,12 @@ module.exports = {
   ],
 
   // 额度与续费规则
+  // ⚠️ 2026-10-15 用户明确：结转**有前提** —— 只有继续续费才生效；
+  //    会员到期且不续费 → 剩余额度一律清零（不限档位）。文案必须体现这个前提，
+  //    不能写成无条件的「不清零」。
   QUOTA_RULES: [
-    { label: '未用完额度', value: '结转次月，不清零' },
-    { label: '会员到期', value: '剩余额度作废' },
+    { label: '未用完额度', value: '同一个会员周期内有效；续费可结转' },
+    { label: '会员到期不续费', value: '剩余额度清零，不再保留' },
     { label: '到期前 3 天 / 1 天', value: '订阅消息提醒' },
     { label: '续费方式', value: '一键续费确认后支付' },
   ],

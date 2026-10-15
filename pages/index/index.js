@@ -91,7 +91,7 @@ Page({
     member: !!CACHED_VIPBAR.member,
     memberValue: CACHED_VIPBAR.memberValue || '—',
     // 会员次数（2026-09-29 用户：「除了显示剩余天数，还要显示剩余次数」）
-    // → 下行 = 大字「30 天」+ 小字「60 次」；不限次档为「不限次」，未开通为空串
+    // → 下行 = 大字「30 天」+ 小字「剩余 N 次」（额度取自云端 membership.quota，不写死）；不限次档为「不限次」，未开通为空串
     memberQuotaText: CACHED_VIPBAR.memberQuotaText || '',
   },
 

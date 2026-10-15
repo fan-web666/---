@@ -35,29 +35,33 @@ const MEMBER_TIERS = {
   UNLIMITED: 'unlimited',
 };
 
-// 会员档位：price 分、durationDays、额度（60×月数）；unlimited 无额度
+// 会员档位：price 分、durationDays、额度；unlimited 无额度
+// ⚠️ 2026-10-15 额度上调（月 60→90 / 季 180→240 / 年 720→1000），**价格一分没动**
+//    ⇒ 微信后台已发布的 4 个会员道具（¥9.9 / ¥25 / ¥68 / ¥19.9）**无需重新发布**。
+//    quotaMonthly 是「月均」口径，仅为展示与旧数据兼容，**不参与扣减**（扣减只认 quotaTotal / quota.remaining）。
 const MEMBER_PLANS = {
-  vip_month: { id: 'vip_month', tier: MEMBER_TIERS.MONTHLY, priceCents: 990, durationDays: 30, quotaMonthly: 60, quotaTotal: 60, unlimited: false },
-  vip_quarter: { id: 'vip_quarter', tier: MEMBER_TIERS.QUARTERLY, priceCents: 2500, durationDays: 90, quotaMonthly: 60, quotaTotal: 180, unlimited: false },
-  vip_year: { id: 'vip_year', tier: MEMBER_TIERS.YEARLY, priceCents: 6800, durationDays: 365, quotaMonthly: 60, quotaTotal: 720, unlimited: false },
+  vip_month: { id: 'vip_month', tier: MEMBER_TIERS.MONTHLY, priceCents: 990, durationDays: 30, quotaMonthly: 90, quotaTotal: 90, unlimited: false },
+  vip_quarter: { id: 'vip_quarter', tier: MEMBER_TIERS.QUARTERLY, priceCents: 2500, durationDays: 90, quotaMonthly: 80, quotaTotal: 240, unlimited: false },
+  vip_year: { id: 'vip_year', tier: MEMBER_TIERS.YEARLY, priceCents: 6800, durationDays: 365, quotaMonthly: 83, quotaTotal: 1000, unlimited: false },
   vip_unlimited: { id: 'vip_unlimited', tier: MEMBER_TIERS.UNLIMITED, priceCents: 1990, durationDays: 30, unlimited: true },
 };
 
 // 充值档位：amountCents / credits
 const RECHARGE_PRESETS = [
-  { id: 'credit_50', amountCents: 500, credits: 100 },
-  { id: 'credit_100', amountCents: 1000, credits: 200 },
-  { id: 'credit_200', amountCents: 2000, credits: 400 },
-  { id: 'credit_500', amountCents: 5000, credits: 1000 },
-  { id: 'credit_1000', amountCents: 10000, credits: 2000 },
-  { id: 'credit_2000', amountCents: 20000, credits: 4000 },
+  { id: 'credit_50', amountCents: 500, credits: 150 },
+  { id: 'credit_100', amountCents: 1000, credits: 300 },
+  { id: 'credit_200', amountCents: 2000, credits: 600 },
+  { id: 'credit_500', amountCents: 5000, credits: 1500 },
+  { id: 'credit_1000', amountCents: 10000, credits: 3000 },
+  { id: 'credit_2000', amountCents: 20000, credits: 6000 },
 ];
 
 // 新人积分（一次性）
 const TRIAL_CREDIT = 100;
 
-// 兑换 1 元 = 20 积分
-const CREDIT_PER_YUAN = 20;
+// 兑换 1 元 = 30 积分（2026-10-15 由 20 上调）
+// ⚠️ 与「支付代币比例」COIN_PER_YUAN 是两码事：代币仍是 1 元 = 10 代币，且微信后台发布后不可改，别动它。
+const CREDIT_PER_YUAN = 30;
 
 // 自定义充值金额范围（元）
 // ⚠️ 必须与端上 config/pricing.js 的 CUSTOM_MIN / CUSTOM_MAX 同值，改一处必改两处。

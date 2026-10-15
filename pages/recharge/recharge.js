@@ -77,7 +77,7 @@ Page({
     balance: CACHED_BALANCE.balance || 0,
     balanceText: CACHED_BALANCE.balanceText || '—',
 
-    // 设计稿 .text_6「1 元 = 20 积分」
+    // 设计稿 .text_6「1 元 = N 积分」（N 取 pricing.CREDIT_PER_YUAN，现为 30）
     rate: pricing.CREDIT_PER_YUAN,
 
     // 设计稿 6 个金额档（3 行 × 2 列）

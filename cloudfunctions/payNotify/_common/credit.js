@@ -47,7 +47,7 @@ function settleDecision(user, durationSec) {
   return {
     ok: false,
     reason: 'insufficient',
-    msg: '积分不足，请先充值或开通会员（用得少就充值 5 元起，用得多就开会员 9.9/月 60 次或 19.9/月不限次）',
+    msg: '积分不足，请先充值或开通会员（用得少就充值 5 元起，用得多就开会员 9.9/月 90 次或 19.9/月不限次）',
   };
 }
 
