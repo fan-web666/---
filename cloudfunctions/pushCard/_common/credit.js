@@ -27,7 +27,7 @@ function settleDecision(user, durationSec) {
   }
 
   if (isActive && mem.quota) {
-    // 限次档：额度内免费（长视频计 2 次额度），不足则回退积分
+    // 限次档：额度内免费（⚠️ 2026-10-15 起长短视频**都算 1 次额度**），不足则回退积分
     if (mem.quota.remaining >= cost.quotaUnits) {
       return {
         ok: true,

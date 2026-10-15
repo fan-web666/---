@@ -85,13 +85,21 @@ const DUP_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 /**
  * 按视频时长算扣费档（PRD v0.3.8 时长阶梯）
+ *
+ * ⚠️⭐ 返回的两个字段是**两条独立口径，别想当然联动**：
+ *   · creditCost —— 非会员的**积分**，按时长阶梯扣 5 / 10（用户明确「保持不变」）；
+ *   · quotaUnits —— 会员的**次数额度**。2026-10-15 用户定：**长短视频统一算 1 次**
+ *     （原来是「长视频计 2 次」，已废除）。视频提取与文案提取是两个独立任务、各扣一次
+ *     ⇒ 「同一条链接视频+文案都要」＝2 次，与时长无关。
+ *
  * @returns {{allowed:boolean, level:'basic'|'double'|'reject', creditCost:number, quotaUnits:number}}
  */
 function computeCost(durationSec) {
   const sec = Number(durationSec) || 0;
   if (sec <= 0) return { allowed: true, level: 'basic', creditCost: CREDIT_BASIC, quotaUnits: 1 };
   if (sec <= 10 * 60) return { allowed: true, level: 'basic', creditCost: CREDIT_BASIC, quotaUnits: 1 };
-  if (sec <= MAX_DURATION_SEC) return { allowed: true, level: 'double', creditCost: CREDIT_DOUBLE, quotaUnits: 2 };
+  // 长视频（10~30 分钟）：积分仍按阶梯扣 10，但会员额度同样只算 1 次
+  if (sec <= MAX_DURATION_SEC) return { allowed: true, level: 'double', creditCost: CREDIT_DOUBLE, quotaUnits: 1 };
   return { allowed: false, level: 'reject', creditCost: 0, quotaUnits: 0 };
 }
 
