@@ -241,6 +241,8 @@ Page({
 
   showRules() {
     const quota = (pricing.QUOTA_RULES || []).map((r) => r.label + '：' + r.value).join('\n');
+    // 「单次怎么算」独立成段（2026-10-15 用户要求：单次＝只解析视频或文案，同时解析算 2 次）
+    const unit = (pricing.UNIT_RULES || []).map((r) => r.label + '：' + r.value).join('\n');
     const plans = (pricing.MEMBER_PLANS || [])
       .map((p) => {
         // 2026-10-15：原「月均 ¥X」改为「单次 ¥X」（现算）。不限次档没有分母 → 不追加。
@@ -249,9 +251,11 @@ Page({
       })
       .join('\n');
     // 2026-09-27：原生 wx.showModal → 自建 x-dialog（正文强制左对齐）
+    // 2026-10-15：加「单次怎么算」段；原「规则：」改「额度与续费：」以免与单次规则混淆
+    // ⚠️ 正文较长，但 x-dialog__body 有 max-height:56vh + scroll-y，可滚动，不会溢出。
     this.openDialog({
       title: '会员说明',
-      content: '档位：\n' + plans + '\n\n规则：\n' + quota,
+      content: '档位：\n' + plans + '\n\n单次怎么算：\n' + unit + '\n\n额度与续费：\n' + quota,
       confirmText: '知道了',
     });
   },

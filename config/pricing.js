@@ -113,11 +113,17 @@ module.exports = {
     },
   ],
 
-  // 会员权益表（会员中心展示）
-  MEMBER_BENEFITS: [
-    { label: '额度内解析', value: '不扣积分' },
-    { label: '长视频（> 10 分钟）', value: '计 2 次' },
-    { label: '单次最长', value: '30 分钟' },
+  // 「单次」的口径 —— 会员说明弹窗里独立成段展示（2026-10-15 用户要求写清楚）
+  // ⚠️ 必须与云端 `cloud-common/consts.js#computeCost`（quotaUnits）＋ `credit.js#settleDecision` 一致：
+  //    视频提取（video-extract.js#finish）与文案提取（executeCharge）**是两个独立任务，各扣一次**
+  //    → 同一条链接两样都要，天然就是 2 次。改扣减规则就要同步改这里，否则说明与实扣不符。
+  // 📌 本条取代了原来那张**从未被渲染**的 MEMBER_BENEFITS 表（避免同一件事留两份定义）。
+  UNIT_RULES: [
+    { label: '只解析视频', value: '算 1 次' },
+    { label: '只解析文案', value: '算 1 次' },
+    { label: '视频与文案同时解析', value: '算 2 次' },
+    { label: '长视频（超过 10 分钟）', value: '单个任务算 2 次' },
+    { label: '单条最长', value: '30 分钟，超过会拒绝' },
   ],
 
   // 额度与续费规则
