@@ -43,7 +43,9 @@ function demux(input, maxMs = 600) {
     return join([header, body]);
   };
   try {
-    if (src.length < 1024 || src.length > 60 * 1024 * 1024) return null;
+    // ⭐ 2026-10-15：上限 60MB → 100MB。与端上 100MB 校验、云端 consts.js#MAX_FILE_SIZE_BYTES 对齐。
+    //    87MB 等级的视频此前直接落到「跳过抽取」，原样上传 87MB → 微信上传 60s 硬超时 → 提取失败。
+    if (src.length < 1024 || src.length > 100 * 1024 * 1024) return null;
     const top = boxes(0, src.length);
     if (top.some(b => b.type === 'moof')) return null;
     const moov = one(top, 'moov'), ftyp = one(top, 'ftyp');
@@ -173,12 +175,21 @@ async function prepare(input, alive = () => true) {
   //    预估第一步 52s → 7s 上下，且第 2 步云端下载的也同步变小。
   //    内存代价：readFile 峰值 ≈ 文件本身（上限 60MB）＋几 MB 输出；失败走 fail 回调
   //    自动回退原样上传 ⇒ 最坏等同改动前的行为，不会让提取失败。
+  // ⭐⭐ 2026-10-15 四改（用户报「87MB 本地视频无法提取，不是支持 100MB 吗」）：
+  //    上限 60 → **100MB**，与端上 100MB 校验、云端 consts.js#MAX_FILE_SIZE_BYTES 三处对齐。
+  //    此前 60~100MB 的视频卡在中间地带：**允许用户选，却不给抽音频** → 原样上传 87MB
+  //    → 微信上传 60s 硬超时（`uploadFile:fail fail:time out`）→ 提取失败。
+  //    ⭐ 预算必须与上限**同步**放大（见下方 budgetMs），否则「上限放开、预算不够」→ 照样回退。
   const extOk = /\.(mp4|mov|m4v)$/i.test(input.path || '');
   const envOk = typeof wx.getFileSystemManager === 'function' && !!(wx.env && wx.env.USER_DATA_PATH);
-  if (!envOk || !extOk || sizeMB > 60 || (sizeMB > 0 && sizeMB < 2)) {
+  if (!envOk || !extOk || sizeMB > 100 || (sizeMB > 0 && sizeMB < 2)) {
     console.log('[audio] 跳过抽取（原样上传）· sizeMB=' + sizeMB + ' · extOk=' + extOk + ' · envOk=' + envOk);
     return original;
   }
+  // ⭐ 预算按体积分档：大文件读盘 + 解析本身就要几秒，统一 4s 会让它们「必超时回退」。
+  //    小文件维持 4s（不改变既有行为）；>60MB 给 12s（代价：抽不出时最多多等 8s 才回退，
+  //    而抽出来能省下 60~100MB 的上传时间，完全值得）。
+  const budgetMs = sizeMB > 60 ? 12000 : 4000;
   const fs = wx.getFileSystemManager(), started = Date.now();
   let ended = false, timer, outputPath = '';
   let why = 'demux 不支持该封装'; // 抽取未成功的原因（诊断：开发者工具可见）
@@ -201,13 +212,15 @@ async function prepare(input, alive = () => true) {
     // ⭐⭐ 2026-10-12 三改：预算 2.5s → 4s，与 60MB 上限**必须同步**。
     //    否则会出现「上限放开了、却因预算不够总超时回退」→ 白等一场、收益归零。
     //    代价：抽不出的文件最多多等 1.5s 才回退（离开页面有 alive() 兜底，不会干等）。
-    timer = setTimeout(() => { why = '超过 4s 预算'; finish(original); }, 4000);
+    // ⭐ 2026-10-15 四改：上面的写死 4s 改为 budgetMs 分档（小文件仍是 4s，行为不变）。
+    //    0.625 / −200 这两个系数沿用原「4s 档 = 2500ms 内层预算、3800ms 成功判定」的比例。
+    timer = setTimeout(() => { why = '超过 ' + (budgetMs / 1000) + 's 预算'; finish(original); }, budgetMs);
     try {
       fs.readFile({ filePath: input.path, success(res) {
         if (ended || !alive()) { why = '页面已离开'; return finish(original); }
-        const audio = demux(res.data, Math.min(2500, Math.max(500, 4000 - (Date.now() - started))));
-        if (!audio || ended || !alive() || Date.now() - started > 3800) {
-          why = !audio ? 'demux 不支持该封装' : '超过 4s 预算';
+        const audio = demux(res.data, Math.min(budgetMs * 0.625, Math.max(500, budgetMs - (Date.now() - started))));
+        if (!audio || ended || !alive() || Date.now() - started > budgetMs - 200) {
+          why = !audio ? 'demux 不支持该封装' : '超过 ' + (budgetMs / 1000) + 's 预算';
           return finish(original);
         }
         outputPath = wx.env.USER_DATA_PATH + '/extract_audio_' + String(input.requestId).replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 80) + '.m4a';

@@ -24,5 +24,8 @@
   },
   "style": "v2",
   "lazyCodeLoading": "requiredComponents",
+  "networkTimeout": {
+    "uploadFile": 300000
+  },
   "sitemapLocation": "sitemap.json"
 }
