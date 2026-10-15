@@ -276,6 +276,31 @@ Page({
       return;
     }
 
+    // ⭐ 2026-10-15：调起微信支付**之前**，先让用户明确点头（与会员页同一套做法）。
+    //    ⚠️ 微信在 wx.requestVirtualPayment 内部自带「支付中…」「微信支付」两个过渡提示，
+    //       端上没有任何参数能关掉（详见 .workbuddy/memory/DETAIL-虚拟支付.md）。
+    //       加这道确认，是让那两个提示**只出现在用户已明确授权之后**。
+    const credits = Math.round(amount * pricing.CREDIT_PER_YUAN);
+    this.openDialog(
+      {
+        title: '确认充值',
+        content:
+          '充值 ¥' + amount + '，获得 ' + credits + ' 积分\n\n' +
+          '点「确认充值」后才会调起微信支付；在微信收银台完成付款前，不会扣款。',
+        confirmText: '确认充值',
+        cancelText: '再想想',
+        showCancel: true,
+      },
+      () => this.startPay(amount)
+    );
+  },
+
+  /**
+   * 真正下单并调起微信支付
+   * ⭐ **只允许由 pay() 的确认回调进入**：pay() 必须以"弹确认框"收尾，绝不能直接走到支付。
+   *    重构时务必保持这个边界（回归测试会守着）。
+   */
+  async startPay(amount) {
     tracker.track('recharge_pay_start', { amount });
 
     // 下单：服务端生成 signData 并签名（端上只负责原样透传，避免签名与报文不一致）
