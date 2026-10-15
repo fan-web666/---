@@ -1,5 +1,14 @@
 // Display snapshots are scoped to the authenticated account, never shared across users.
-function uid() { return ((getApp().globalData || {}).user || {})._id || ''; }
+//
+// ⚠️⚠️ 2026-10-15：改用 auth.localUid()，**不再直接依赖 globalData.user**。
+//   原因：缓存读取发生在页面 data 初始化 / 模块顶层，彼时 globalData.user 可能尚未就绪
+//   （冷启动 onLaunch 的恢复时机）→ 旧写法返回 '' → 与缓存里的 uid 不匹配 → **缓存被判定为
+//   「别的账号」而整体丢弃** → 每次冷启动进页面都是「先占位、后跳变」。
+//   localUid() 会在内存态未就绪时回落本地快照，任何时刻都能给出稳定标识。
+// ⚠️ 惰性 require：auth.js 顶层 require ./api，api.js 函数内 require 本模块，顶层 require 会成环。
+function uid() {
+  try { return require('./auth').localUid(); } catch (_) { return ''; }
+}
 function read(name) {
   try { const c = wx.getStorageSync('view_' + name); return uid() && c && c.uid === uid() ? c.data : null; } catch (_) { return null; }
 }

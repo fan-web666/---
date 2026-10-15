@@ -1,7 +1,8 @@
+const uiFeedback = require('../../utils/feedback');
 // pages/index/index.js - 首页 · 提取（蓝湖版）
 // 业务逻辑复用 Pixso 版（utils/auth、config/pricing、云函数 action 名不变）
 const pricing = require('../../config/pricing');
-const { refreshUser } = require('../../utils/auth');
+const { refreshUser, localUid } = require('../../utils/auth');
 const {
   toast,
   platformName,
@@ -30,17 +31,25 @@ const app = getApp();
    ✅ 缓存过期风险可接受：即便缓存值偏大，云端扣费仍会二次校验（权威始终在云端）。 */
 const VIPBAR_CACHE_KEY = 'idx_vipbar';
 
+/* ⚠️⚠️ 2026-10-15 修复「每次冷启动都跳显」：
+   归属判定原来取 `app.globalData.user._id` —— 而 `data` 初始化 / 本模块顶层执行时，
+   `globalData.user` 可能还没恢复（App.onLaunch 的 restoreUser 失败或时序靠后）
+   → 取到 '' → 与缓存里的 uid 不匹配 → 缓存被当成「别的账号」丢弃 → 首帧只能显示占位符。
+   改用 `auth.localUid()`（内存态未就绪时自动回落本地快照），任何时刻都能给出稳定标识。 */
 function readVipbarCache() {
   try {
     const c = wx.getStorageSync(VIPBAR_CACHE_KEY);
-    if (c && typeof c === 'object' && c.uid === ((app.globalData.user || {})._id || '')) return c;
+    const uid = localUid();
+    if (uid && c && typeof c === 'object' && c.uid === uid) return c;
   } catch (e) { /* 读失败 → 走默认空态 */ }
   return {};
 }
 
 function writeVipbarCache(patch) {
   try {
-    wx.setStorageSync(VIPBAR_CACHE_KEY, Object.assign(readVipbarCache(), patch, { uid: (app.globalData.user || {})._id || '' }));
+    const uid = localUid();
+    if (!uid) return; // 没有稳定身份就不写（避免写出 uid='' 的缓存被后续误命中）
+    wx.setStorageSync(VIPBAR_CACHE_KEY, Object.assign(readVipbarCache(), patch, { uid }));
   } catch (e) { /* 写失败不影响主流程 */ }
 }
 
@@ -306,7 +315,7 @@ Page({
   // 两条路径（链接 / 本地视频）共用同一份检查，避免只在其中一条上拦截
   precheckCredits() {
     if (this.data.member || this.data.balance > 0 || !app.globalData.cloudReady) return true;
-    wx.showModal({
+    uiFeedback.showModal({
       title: '积分不足',
       content: '当前积分为 0，先充值或开通会员后再提取。',
       confirmText: '去充值',
@@ -405,7 +414,7 @@ Page({
       const entered = extractUrl((this.data.url || '').trim()) || (this.data.url || '').trim();
       const nextUrl = /^https?:\/\//i.test(entered) ? entered : 'https://' + entered;
       if (isValidUrl(entered) && nextUrl !== v.url) {
-        wx.showModal({ title: '开始新的提取？', content: '上一视频已提取但尚未保存。继续将切换至新链接；上一视频的消耗记录仍可在「我的 · 积分与订单」查看。',
+        uiFeedback.showModal({ title: '开始新的提取？', content: '上一视频已提取但尚未保存。继续将切换至新链接；上一视频的消耗记录仍可在「我的 · 积分与订单」查看。',
           confirmText: '继续提取', cancelText: '先保存', success: r => { if (r.confirm) this.beginVideoJob(nextUrl, mode); else video.retry(); } });
       } else video.retry();
       return;

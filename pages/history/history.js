@@ -1,3 +1,4 @@
+const uiFeedback = require('../../utils/feedback');
 // pages/history/history.js - 历史记录（蓝湖稿 04copylibrary；页内标题 2026-09-27 由「文案库」改为「历史记录」）
 // 业务逻辑复用 Pixso 版（listCopywritings / getCopywriting / deleteCopywriting，action 名不变）
 const { call, handleError } = require('../../utils/api');
@@ -53,7 +54,11 @@ const FILTERS = [
 // 提取结果页要用同一套颜色（同一个 _id 两边必须同色），副本会漂移，故只留一份实现
 const PAGE_SIZE = 20;
 const HISTORY_CACHE = 'copy_history_view_v1';
-function owner() { return (app.globalData.user || {})._id || ''; }
+/* ⚠️⚠️ 2026-10-15：改用 `cache.uid()`（= auth.localUid，内存态未就绪时回落本地快照）。
+   原实现取 `app.globalData.user._id` —— 冷启动早期 globalData 尚未恢复，拿到 '' →
+   本页所有缓存（列表 + 封面）都被判成「换了账号」而丢弃 → 进历史页必然先空/占位、再跳变。
+   `owner()` 是本页归属判定的唯一入口，改这一处即可覆盖下方全部调用点。 */
+function owner() { return cache.uid(); }
 function readHistory() {
   try {
     const c = wx.getStorageSync(HISTORY_CACHE);
@@ -502,7 +507,7 @@ Page({
       const detail = await call('getCopywriting', { id });
       const text = (detail && (detail.transcript || detail.content)) || '';
       if (!text) return toast('这条还没有文案');
-      wx.setClipboardData({
+      uiFeedback.setClipboardData({
         data: text,
         success: () => toast('文案已复制', 'success'),
       });
@@ -526,7 +531,7 @@ Page({
     // 标题可能很长（列表里最多显示 2 行）→ 弹窗里截到 20 字，避免撑爆对话框
     const name = full.length > 20 ? full.slice(0, 20) + '…' : full;
 
-    wx.showModal({
+    uiFeedback.showModal({
       title: '删除这条记录？',
       // ⚠️ 2026-09-29 用户：「不给 7 天内可恢复的功能，实际也没做，取消这部分说明」
       //    移除「7 天内可恢复」承诺 —— 产品**没有恢复入口**，写了属于误导。
@@ -539,10 +544,10 @@ Page({
       cancelText: '取消',
       success: async (r) => {
         if (!r.confirm) return; // 取消 → 什么都不做
-        wx.showLoading({ title: '删除中', mask: true });
+        uiFeedback.showLoading({ title: '删除中', mask: true });
         try {
           await call('deleteCopywriting', { id });
-          wx.hideLoading();
+          uiFeedback.hideLoading();
           toast('已删除', 'success');
           tracker.track('history_delete');
           this._request++; // Do not let an older background response restore a deleted row.
@@ -552,7 +557,7 @@ Page({
           this.saveHistory();
           this.load(true, null, true);
         } catch (err) {
-          wx.hideLoading();
+          uiFeedback.hideLoading();
           handleError(err, '删除失败');
         }
       },

@@ -1,8 +1,9 @@
+const uiFeedback = require('../../utils/feedback');
 // pages/recharge/recharge.js - 充值积分（蓝湖稿 06recharge）
 // 业务逻辑复用 Pixso 版（utils/api、utils/auth、config/*、云函数 action 名不变）
 const pricing = require('../../config/pricing');
 const config = require('../../config/index');
-const { refreshUser } = require('../../utils/auth');
+const { refreshUser, localUid } = require('../../utils/auth');
 const { call, handleError } = require('../../utils/api');
 const { toast, thousands } = require('../../utils/util');
 const tracker = require('../../utils/tracker');
@@ -11,6 +12,33 @@ const app = getApp();
 
 // 虚拟支付是否已就绪（config/index.js 的 pay.enabled，前置条件见那里的注释）
 const PAY_READY = !!(config.pay && config.pay.enabled);
+
+/* ---------- 首帧缓存：余额（2026-10-15） ----------
+   用户：「进入各个页面的时候，界面的呈现都是稳定的状态」。
+   ⚠️ 本页原先把余额写死在 data（`balance: 0, balanceText: '—'`）→ 冷启动时 globalData.user
+      尚未恢复，`applyBalance` 直接 return → 首帧必是占位符，等 `refreshBalance()` 往返后才跳成真值。
+   做法与首页 VIP 栏一致：把上次的渲染结果同步落本地，data 初值直接取缓存。
+   归属判定用 `auth.localUid()`（内存态未就绪时回落本地快照）。 */
+const BALANCE_CACHE_KEY = 'recharge_balance';
+
+function readBalanceCache() {
+  try {
+    const c = wx.getStorageSync(BALANCE_CACHE_KEY);
+    const uid = localUid();
+    if (uid && c && typeof c === 'object' && c.uid === uid && typeof c.balance === 'number') return c;
+  } catch (e) { /* 读失败 → 走默认空态 */ }
+  return {};
+}
+
+function writeBalanceCache(patch) {
+  try {
+    const uid = localUid();
+    if (!uid) return;
+    wx.setStorageSync(BALANCE_CACHE_KEY, Object.assign({}, patch, { uid }));
+  } catch (e) { /* 写失败不影响主流程 */ }
+}
+
+const CACHED_BALANCE = readBalanceCache();
 
 /**
  * 取一个新鲜登录 code
@@ -45,8 +73,9 @@ Page({
     // 导航行右侧安全边距 rpx（避让微信胶囊，app.js 按真机算好；196 为兜底）
     navSafeRightRpx: 196,
 
-    balance: 0,
-    balanceText: '—',
+    // ⚠️ 初值取上次已知值缓存（见文件上方说明），**不写死 0 / '—'** —— 否则冷启动首帧必闪
+    balance: CACHED_BALANCE.balance || 0,
+    balanceText: CACHED_BALANCE.balanceText || '—',
 
     // 设计稿 .text_6「1 元 = 20 积分」
     rate: pricing.CREDIT_PER_YUAN,
@@ -107,6 +136,7 @@ Page({
     if (!user) return;
     const balance = (user.credits && user.credits.balance) || 0;
     const balanceText = thousands(balance);
+    writeBalanceCache({ balance, balanceText }); // 写回缓存 → 下次进页面首帧即为正确值
     if (balance !== this.data.balance || balanceText !== this.data.balanceText) this.setData({ balance, balanceText });
   },
 
@@ -251,12 +281,12 @@ Page({
     // 下单：服务端生成 signData 并签名（端上只负责原样透传，避免签名与报文不一致）
     let order = null;
     try {
-      wx.showLoading({ title: '下单中', mask: true });
+      uiFeedback.showLoading({ title: '下单中', mask: true });
       const code = await loginCode();
       order = await call('createRechargeOrder', { amount, code });
-      wx.hideLoading();
+      uiFeedback.hideLoading();
     } catch (e) {
-      wx.hideLoading();
+      uiFeedback.hideLoading();
       return handleError(e, '下单失败，请稍后重试');
     }
 
@@ -287,7 +317,7 @@ Page({
    *    由服务端查单确认后发货（幂等）。查单 + 微信推送两条通道，任一先到都会到账。
    */
   async confirmArrival(order) {
-    wx.showLoading({ title: '确认到账中', mask: true });
+    uiFeedback.showLoading({ title: '确认到账中', mask: true });
     let delivered = false;
     try {
       for (let i = 0; i < 5 && !delivered; i++) {
@@ -299,12 +329,12 @@ Page({
     } catch (e) {
       // 确认失败不影响资金安全：微信推送通道仍会在后台补发货
     }
-    wx.hideLoading();
+    uiFeedback.hideLoading();
 
     if (delivered) {
       toast('充值成功', 'success');
     } else {
-      wx.showModal({
+      uiFeedback.showModal({
         title: '支付结果确认中',
         content: '已收到你的支付，积分正在到账。若稍后仍未更新，退出小程序重新进入即可。',
         showCancel: false,

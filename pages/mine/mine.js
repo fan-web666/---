@@ -1,3 +1,4 @@
+const uiFeedback = require('../../utils/feedback');
 // pages/mine/mine.js - 「我的」（用户 2026-09-26 提供新设计截图，整页重构）
 // ────────────────────────────────────────────────────────────────────────────
 // 数据来源：
@@ -10,7 +11,7 @@
 const config = require('../../config/index');
 const pricing = require('../../config/pricing');
 const { call } = require('../../utils/api');
-const { refreshUser } = require('../../utils/auth');
+const { refreshUser, localUid } = require('../../utils/auth');
 const {
   toast,
   thousands,
@@ -80,10 +81,14 @@ const PROFILE_TIP_KEY = 'profile_tip_shown';
       旧缓存里的 `monthText` 会被忽略、回落 `'—'`（首帧短暂占位，云端回来即覆盖，可接受）。 */
 const MINE_CACHE_KEY = 'mine_view';
 
+/* ⚠️⚠️ 2026-10-15：归属判定改用 `auth.localUid()`，不再直接取 `app.globalData.user._id`。
+   原因同首页 VIP 栏：`data` 初始化时 globalData.user 可能尚未恢复 → 取到 '' → 缓存被判成
+   「别的账号」而丢弃 → 冷启动每次都是「先占位、后跳变」。localUid() 会回落本地快照。 */
 function readMineCache() {
   try {
     const c = wx.getStorageSync(MINE_CACHE_KEY);
-    return c && typeof c === 'object' && c.uid === ((app.globalData.user || {})._id || '') ? c : {};
+    const uid = localUid();
+    return uid && c && typeof c === 'object' && c.uid === uid ? c : {};
   } catch (e) {
     return {};
   }
@@ -91,7 +96,9 @@ function readMineCache() {
 
 function writeMineCache(patch) {
   try {
-    wx.setStorageSync(MINE_CACHE_KEY, Object.assign(readMineCache(), patch, { uid: (app.globalData.user || {})._id || '' }));
+    const uid = localUid();
+    if (!uid) return; // 没有稳定身份就不写
+    wx.setStorageSync(MINE_CACHE_KEY, Object.assign(readMineCache(), patch, { uid }));
   } catch (e) {
     /* 写失败不影响本次会话（data 里已经更新过了） */
   }
@@ -304,7 +311,7 @@ Page({
       this.applyUser(this._redeemedUser);
       dashboard.refresh(true);
       this.setData({ friendPopup: false });
-      wx.showModal({ title: result.status === 'already_redeemed' ? '你已兑换过' : '10000积分已到账',
+      uiFeedback.showModal({ title: result.status === 'already_redeemed' ? '你已兑换过' : '10000积分已到账',
         content: result.status === 'already_redeemed' ? '你已领取亲友赠送积分，无需重复兑换。积分永久有效。' : '已加入你的积分余额，可用于视频和文案提取，积分永久有效。', showCancel: false });
     } catch (e) {
       if (e.code === 409) this.setData({ friendFull: true });
@@ -361,9 +368,9 @@ Page({
   copyUserCode() {
     const code = this.data.userCode;
     if (!code) return;
-    wx.setClipboardData({
+    uiFeedback.setClipboardData({
       data: code,
-      success: () => wx.showToast({ title: '编号已复制', icon: 'none' }),
+      success: () => uiFeedback.showToast({ title: '编号已复制', icon: 'none' }),
       fail: () => {},
     });
   },
@@ -527,7 +534,7 @@ Page({
   },
 
   onCopyWechat() {
-    wx.setClipboardData({
+    uiFeedback.setClipboardData({
       data: this.data.devWechat,
       success: () => {
         this.setData({ wechatPopup: false });
@@ -628,7 +635,8 @@ function uploadAvatar(filePath) {
       return;
     }
     const ext = (String(filePath).match(/\.[a-zA-Z0-9]+$/) || ['.jpg'])[0];
-    const uid = (app.globalData.user && app.globalData.user._id) || 'u';
+    // 云存储文件名主干用稳定身份（localUid 会回落本地快照，冷启动也拿得到）
+    const uid = localUid() || 'u';
     wx.cloud.uploadFile({
       cloudPath: 'avatars/' + uid + '_' + Date.now() + ext,
       filePath,

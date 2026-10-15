@@ -1,8 +1,9 @@
+const uiFeedback = require('../../utils/feedback');
 // pages/member/member.js - 会员中心（蓝湖稿 07membership）
 // 业务逻辑复用 Pixso 版（utils/api、utils/auth、config/*、云函数 action 名不变）
 const pricing = require('../../config/pricing');
 const config = require('../../config/index');
-const { refreshUser } = require('../../utils/auth');
+const { refreshUser, localUid } = require('../../utils/auth');
 const { call, handleError } = require('../../utils/api');
 const { toast, membershipInfo } = require('../../utils/util');
 const tracker = require('../../utils/tracker');
@@ -11,6 +12,34 @@ const app = getApp();
 
 // 虚拟支付就绪开关（与充值页一致，读同一个 config 字段）
 const PAY_READY = !!(config.pay && config.pay.enabled);
+
+/* ---------- 首帧缓存：会员态（2026-10-15） ----------
+   用户：「进入各个页面的时候，界面的呈现都是稳定的状态」。
+   ⚠️ 本页头卡是「拉新文案 / 会员额度」两套完全不同的文案，原先写死拉新态 →
+      冷启动时 globalData.user 尚未恢复，`applyMember` 直接 return → 首帧必显示"非会员"，
+      云端回来后「非会员文案 → 会员文案」整块跳变，观感比占位符更突兀。
+   做法：缓存上次的**渲染结果**（各文案字段），data 初值直接取缓存。
+   归属判定用 `auth.localUid()`（内存态未就绪时回落本地快照）。 */
+const MEMBER_CACHE_KEY = 'member_view';
+
+function readMemberCache() {
+  try {
+    const c = wx.getStorageSync(MEMBER_CACHE_KEY);
+    const uid = localUid();
+    if (uid && c && typeof c === 'object' && c.uid === uid) return c;
+  } catch (e) { /* 读失败 → 走默认拉新态 */ }
+  return {};
+}
+
+function writeMemberCache(patch) {
+  try {
+    const uid = localUid();
+    if (!uid) return;
+    wx.setStorageSync(MEMBER_CACHE_KEY, Object.assign(readMemberCache(), patch, { uid }));
+  } catch (e) { /* 写失败不影响主流程 */ }
+}
+
+const CACHED_MEMBER = readMemberCache();
 
 /** 取一个新鲜登录 code（服务端换会话密钥用，避开 -15007 会话过期） */
 function loginCode() {
@@ -58,9 +87,10 @@ Page({
     navSafeRightRpx: 196,
 
     // 头卡（.group_1）文案：非会员 = 设计稿原话；会员 = 额度状态
-    heroTag: '高频用户更划算',
-    heroTitle: '每次灵感，都能及时收藏',
-    heroSub: '会员额度内提取不扣积分',
+    // ⚠️ 初值取上次已知值缓存（见文件上方说明），**不写死拉新文案** —— 否则冷启动首帧必「先拉新、后会员」
+    heroTag: CACHED_MEMBER.heroTag || '高频用户更划算',
+    heroTitle: CACHED_MEMBER.heroTitle || '每次灵感，都能及时收藏',
+    heroSub: CACHED_MEMBER.heroSub || '会员额度内提取不扣积分',
 
     // 4 档（设计稿 3 档 + 用户要求补的年卡）
     planMonth: {},
@@ -69,9 +99,10 @@ Page({
     planUnlimited: {},
     selectedPlan: 'vip_year',
 
-    isMember: false,
+    isMember: !!CACHED_MEMBER.isMember,
     // 设计稿 .text_28：「开通 ¥68 · 年卡」/ 会员时「一键续费 ¥68 · 年卡」
-    payText: '开通 ¥68 · 年卡',
+    //（onLoad 的 syncPayText 会按当前档位重算，缓存只负责首帧不跳变）
+    payText: CACHED_MEMBER.payText || '开通 ¥68 · 年卡',
 
     // x-dialog 说明弹窗的统一状态（2026-09-27：替代原生 wx.showModal —— 原生正文对齐不可控）
     dlg: { show: false, title: '', content: '', confirmText: '知道了', cancelText: '', showCancel: false },
@@ -146,22 +177,22 @@ Page({
       const plan = planOf(this.data.selectedPlan);
 
       // 节点不变，只换文案（设计稿画的是拉新态，会员态换成额度展示）
-      this.setData(
-        {
-          isMember,
-          payText: (isMember ? '一键续费 ' : '开通 ') + plan.priceText + ' · ' + (SHORT[plan.id] || plan.name),
-          heroTag: isMember ? '会员生效中' : '高频用户更划算',
-          heroTitle: isMember
-            ? mem.tierText + ' · ' + (mem.daysText || '生效中')
-            : '每次灵感，都能及时收藏',
-          // 不限次档的 quota 是 null（与「未开通」同为 null）→ 必须靠 mem.unlimited 区分
-          heroSub: isMember
-            ? mem.unlimited
-              ? '不限次提取，额度内不扣积分'
-              : '剩余 ' + mem.remaining + ' / ' + mem.total + ' 次额度'
-            : '会员额度内提取不扣积分',
-        }
-      );
+      const patch = {
+        isMember,
+        payText: (isMember ? '一键续费 ' : '开通 ') + plan.priceText + ' · ' + (SHORT[plan.id] || plan.name),
+        heroTag: isMember ? '会员生效中' : '高频用户更划算',
+        heroTitle: isMember
+          ? mem.tierText + ' · ' + (mem.daysText || '生效中')
+          : '每次灵感，都能及时收藏',
+        // 不限次档的 quota 是 null（与「未开通」同为 null）→ 必须靠 mem.unlimited 区分
+        heroSub: isMember
+          ? mem.unlimited
+            ? '不限次提取，额度内不扣积分'
+            : '剩余 ' + mem.remaining + ' / ' + mem.total + ' 次额度'
+          : '会员额度内提取不扣积分',
+      };
+      writeMemberCache(patch); // 写回缓存 → 下次进页面首帧即为正确态（不写的话冷启动必「先拉新、后会员」）
+      this.setData(patch);
   },
 
   /* ---------- 通用说明弹窗（x-dialog） ----------
@@ -240,12 +271,12 @@ Page({
 
     let order = null;
     try {
-      wx.showLoading({ title: '下单中', mask: true });
+      uiFeedback.showLoading({ title: '下单中', mask: true });
       const code = await loginCode();
       order = await call('createMemberOrder', { plan_id: plan.id, code });
-      wx.hideLoading();
+      uiFeedback.hideLoading();
     } catch (e) {
-      wx.hideLoading();
+      uiFeedback.hideLoading();
       return handleError(e, '下单失败，请稍后重试');
     }
 
@@ -275,7 +306,7 @@ Page({
    * ⭐ 同充值页：端上 success 只当作「去问服务端」的信号，实际开通由服务端查单确认后执行。
    */
   async confirmArrival(order) {
-    wx.showLoading({ title: '确认开通中', mask: true });
+    uiFeedback.showLoading({ title: '确认开通中', mask: true });
     let delivered = false;
     try {
       for (let i = 0; i < 5 && !delivered; i++) {
@@ -287,12 +318,12 @@ Page({
     } catch (e) {
       // 确认失败不影响资金安全：微信推送通道仍会在后台补发货
     }
-    wx.hideLoading();
+    uiFeedback.hideLoading();
 
     if (delivered) {
       toast('开通成功', 'success');
     } else {
-      wx.showModal({
+      uiFeedback.showModal({
         title: '支付结果确认中',
         content: '已收到你的支付，会员权益正在开通。若稍后仍未生效，退出小程序重新进入即可。',
         showCancel: false,

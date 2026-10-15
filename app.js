@@ -22,7 +22,8 @@ App({
 
   onLaunch(options) {
     // Restore the last confirmed identity synchronously, before page modules read their caches.
-    restoreUser();
+    // ⚠️ 必须传 this：App() 内调 getApp() 不保证可用（见 utils/auth.js#restoreUser 的事故说明）
+    restoreUser(this);
     referralEntry.capture(options);
     this.initCloud();
     this.fetchSystemInfo();
