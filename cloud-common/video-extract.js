@@ -85,7 +85,7 @@ async function start(user, event) {
         throw new Error('已有视频正在提取，请完成当前任务后再试');
       }
     }
-    const check = settleDecision(fresh, 1);
+    const check = settleDecision(fresh, 1, 'video');
     if (!check.ok) throw new Error(check.msg);
     const task = { uid: user._id, source_url: url, source_platform: platform, extract_kind: 'video', status: 'video_pending',
       video_stage: 'resolve', charged: false, created_at: new Date(), updated_at: new Date() };
@@ -104,7 +104,7 @@ async function finish(user, id, token, fileId, seconds) {
     if (Date.now() - new Date(task.created_at).getTime() > 600000) throw new Error('视频提取超时，未扣除视频积分，请重新提取');
     if (task.charged) { await tx.rollback(); return task; }
     const u = (await tx.collection('users').doc(user._id).get()).data;
-    const r = settleDecision(u, seconds);
+    const r = settleDecision(u, seconds, 'video');
     if (!r.ok) throw new Error(r.msg);
     const d = r.decision, patch = { last_active_at: new Date() };
     if (u.video_active_task === id) patch.video_active_task = '';

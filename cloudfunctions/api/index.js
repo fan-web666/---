@@ -1493,13 +1493,16 @@ async function createRechargeOrder(user, { amount, code }) {
 
 /**
  * 会员下单（**道具模式** short_series_goods）
- * ⚠️ MP 后台「道具管理」里必须有 4 个道具，ID 与 MEMBER_PLANS 的键一致
+ * ⚠️ MP 后台「道具管理」里原本配了 4 个道具，ID 与 MEMBER_PLANS 的键一致
  *    （vip_month / vip_quarter / vip_year / vip_unlimited），
  *    且道具价格（分）必须与 priceCents 完全一致，否则下单报 -15013。
+ *    ⭐ 2026-10-15：vip_unlimited 已**下架**（详情见 consts.js#MEMBER_PLANS），
+ *       后台道具可以留着不动（存量用户还认它），但**新购一律在这里拦掉**。
  */
 async function createMemberOrder(user, { plan_id, code }) {
   const plan = MEMBER_PLANS[plan_id];
   if (!plan) throw { code: 2, msg: '套餐不存在' };
+  if (plan.offShelf) throw { code: 2, msg: '该套餐已下架，请选择月卡 / 季卡 / 年卡' };
   const sessionKey = await precheckPay(user, { code });
 
   const outTradeNo = vpay.genOutTradeNo('MB');

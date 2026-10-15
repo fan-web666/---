@@ -63,7 +63,7 @@
       </view>
       <view class="text-wrapper_13-1 flex-row">
         <view class="text_26-1">✓</view>
-        <view class="text_27-1">短视频 ≤10 分钟仅扣 {{basicCost}} 积分</view>
+        <view class="text_27-1">视频每 15 分钟、文案每 3 分钟各扣 {{creditPerUnit}} 积分</view>
       </view>
     </view>
     <view class="text-wrapper_14 flex-row x-tap" bindtap="pay">

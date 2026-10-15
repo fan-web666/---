@@ -36,15 +36,22 @@ const MEMBER_TIERS = {
 };
 
 // 会员档位：price 分、durationDays、额度；unlimited 无额度
-// ⚠️ 2026-10-15 额度上调（月 60→80 / 季 180→240 / 年 720→800），**价格一分没动**
-//    ⇒ 微信后台已发布的 4 个会员道具（¥9.9 / ¥25 / ¥68 / ¥19.9）**无需重新发布**。
+// ⚠️ 2026-10-15 定价体系重构：**价格一分没动**（¥9.9 / ¥25 / ¥68 / ¥19.9 全部不变）
+//    ⇒ 微信后台已发布的虚拟支付道具**无需重新发布**，这次改的只是「额度」。
+//    额度依据 = 新计费单位（文案每 3 分钟 1 单位 / 视频每 15 分钟 1 单位）＋ 守「售价 ≥ 2.5 倍成本」：
+//      月 ¥9.9 → 60 单位（¥0.165/单位）｜季 ¥25 → 150（¥0.167）｜年 ¥68 → 400（¥0.170）
+//    ⚠️ 老用户**存量额度不受影响**（额度只在购买/续费时按当时口径发放）。
 //    quotaMonthly 是「月均」口径，仅为展示与旧数据兼容，**不参与扣减**（扣减只认 quotaTotal / quota.remaining）。
-//    单次成本 = priceCents/100 ÷ quotaTotal（月 ¥0.124 / 季 ¥0.104 / 年 ¥0.085），端上按同一公式现算，不另存常量。
 const MEMBER_PLANS = {
-  vip_month: { id: 'vip_month', tier: MEMBER_TIERS.MONTHLY, priceCents: 990, durationDays: 30, quotaMonthly: 80, quotaTotal: 80, unlimited: false },
-  vip_quarter: { id: 'vip_quarter', tier: MEMBER_TIERS.QUARTERLY, priceCents: 2500, durationDays: 90, quotaMonthly: 80, quotaTotal: 240, unlimited: false },
-  vip_year: { id: 'vip_year', tier: MEMBER_TIERS.YEARLY, priceCents: 6800, durationDays: 365, quotaMonthly: 67, quotaTotal: 800, unlimited: false },
-  vip_unlimited: { id: 'vip_unlimited', tier: MEMBER_TIERS.UNLIMITED, priceCents: 1990, durationDays: 30, unlimited: true },
+  vip_month: { id: 'vip_month', tier: MEMBER_TIERS.MONTHLY, priceCents: 990, durationDays: 30, quotaMonthly: 60, quotaTotal: 60, unlimited: false },
+  vip_quarter: { id: 'vip_quarter', tier: MEMBER_TIERS.QUARTERLY, priceCents: 2500, durationDays: 90, quotaMonthly: 50, quotaTotal: 150, unlimited: false },
+  vip_year: { id: 'vip_year', tier: MEMBER_TIERS.YEARLY, priceCents: 6800, durationDays: 365, quotaMonthly: 33, quotaTotal: 400, unlimited: false },
+  // ⭐ 不限次档 2026-10-15 用户决定**下架**：¥19.9 覆盖不了重度用户成本
+  //    （30 分钟文案单次成本 ¥0.45，一天 10 次就是 ¥4.5/天）。保留定义只为两件事：
+  //    ① 存量已购用户的权益判定（自然到期为止）；② 端上按 offShelf 隐藏。
+  //    ⚠️ 不许再卖出 —— 下单入口 api/index.js#createMemberOrder 校验 offShelf 并抛错；
+  //    ❗ 回调发货链路（order.js#deliverOrder）**故意不拦**：用户已付款必须发货，拦了等于吞钱。
+  vip_unlimited: { id: 'vip_unlimited', tier: MEMBER_TIERS.UNLIMITED, priceCents: 1990, durationDays: 30, unlimited: true, offShelf: true },
 };
 
 // 充值档位：amountCents / credits
@@ -70,9 +77,17 @@ const CREDIT_PER_YUAN = 30;
 const CUSTOM_MIN_YUAN = 1;
 const CUSTOM_MAX_YUAN = 200;
 
-// 非会员单次解析消耗（时长阶梯）
-const CREDIT_BASIC = 5; //  ≤10min
-const CREDIT_DOUBLE = 10; // 10~30min
+// ⭐⭐⭐ 计费模型（2026-10-15 用户定稿：视频提取与文案提取**分开计费**）
+//   规则一句话：视频「每 15 分钟 1 单位」，文案「每 3 分钟 1 单位」，两样都要就**相加**。
+//   为什么粒度不同（是成本结构决定的，不是拍脑袋）：
+//     · 视频提取只取源 + 存云存储 + CDN，成本 ≈ 0.012 + 0.003T 元；
+//     · 文案提取还要跑 ASR（**按音频秒数计费**）+ LLM 整理，成本 ≈ 0.016 + 0.0145T 元；
+//     文案成本随时长涨得快 5 倍 ⇒ 同一个粒度必然一边过收、一边亏本。
+//   1 单位 = 5 积分（非会员）＝ 1 次会员额度；1 元 = 30 积分。
+//   ⚠️ 时长由「扣费前读 MP4 头 1MB」得到（providers.js#probeDuration）；探测失败传 0 → 按最低档兜底。
+const UNIT_TEXT_SEC = 3 * 60; // 文案：每 3 分钟 1 单位（≤30 分钟 → 最多 10 单位）
+const UNIT_VIDEO_SEC = 15 * 60; // 视频：每 15 分钟 1 单位（≤30 分钟 → 最多 2 单位）
+const CREDIT_PER_UNIT = 5; // 1 单位 = 5 积分（非会员）
 const MAX_DURATION_SEC = 30 * 60; //  >30min 拒绝
 const MAX_FILE_SIZE_BYTES = 100 * 1024 * 1024; // ≤100MB（PRD 6.3）
 const MAX_USER_CONCURRENT = 3; // 单用户同时 ≤3 个任务
@@ -84,23 +99,47 @@ const RENEW_REMIND_DAYS = [3, 1];
 const DUP_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 /**
- * 按视频时长算扣费档（PRD v0.3.8 时长阶梯）
- *
- * ⚠️⭐ 返回的两个字段是**两条独立口径，别想当然联动**：
- *   · creditCost —— 非会员的**积分**，按时长阶梯扣 5 / 10（用户明确「保持不变」）；
- *   · quotaUnits —— 会员的**次数额度**。2026-10-15 用户定：**长短视频统一算 1 次**
- *     （原来是「长视频计 2 次」，已废除）。视频提取与文案提取是两个独立任务、各扣一次
- *     ⇒ 「同一条链接视频+文案都要」＝2 次，与时长无关。
- *
- * @returns {{allowed:boolean, level:'basic'|'double'|'reject', creditCost:number, quotaUnits:number}}
+ * 时长 → 单位数（不足 1 个单位按 1 个单位；时长未知返回 1 = 最低档）
+ * @param {number} durationSec 秒；0 = 未知
+ * @param {'text'|'video'} kind
  */
-function computeCost(durationSec) {
+function unitsFor(durationSec, kind) {
   const sec = Number(durationSec) || 0;
-  if (sec <= 0) return { allowed: true, level: 'basic', creditCost: CREDIT_BASIC, quotaUnits: 1 };
-  if (sec <= 10 * 60) return { allowed: true, level: 'basic', creditCost: CREDIT_BASIC, quotaUnits: 1 };
-  // 长视频（10~30 分钟）：积分仍按阶梯扣 10，但会员额度同样只算 1 次
-  if (sec <= MAX_DURATION_SEC) return { allowed: true, level: 'double', creditCost: CREDIT_DOUBLE, quotaUnits: 1 };
-  return { allowed: false, level: 'reject', creditCost: 0, quotaUnits: 0 };
+  const per = kind === 'video' ? UNIT_VIDEO_SEC : UNIT_TEXT_SEC;
+  if (!(sec > 0)) return 1;
+  return Math.max(1, Math.ceil(sec / per));
+}
+
+/**
+ * 按「提取什么 + 时长」算扣费档
+ *
+ * ⭐ 视频提取与文案提取是**两个独立任务**（tasks.extract_kind = 'video' / 'text'）：
+ *    同一条链接两样都要 → 建两个任务、各扣一次，天然就是「相加」，故这里不需要 kind='both'。
+ *
+ * @param {number} durationSec 秒；0 = 时长未知（探测失败 → 按最低档）
+ * @param {'text'|'video'} kind 提取类型；⚠️ 缺省按 'text'（历史调用方都是文案链路）
+ * @returns {{allowed:boolean, level:'basic'|'multi'|'reject', kind:string, units:number,
+ *            videoUnits:number, textUnits:number, creditCost:number, quotaUnits:number}}
+ *   creditCost —— 非会员扣的**积分**（单位数 × 5）
+ *   quotaUnits —— 会员扣的**次数额度**（＝单位数）；与积分是两条独立口径，别联动
+ */
+function computeCost(durationSec, kind) {
+  const k = kind === 'video' ? 'video' : 'text';
+  const sec = Number(durationSec) || 0;
+  if (sec > MAX_DURATION_SEC) {
+    return { allowed: false, level: 'reject', kind: k, units: 0, videoUnits: 0, textUnits: 0, creditCost: 0, quotaUnits: 0 };
+  }
+  const units = unitsFor(sec, k);
+  return {
+    allowed: true,
+    level: units > 1 ? 'multi' : 'basic',
+    kind: k,
+    units,
+    videoUnits: k === 'video' ? units : 0,
+    textUnits: k === 'text' ? units : 0,
+    creditCost: units * CREDIT_PER_UNIT,
+    quotaUnits: units,
+  };
 }
 
 module.exports = {
@@ -113,12 +152,14 @@ module.exports = {
   CREDIT_PER_YUAN,
   CUSTOM_MIN_YUAN,
   CUSTOM_MAX_YUAN,
-  CREDIT_BASIC,
-  CREDIT_DOUBLE,
+  UNIT_TEXT_SEC,
+  UNIT_VIDEO_SEC,
+  CREDIT_PER_UNIT,
   MAX_DURATION_SEC,
   MAX_FILE_SIZE_BYTES,
   MAX_USER_CONCURRENT,
   RENEW_REMIND_DAYS,
   DUP_WINDOW_MS,
+  unitsFor,
   computeCost,
 };

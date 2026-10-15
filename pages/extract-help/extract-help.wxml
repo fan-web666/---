@@ -23,10 +23,9 @@
       <view class="mode-help-card mode-fees">
         <text class="mode-help-title">积分与会员额度</text>
         <view class="mode-fee-row mode-fee-header"><text class="mode-fee-cell mode-fee-duration">时长</text><text class="mode-fee-cell">视频</text><text class="mode-fee-cell">文案</text><text class="mode-fee-cell">同时</text></view>
-        <view class="mode-fee-row"><text class="mode-fee-cell mode-fee-duration">≤10分钟</text><text class="mode-fee-cell">{{basic}}积分</text><text class="mode-fee-cell">{{basic}}积分</text><text class="mode-fee-cell mode-fee-total">{{bothBasic}}积分</text></view>
-        <view class="mode-fee-row"><view class="mode-fee-cell mode-fee-duration"><text>{{longDurationLabel}}</text><text class="mode-fee-duration-hint">最长30分钟</text></view><text class="mode-fee-cell">{{long}}积分</text><text class="mode-fee-cell">{{long}}积分</text><text class="mode-fee-cell mode-fee-total">{{bothLong}}积分</text></view>
-        <text class="mode-help-note">同时提取按两项积分叠加，会员分别核算。</text>
-        <text class="mode-help-note">会员按现有规则抵扣，超过30分钟暂不支持。</text>
+        <view class="mode-fee-row" wx:for="{{feeRows}}" wx:key="label"><text class="mode-fee-cell mode-fee-duration">{{item.label}}</text><text class="mode-fee-cell">{{item.video}}积分</text><text class="mode-fee-cell">{{item.text}}积分</text><text class="mode-fee-cell mode-fee-total">{{item.both}}积分</text></view>
+        <text class="mode-help-note">{{unitText}}</text>
+        <text class="mode-help-note">{{memberText}}</text>
       </view>
       <view class="mode-help-card mode-records"><text class="mode-help-title">视频记录在哪里看？</text><text class="mode-help-description">我的 → 积分与订单 → 积分消耗明细
 视频不入历史，文案照常保存在历史素材库。</text></view>

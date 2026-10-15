@@ -28,7 +28,8 @@ Page({
 
     modes: pricing.EXTRACT_MODES,
     languages: pricing.LANGUAGES,
-    basicCost: pricing.CREDIT_BASIC,
+    creditPerUnit: pricing.CREDIT_PER_UNIT,
+    unitText: '视频每 15 分钟 / 文案每 3 分钟',
 
     form: Object.assign({}, DEFAULT_FORM),
 

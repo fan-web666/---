@@ -69,6 +69,6 @@
         <view class="x-note-text">视频链接与提取结果仅保存在你的账号内，可随时删除</view>
       </view>
     </view>
-    <view class="x-foot-note">非会员单次提取扣 {{basicCost}} 积分（≤10 分钟）；会员额度内不扣积分</view>
+    <view class="x-foot-note">非会员按单位扣积分：{{unitText}}各扣 {{creditPerUnit}} 积分（不足按 1 次）；会员额度内不扣积分</view>
   </scroll-view>
 </view>

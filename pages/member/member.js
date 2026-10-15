@@ -65,25 +65,25 @@ const planOf = (id) => pricing.MEMBER_PLANS.find((p) => p.id === id) || {};
 const priceOnly = (id) => String(planOf(id).priceText || '').split('/')[0].trim();
 
 // 支付按钮里的档位简称（设计稿按钮宽 340rpx，文案要短）
+// ⚠️ vip_unlimited 已下架（2026-10-15），故不再需要简称
 const SHORT = {
   vip_month: '月卡',
   vip_quarter: '季卡',
   vip_year: '年卡',
-  vip_unlimited: '不限次',
 };
 
 /** 单次成本文本（形如 '¥0.124'）—— 一律由 pricing.unitPriceText 现算，不在这里写死数字 */
 const unitPrice = (id) => pricing.unitPriceText(planOf(id));
 
 const PLANS = {
-  // ⚠️ 2026-10-15 用户定稿：
-  //   ① 额度 60→80 / 180→240 / 720→800；
-  //   ② 卡面第二行由「平均 ¥X / 月」（月均成本）改为**单次成本**；
-  //   ③ 「结转」**有前提** —— 只有继续续费才生效，到期不续费一律清零，故月卡这行保留该前提。
-  month: { id: 'vip_month', tag: '轻量使用', unit: '/ 月', line1: '每月 80 次', line2: '单次 ' + unitPrice('vip_month') + ' · 续费可结转' },
-  year: { id: 'vip_year', tag: '推荐', unit: '/ 年', line1: '800 次额度', line2: '单次 ' + unitPrice('vip_year') },
-  quarter: { id: 'vip_quarter', name: '季度会员', line1: '240 次额度', line2: '单次 ' + unitPrice('vip_quarter') },
-  unlimited: { id: 'vip_unlimited', name: '不限次会员', line1: '30 天不限次', line2: '不扣积分' },
+  // ⚠️ 2026-10-15 定价体系重构：
+  //   ① 价格一分没动，只把额度改成 60 / 150 / 400（单位制：文案每 3 分钟 1 次、视频每 15 分钟 1 次）；
+  //   ② 卡面第二行是**单次成本**（现算），不是「月均 ¥X」；
+  //   ③ 「结转」**有前提** —— 只有继续续费才生效，到期不续费一律清零，故月卡这行保留该前提；
+  //   ④ 不限次档（¥19.9/月）**已下架**，卡面与档位映射都已移除。
+  month: { id: 'vip_month', tag: '轻量使用', unit: '/ 月', line1: '每月 60 次额度', line2: '单次 ' + unitPrice('vip_month') + ' · 续费可结转' },
+  year: { id: 'vip_year', tag: '推荐', unit: '/ 年', line1: '400 次额度', line2: '单次 ' + unitPrice('vip_year') },
+  quarter: { id: 'vip_quarter', name: '季度会员', line1: '150 次额度', line2: '单次 ' + unitPrice('vip_quarter') },
 };
 
 Page({
@@ -99,11 +99,10 @@ Page({
     heroTitle: CACHED_MEMBER.heroTitle || '每次灵感，都能及时收藏',
     heroSub: CACHED_MEMBER.heroSub || '会员额度内提取不扣积分',
 
-    // 4 档（设计稿 3 档 + 用户要求补的年卡）
+    // 3 档（设计稿 3 档 + 用户要求补的年卡；不限次档 2026-10-15 已下架）
     planMonth: {},
     planYear: {},
     planQuarter: {},
-    planUnlimited: {},
     selectedPlan: 'vip_year',
 
     isMember: !!CACHED_MEMBER.isMember,
@@ -118,7 +117,8 @@ Page({
   onLoad(options) {
     this.buildPlans();
     if (options && options.plan && planOf(options.plan).id) {
-      this.setData({ selectedPlan: options.plan });
+      // ⚠️ 只接受**在售档位**（vip_unlimited 已下架，历史卡片/链接可能还带着它）
+      if (pricing.MEMBER_PLANS.some((p) => p.id === options.plan)) this.setData({ selectedPlan: options.plan });
     }
     this.setData({
       statusBarH: app.globalData.navStatusH || 0,
@@ -141,7 +141,6 @@ Page({
       planMonth: withPrice(PLANS.month),
       planYear: withPrice(PLANS.year),
       planQuarter: withPrice(PLANS.quarter),
-      planUnlimited: withPrice(PLANS.unlimited),
     });
   },
 

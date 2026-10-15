@@ -1,4 +1,4 @@
-// _common/credit.js - 计费与额度核心（PRD 6.3：非会员按时长阶梯扣积分 / 会员额度制 / 不限次档）
+// _common/credit.js - 计费与额度核心（2026-10-15 单位制：视频每 15 分钟 1 单位 / 文案每 3 分钟 1 单位；会员额度制）
 // 所有扣减走服务端权威（不信任客户端上报），事务保证余额与流水一致
 const { db, cmd, COLL } = require('./db');
 const { computeCost, MAX_USER_CONCURRENT } = require('./consts');
@@ -10,28 +10,31 @@ function now() {
 /**
  * 解析任务预结算：判断该任务由什么"支付"
  * @param {object} user   users 文档
- * @param {number} durationSec 视频时长（秒）
+ * @param {number} durationSec 视频时长（秒）；0 = 未知（按最低档）
+ * @param {'text'|'video'} kind 提取类型 —— 2026-10-15 起视频/文案**分开计费**，见 consts.js#computeCost
  * @returns {{ok:boolean, reason?:string, msg?:string, decision?:object}}
- *   decision: { payType:'unlimited'|'quota'|'credit', creditCost, quotaUsed }
+ *   decision: { payType:'unlimited'|'quota'|'credit', creditCost, quotaUsed, kind, units, durationSec }
  */
-function settleDecision(user, durationSec) {
-  const cost = computeCost(durationSec);
+function settleDecision(user, durationSec, kind) {
+  const cost = computeCost(durationSec, kind);
   if (!cost.allowed) {
     return { ok: false, reason: 'too_long', msg: '视频超过 30 分钟暂不支持' };
   }
+  const base = { kind: cost.kind, units: cost.units, durationSec: Math.max(0, Math.round(Number(durationSec) || 0)) };
   const mem = user.membership || {};
   const isActive = mem.tier && mem.tier !== 'none' && mem.status === 'active';
 
   if (isActive && mem.tier === 'unlimited') {
-    return { ok: true, decision: { payType: 'unlimited', creditCost: 0, quotaUsed: 0 } };
+    // 下架档的存量用户：到期前权益不变（新购已在 api 侧拦住）
+    return { ok: true, decision: Object.assign({ payType: 'unlimited', creditCost: 0, quotaUsed: 0 }, base, { units: 0 }) };
   }
 
   if (isActive && mem.quota) {
-    // 限次档：额度内免费（⚠️ 2026-10-15 起长短视频**都算 1 次额度**），不足则回退积分
+    // 限次档：额度内免费（⚠️ 文案每 3 分钟 1 次 / 视频每 15 分钟 1 次），不足则回退积分
     if (mem.quota.remaining >= cost.quotaUnits) {
       return {
         ok: true,
-        decision: { payType: 'quota', creditCost: 0, quotaUsed: cost.quotaUnits },
+        decision: Object.assign({ payType: 'quota', creditCost: 0, quotaUsed: cost.quotaUnits }, base),
       };
     }
   }
@@ -41,24 +44,24 @@ function settleDecision(user, durationSec) {
   if (balance >= cost.creditCost) {
     return {
       ok: true,
-      decision: { payType: 'credit', creditCost: cost.creditCost, quotaUsed: 0 },
+      decision: Object.assign({ payType: 'credit', creditCost: cost.creditCost, quotaUsed: 0 }, base),
     };
   }
   return {
     ok: false,
     reason: 'insufficient',
-    msg: '积分不足，请先充值或开通会员（用得少就充值 5 元起，用得多就开会员 9.9/月 90 次或 19.9/月不限次）',
+    msg: '积分不足，请先充值或开通会员（用得少就充值 5 元起；用得多建议开会员：月卡 ¥9.9/60 次）',
   };
 }
 
 /** 事务执行结算（入队后真正扣减），返回 decision 持久化到 task */
-async function executeCharge(userId, durationSec) {
+async function executeCharge(userId, durationSec, kind) {
   const t = await db().startTransaction();
   try {
     const doc = await t.collection('users').doc(userId).get();
     const user = doc.data;
     if (!user) throw new Error('user_not_found');
-    const r = settleDecision(user, durationSec);
+    const r = settleDecision(user, durationSec, kind);
     if (!r.ok) {
       await t.rollback();
       return r; // {ok:false,...}
@@ -92,7 +95,8 @@ async function executeCharge(userId, durationSec) {
           after_balance: bal - d.creditCost,
           source: 'consume',
           ref_id: '',
-          note: '解析任务扣减（≤10min 5 / 10~30min 10）',
+          note: (d.kind === 'video' ? '视频提取' : '文案提取') + ' · ' + (d.units || 1) + ' 单位 · ' +
+            Math.max(0, Math.round(d.durationSec || 0)) + ' 秒',
           ts: now(),
         },
       });

@@ -500,7 +500,7 @@ Page({
         content:
           '① 视频号转发：先关注「' + this.data.accountName + '」，再把视频转发给它即可；\n' +
           '② 粘贴链接：支持视频号 / 抖音 / 快手 / 小红书 / B 站；\n' +
-          '③ 积分规则：' + pricing.CREDIT_BASIC + ' 积分可提取 1 条 ≤10 分钟视频，会员额度内不扣积分。',
+          '③ 积分规则：视频每 15 分钟 / 文案每 3 分钟各扣 ' + pricing.CREDIT_PER_UNIT + ' 积分，会员额度内不扣积分。',
         showCancel: false,
         confirmText: '知道了',
       });

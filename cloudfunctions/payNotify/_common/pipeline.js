@@ -295,8 +295,18 @@ async function stepResolve(task) {
   );
   const parseMs = Date.now() - t0;
 
-  // 时长：解析服务给了就用，没给不阻塞（按最低档计费）
-  const durationSec = resolved.durationSec || task.duration_sec || 0;
+  // ⭐ 时长：解析服务**不返回**（实测返回体里没有 duration 字段），必须自己探 ——
+  //   计费已改为按时长分档（文案每 3 分钟 1 单位 / 视频每 15 分钟 1 单位），不探就只能按最低档扣。
+  //   成本 = 一次 1MB Range 请求（实测 0.16~0.62s）；探不到回落最低档，**不阻断主链路**。
+  let probe = { sec: 0 };
+  if (resolved.url && !resolved.mock) {
+    try {
+      probe = await providers.probeDuration(resolved.url);
+    } catch (e) {
+      probe = { sec: 0, reason: (e && e.message) || 'throw' };
+    }
+  }
+  const durationSec = probe.sec || resolved.durationSec || task.duration_sec || 0;
 
   // 结算（严格幂等）
   // charged 三态：缺省/undefined = 未扣；'charging' = 正在扣（或扣费中途被打断）；true = 已扣。
@@ -310,7 +320,7 @@ async function stepResolve(task) {
     if (!(lock && lock.stats && lock.stats.updated)) {
       return { ok: false, reason: 'busy' };
     }
-    const chargeRes = await executeCharge(task.uid, durationSec);
+    const chargeRes = await executeCharge(task.uid, durationSec, 'text');
     if (!chargeRes.ok) {
       // 未扣成功 → 释放标记（任务随后会被标记失败，不会重试）
       await COLL
@@ -344,6 +354,12 @@ async function stepResolve(task) {
       parse_ms: parseMs,
       platform,
       duration_sec: durationSec,
+      // ⭐ 时长探测埋点（2026-10-15 新增）：用来盯「探到率」与耗时，探不到会退化成最低档
+      probe_sec: probe.sec || 0,
+      probe_from: probe.from || 'none',
+      probe_ms: probe.ms || 0,
+      probe_bytes: probe.bytes || 0,
+      probe_reason: probe.reason || '',
       has_subtitle: !!resolved.subtitle,
       has_subtitle_url: !!resolved.subtitleUrl,
     },

@@ -89,8 +89,9 @@ Page({
     customAmount: '',
     customCredits: 0,
 
-    // 设计稿 .text-wrapper_13-1「短视频 ≤10 分钟仅扣 N 积分」
-    basicCost: pricing.CREDIT_BASIC,
+    // 费率说明（原设计稿锚点 .text-wrapper_13-1「短视频 ≤10 分钟仅扣 N 积分」已随单位制废弃）
+    // ⚠️ 2026-10-15 计费改为单位制（视频每 15 分钟 / 文案每 3 分钟各 1 单位），文案已随之改写
+    creditPerUnit: pricing.CREDIT_PER_UNIT,
 
     payAmount: pricing.RECHARGE_DEFAULT,
 

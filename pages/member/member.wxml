@@ -72,20 +72,6 @@
         <view class="text_24">{{planQuarter.line2}}</view>
       </view>
     </view>
-    <view
-      class="group_8 x-plan-row flex-row x-tap {{selectedPlan === planUnlimited.id ? 'x-plan-on' : ''}}"
-      data-id="{{planUnlimited.id}}"
-      bindtap="pickPlan"
-    >
-      <view class="text-group_15 flex-col justify-between">
-        <view class="text_21">{{planUnlimited.name}}</view>
-        <view class="text_22">{{planUnlimited.line1}}</view>
-      </view>
-      <view class="text-group_16 flex-col justify-between">
-        <view class="text_23">{{planUnlimited.priceText}}</view>
-        <view class="text_24">{{planUnlimited.line2}}</view>
-      </view>
-    </view>
     <view class="text_25">会员权益</view>
     <view class="list_4 flex-col">
       <view class="text-wrapper_9-0 flex-row">

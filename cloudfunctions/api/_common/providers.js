@@ -2253,7 +2253,135 @@ function providerStatus() {
   };
 }
 
+/* ------------------------------------------------------------------ *
+ * ③ 时长探测（扣费前估价）—— 只读 MP4 头/尾 1MB 解 mvhd
+ * ------------------------------------------------------------------ */
+
+const PROBE_BYTES = 1024 * 1024;
+const PROBE_MAX = PROBE_BYTES + 64 * 1024; // 服务端忽略 Range 时，收满这点就主动断开
+
+/** 单次带 Range 的 GET：最多跟 3 跳重定向，收满 ~1MB 立刻断开（绝不把整片拖下来） */
+function rangedProbe(url, range, timeoutMs, hops) {
+  const depth = hops || 0;
+  return new Promise((resolve) => {
+    let u;
+    try {
+      u = new URL(url);
+    } catch (e) {
+      return resolve({ ok: false, reason: 'bad_url' });
+    }
+    const lib = u.protocol === 'http:' ? http : https;
+    let done = false;
+    const finish = (v) => {
+      if (done) return;
+      done = true;
+      resolve(v);
+    };
+    const req = lib.get(
+      {
+        hostname: u.hostname,
+        port: u.port || undefined,
+        path: u.pathname + u.search,
+        headers: { 'User-Agent': UA, Accept: '*/*', Range: range },
+        agent: agentFor(u),
+        timeout: timeoutMs,
+      },
+      (res) => {
+        const code = res.statusCode || 0;
+        if ([301, 302, 303, 307, 308].indexOf(code) >= 0 && res.headers.location && depth < 3) {
+          res.resume();
+          let next;
+          try {
+            next = new URL(res.headers.location, url).toString();
+          } catch (e) {
+            return finish({ ok: false, reason: 'bad_redirect' });
+          }
+          return rangedProbe(next, range, timeoutMs, depth + 1).then(finish);
+        }
+        if (code !== 200 && code !== 206) {
+          res.resume();
+          return finish({ ok: false, reason: 'HTTP ' + code });
+        }
+        const cr = String(res.headers['content-range'] || '').match(/^bytes (\d+)-(\d+)\/(\d+)$/);
+        const start = cr ? Number(cr[1]) : 0;
+        const total = cr ? Number(cr[3]) : Number(res.headers['content-length'] || 0) || 0;
+        const parts = [];
+        let got = 0;
+        const snap = () => ({ ok: true, code, buf: Buffer.concat(parts), start, total });
+        res.on('data', (c) => {
+          if (done) return;
+          parts.push(c);
+          got += c.length;
+          if (got >= PROBE_MAX) {
+            res.destroy();
+            finish(snap());
+          }
+        });
+        res.on('end', () => finish(snap()));
+        res.on('error', () => finish({ ok: false, reason: 'stream_error' }));
+      }
+    );
+    req.on('error', () => finish({ ok: false, reason: 'request_error' }));
+    req.on('timeout', () => {
+      req.destroy();
+      finish({ ok: false, reason: 'timeout' });
+    });
+  });
+}
+
+/**
+ * 探测媒体时长（**扣费前**估价用）。
+ *
+ * ⚠️ 为什么必须有它：2026-10-15 实测确认**解析服务返回体里没有时长字段**（线上 duration_sec 恒 0），
+ *    而计费已改为「文案每 3 分钟 1 单位 / 视频每 15 分钟 1 单位」——不探测就只能按最低档扣，
+ *    长内容必亏（30 分钟文案成本 ¥0.45 vs 最低档 ¥0.17）。
+ * 手法：只读 MP4 **头 1MB** 解 moov/mvhd（实测抖音/小红书/B站/视频号 **4/4 成功**，0.16~0.62s）；
+ *      头里没有 moov，再补一次**尾 1MB**（moov 在尾的那种封装）。
+ * ⚠️ 只用于估价/计费兜底：拿不到就返回 sec=0，由调用方按最低档处理，**绝不阻断主链路**。
+ * @param {string} url 视频直链，或 cloud:// 云文件 ID（本地视频）
+ * @returns {Promise<{sec:number, from:'head'|'tail'|'none', bytes:number, ms:number, reason?:string}>}
+ */
+async function probeDuration(url, opts) {
+  const o = opts || {};
+  const timeoutMs = o.timeoutMs || 8000;
+  const t0 = Date.now();
+  const src = String(url || '');
+  if (!src) return { sec: 0, from: 'none', bytes: 0, ms: 0, reason: 'empty' };
+
+  let target = src;
+  if (/^cloud:\/\//.test(src)) {
+    // 本地视频：云存储文件没有直链，换一个临时下载地址再探
+    try {
+      const cloud = require('wx-server-sdk');
+      const r = await cloud.getTempFileURL({ fileList: [src] });
+      const f = (r.fileList || [])[0] || {};
+      target = f.tempFileURL || f.tempFileUrl || '';
+    } catch (e) {
+      return { sec: 0, from: 'none', bytes: 0, ms: Date.now() - t0, reason: 'temp_url_fail' };
+    }
+    if (!target) return { sec: 0, from: 'none', bytes: 0, ms: Date.now() - t0, reason: 'temp_url_empty' };
+  }
+
+  const mp4 = require('./mp4-duration');
+  const head = await rangedProbe(target, 'bytes=0-' + (PROBE_BYTES - 1), timeoutMs, 0);
+  if (!head.ok) return { sec: 0, from: 'none', bytes: 0, ms: Date.now() - t0, reason: head.reason };
+  const headSec = mp4.fromBuffer(head.buf, head.start);
+  if (headSec > 0) return { sec: headSec, from: 'head', bytes: head.buf.length, ms: Date.now() - t0 };
+
+  if (head.total > head.buf.length) {
+    const tail = await rangedProbe(target, 'bytes=-' + PROBE_BYTES, timeoutMs, 0);
+    if (tail.ok) {
+      const tailSec = mp4.fromBuffer(tail.buf, tail.start);
+      if (tailSec > 0) {
+        return { sec: tailSec, from: 'tail', bytes: head.buf.length + tail.buf.length, ms: Date.now() - t0 };
+      }
+    }
+  }
+  return { sec: 0, from: 'none', bytes: head.buf.length, ms: Date.now() - t0, reason: 'no_mvhd' };
+}
+
 module.exports = {
+  probeDuration,
   env,
   envInt,
   useMock,
