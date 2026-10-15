@@ -396,7 +396,7 @@ justify-content:center
   right:0;
   bottom:0;
   left:0;
-background:rgba(32,33,44,.4)
+background:rgba(27,38,32,.36)
 }
 
 .x-wx-card,.x-modal-card {
@@ -512,24 +512,16 @@ line-height:1.6
  .x-avatar-def{background:#E8FAEF;}
 .friend-entry{position:relative;z-index:1;display:flex;align-items:center;gap:15.38rpx;padding-top:23.08rpx;margin-top:7.69rpx;min-height:53.85rpx;}
 .friend-entry-title{font-size:25rpx;font-weight:700;color:#1B2620;}.friend-entry-action{margin-left:auto;font-size:23.08rpx;color:#16854A;}
-/* 「我的编号」：用户可复制报给运营，用于后台精确定位（2026-10-14 新增） */
-.x-usercode-row{position:relative;z-index:1;display:flex;align-items:center;gap:14rpx;min-height:53.85rpx;margin-top:22rpx;padding-top:23.08rpx;border-top:1rpx solid #E8EEEA;}
-.x-usercode-label{font-size:25rpx;font-weight:700;color:#1B2620;}
-.x-usercode-value{font-size:25rpx;color:#4A5A50;font-family:Menlo,Consolas,monospace;letter-spacing:1rpx;}
-.x-usercode-copy{margin-left:auto;font-size:23.08rpx;color:#16854A;border:1rpx solid #16854A;border-radius:999rpx;padding:4rpx 18rpx;line-height:1.6;}
+/* Figma 235:101：编号置于资料区右上角，不占用独立一行。 */
+.x-usercode-row{position:absolute;top:30.77rpx;right:32rpx;z-index:2;display:flex;align-items:center;gap:3.85rpx;height:46.15rpx;}
+.x-usercode-value{font-size:19.23rpx;line-height:30.77rpx;font-weight:400;color:#758A80;white-space:nowrap;}
+.x-usercode-copy{display:flex;align-items:center;justify-content:center;width:46.15rpx;height:46.15rpx;flex-shrink:0;border-radius:8rpx;}
+.x-usercode-copy-icon{display:block;width:23.08rpx;height:23.08rpx;}
+.x-usercode-copy-pressed{background:rgba(117,138,128,.10);}
+.x-uname-row-with-code{padding-right:177rpx;}
 .x-nick-hint{font-size:21rpx;color:#8A9A90;margin-top:6rpx;}
-/* 「设置头像昵称」引导条（2026-10-14）：只在首次出现；它本身是 chooseAvatar 按钮，点一下直接弹微信头像选择 */
-.x-profile-tip{
-  position:relative;z-index:1;display:flex;align-items:center;gap:12rpx;
-  margin-top:20rpx;padding:16rpx 22rpx;
-  background:#EAF7F0;border:1rpx solid #CBE7D9;border-radius:14rpx;
-  line-height:normal;text-align:left;-webkit-appearance:none;
-}
-.x-profile-tip::after{border:none;}
-.x-profile-tip-text{flex:1;font-size:23.08rpx;color:#16854A;}
-.x-profile-tip-close{width:44rpx;height:44rpx;display:flex;align-items:center;justify-content:center;font-size:30rpx;color:#7C9A88;line-height:1;}
 .friend-modal{position:fixed;inset:0;z-index:1200;display:flex;align-items:center;justify-content:center;}
-.friend-mask{position:absolute;inset:0;background:rgba(27,38,32,.32);}
+.friend-mask{position:absolute;inset:0;background:rgba(27,38,32,.36);}
 .friend-card{position:relative;display:flex;flex-direction:column;gap:26.92rpx;width:634.62rpx;box-sizing:border-box;padding:46.15rpx;background:#fff;border-radius:53.85rpx;max-height:85vh;overflow-y:auto;}
 .friend-title{font-size:38.46rpx;font-weight:700;line-height:1.55;color:#1B2620;}.friend-description{font-size:25rpx;color:#79817D;line-height:1.55;}
 .friend-badge{padding:15.38rpx 23.08rpx;border-radius:23.08rpx;background:#E8FAEF;color:#16854A;font-size:23.08rpx;font-weight:700;}
