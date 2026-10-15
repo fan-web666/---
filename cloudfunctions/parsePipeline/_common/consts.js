@@ -36,13 +36,14 @@ const MEMBER_TIERS = {
 };
 
 // 会员档位：price 分、durationDays、额度；unlimited 无额度
-// ⚠️ 2026-10-15 额度上调（月 60→90 / 季 180→240 / 年 720→1000），**价格一分没动**
+// ⚠️ 2026-10-15 额度上调（月 60→80 / 季 180→240 / 年 720→800），**价格一分没动**
 //    ⇒ 微信后台已发布的 4 个会员道具（¥9.9 / ¥25 / ¥68 / ¥19.9）**无需重新发布**。
 //    quotaMonthly 是「月均」口径，仅为展示与旧数据兼容，**不参与扣减**（扣减只认 quotaTotal / quota.remaining）。
+//    单次成本 = priceCents/100 ÷ quotaTotal（月 ¥0.124 / 季 ¥0.104 / 年 ¥0.085），端上按同一公式现算，不另存常量。
 const MEMBER_PLANS = {
-  vip_month: { id: 'vip_month', tier: MEMBER_TIERS.MONTHLY, priceCents: 990, durationDays: 30, quotaMonthly: 90, quotaTotal: 90, unlimited: false },
+  vip_month: { id: 'vip_month', tier: MEMBER_TIERS.MONTHLY, priceCents: 990, durationDays: 30, quotaMonthly: 80, quotaTotal: 80, unlimited: false },
   vip_quarter: { id: 'vip_quarter', tier: MEMBER_TIERS.QUARTERLY, priceCents: 2500, durationDays: 90, quotaMonthly: 80, quotaTotal: 240, unlimited: false },
-  vip_year: { id: 'vip_year', tier: MEMBER_TIERS.YEARLY, priceCents: 6800, durationDays: 365, quotaMonthly: 83, quotaTotal: 1000, unlimited: false },
+  vip_year: { id: 'vip_year', tier: MEMBER_TIERS.YEARLY, priceCents: 6800, durationDays: 365, quotaMonthly: 67, quotaTotal: 800, unlimited: false },
   vip_unlimited: { id: 'vip_unlimited', tier: MEMBER_TIERS.UNLIMITED, priceCents: 1990, durationDays: 30, unlimited: true },
 };
 

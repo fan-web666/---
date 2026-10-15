@@ -72,13 +72,17 @@ const SHORT = {
   vip_unlimited: '不限次',
 };
 
+/** 单次成本文本（形如 '¥0.124'）—— 一律由 pricing.unitPriceText 现算，不在这里写死数字 */
+const unitPrice = (id) => pricing.unitPriceText(planOf(id));
+
 const PLANS = {
-  // ⚠️ 2026-10-15 用户明确：额度 60→90 / 180→240 / 720→1000；
-  //   且「结转」**有前提** —— 只有继续续费才生效，到期不续费一律清零。
-  //   原写法「未用完可结转」读起来像无条件承诺，故改成带前提的表述。
-  month: { id: 'vip_month', tag: '轻量使用', unit: '/ 月', line1: '每月 90 次', line2: '续费可结转，到期清零' },
-  year: { id: 'vip_year', tag: '推荐', unit: '/ 年', line1: '1000 次额度', line2: '平均 ¥5.7 / 月' },
-  quarter: { id: 'vip_quarter', name: '季度会员', line1: '240 次额度', line2: '平均 ¥8.3 / 月' },
+  // ⚠️ 2026-10-15 用户定稿：
+  //   ① 额度 60→80 / 180→240 / 720→800；
+  //   ② 卡面第二行由「平均 ¥X / 月」（月均成本）改为**单次成本**；
+  //   ③ 「结转」**有前提** —— 只有继续续费才生效，到期不续费一律清零，故月卡这行保留该前提。
+  month: { id: 'vip_month', tag: '轻量使用', unit: '/ 月', line1: '每月 80 次', line2: '单次 ' + unitPrice('vip_month') + ' · 续费可结转' },
+  year: { id: 'vip_year', tag: '推荐', unit: '/ 年', line1: '800 次额度', line2: '单次 ' + unitPrice('vip_year') },
+  quarter: { id: 'vip_quarter', name: '季度会员', line1: '240 次额度', line2: '单次 ' + unitPrice('vip_quarter') },
   unlimited: { id: 'vip_unlimited', name: '不限次会员', line1: '30 天不限次', line2: '不扣积分' },
 };
 
@@ -238,7 +242,11 @@ Page({
   showRules() {
     const quota = (pricing.QUOTA_RULES || []).map((r) => r.label + '：' + r.value).join('\n');
     const plans = (pricing.MEMBER_PLANS || [])
-      .map((p) => p.name + ' ' + p.priceText + '（' + p.meta + '）')
+      .map((p) => {
+        // 2026-10-15：原「月均 ¥X」改为「单次 ¥X」（现算）。不限次档没有分母 → 不追加。
+        const u = pricing.unitPriceText(p);
+        return p.name + ' ' + p.priceText + '（' + p.meta + (u ? ' · 单次 ' + u : '') + '）';
+      })
       .join('\n');
     // 2026-09-27：原生 wx.showModal → 自建 x-dialog（正文强制左对齐）
     this.openDialog({

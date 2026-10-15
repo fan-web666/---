@@ -1,7 +1,26 @@
 // config/pricing.js - 定价与会员档位（与 PRD 6.3/6.4 已拍板值对齐）
 // 注意：云端以 cloud-common/consts.js 为准（同一套数字，勿单边改）
 
+/**
+ * 单次解析成本 = 价格 ÷ 额度，3 位小数（月 ¥0.124 / 季 ¥0.104 / 年 ¥0.085）。
+ * ⭐ 一律**现算**、不另存常量 —— 改额度或改价时文案自动跟着变，
+ *    不会出现「价格改了、成本文案没跟着改」这种脏数据。
+ * ⚠️ 不限次档没有分母，返回空串，由调用方决定显示什么。
+ * @param {object} plan MEMBER_PLANS 里的一项
+ * @returns {string} 形如 '¥0.124'；取不到返回 ''
+ */
+function unitPriceText(plan) {
+  const p = plan || {};
+  const quota = Number(p.quotaTotal) || 0;
+  const price = Number(p.price) || 0;
+  if (p.unlimited || quota <= 0 || price <= 0) return '';
+  return '¥' + (price / quota).toFixed(3);
+}
+
 module.exports = {
+  // 单次成本（会员卡面 / 会员说明共用同一实现）
+  unitPriceText,
+
   // 新人积分（一次性，仅首次建档发放）
   TRIAL_CREDIT: 100,
 
@@ -46,8 +65,10 @@ module.exports = {
     { scene: '经常提取', action: '会员额度更划算' },
   ],
 
-  // 会员档位（2026-10-15 额度上调：月 90 / 季 240 / 年 1000；不限次档 19.9/月）
+  // 会员档位（2026-10-15 额度上调：月 80 / 季 240 / 年 800；不限次档 19.9/月）
   // ⚠️ 价格一分没动 ⇒ 微信后台已发布的会员道具无需重新发布。
+  // ⚠️ meta 里**不再写「月均 ¥X」** —— 改为展示「单次成本」，由 unitPriceText() 现算，
+  //    避免「额度改了、成本文案没改」以及同一件事两处各写一个数。
   MEMBER_PLANS: [
     {
       id: 'vip_month',
@@ -55,9 +76,9 @@ module.exports = {
       price: 9.9,
       priceText: '¥9.9',
       durationDays: 30,
-      quotaTotal: 90,
-      meta: '90 次 · 30 天',
-      desc: '每月 90 次解析额度',
+      quotaTotal: 80,
+      meta: '80 次 · 30 天',
+      desc: '每月 80 次解析额度',
     },
     {
       id: 'vip_quarter',
@@ -66,7 +87,7 @@ module.exports = {
       priceText: '¥25',
       durationDays: 90,
       quotaTotal: 240,
-      meta: '240 次 · 90 天 · 月均 ¥8.3',
+      meta: '240 次 · 90 天',
       desc: '90 天共 240 次',
     },
     {
@@ -75,9 +96,9 @@ module.exports = {
       price: 68,
       priceText: '¥68',
       durationDays: 365,
-      quotaTotal: 1000,
-      meta: '1000 次 · 365 天 · 月均 ¥5.7',
-      desc: '365 天共 1000 次',
+      quotaTotal: 800,
+      meta: '800 次 · 365 天',
+      desc: '365 天共 800 次',
       recommend: true,
     },
     {
