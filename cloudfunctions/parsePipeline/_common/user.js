@@ -479,7 +479,7 @@ async function grantMembership(userId, plan, orderId, amountCents) {
     expiresAt = new Date(new Date(cur.expires_at).getTime() + days * 86400000);
     const q = cur.quota || {};
     quota = {
-      monthly: p.quotaMonthly || q.monthly || 60,
+      monthly: p.quotaMonthly || q.monthly || 396,
       total: (q.total || 0) + quotaTotal,
       used: q.used || 0,
       remaining: (q.remaining || 0) + quotaTotal,
@@ -491,7 +491,7 @@ async function grantMembership(userId, plan, orderId, amountCents) {
     quota = unlimited
       ? null
       : {
-          monthly: p.quotaMonthly || 60,
+          monthly: p.quotaMonthly || 396,
           total: quotaTotal,
           used: 0,
           remaining: quotaTotal,

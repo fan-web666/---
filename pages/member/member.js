@@ -72,18 +72,20 @@ const SHORT = {
   vip_year: '年卡',
 };
 
-/** 单次成本文本（形如 '¥0.124'）—— 一律由 pricing.unitPriceText 现算，不在这里写死数字 */
-const unitPrice = (id) => pricing.unitPriceText(planOf(id));
+/** 额度（积分）—— 一律从 pricing.MEMBER_PLANS 现取，不写死 */
+const planQuota = (id) => Number(planOf(id).quotaTotal) || 0;
+/** 额度折算的文案分钟数文本（现算：M = 积分 × 0.5） */
+const planMinutes = (id) => pricing.minutesText(planOf(id).quotaTotal);
 
 const PLANS = {
-  // ⚠️ 2026-10-15 定价体系重构：
-  //   ① 价格一分没动，只把额度改成 60 / 150 / 400（单位制：文案每 3 分钟 1 次、视频每 15 分钟 1 次）；
-  //   ② 卡面第二行是**单次成本**（现算），不是「月均 ¥X」；
+  // ⚠️ 2026-10-16 v5（单余额双显示）：
+  //   ① 价格一分没动，只把额度改成「积分」—— 396 / 1000 / 2720（会员 1 元 = 40 积分）；
+  //   ② 卡面第一行 = 积分额度，第二行 = 折算的文案分钟（现算）—— 两者是**同一笔钱的两种说法**；
   //   ③ 「结转」**有前提** —— 只有继续续费才生效，到期不续费一律清零，故月卡这行保留该前提；
   //   ④ 不限次档（¥19.9/月）**已下架**，卡面与档位映射都已移除。
-  month: { id: 'vip_month', tag: '轻量使用', unit: '/ 月', line1: '每月 60 次额度', line2: '单次 ' + unitPrice('vip_month') + ' · 续费可结转' },
-  year: { id: 'vip_year', tag: '推荐', unit: '/ 年', line1: '400 次额度', line2: '单次 ' + unitPrice('vip_year') },
-  quarter: { id: 'vip_quarter', name: '季度会员', line1: '150 次额度', line2: '单次 ' + unitPrice('vip_quarter') },
+  month: { id: 'vip_month', tag: '轻量使用', unit: '/ 月', line1: planQuota('vip_month') + ' 积分', line2: '≈ ' + planMinutes('vip_month') + ' 分钟 · 续费可结转' },
+  year: { id: 'vip_year', tag: '推荐', unit: '/ 年', line1: planQuota('vip_year') + ' 积分', line2: '≈ ' + planMinutes('vip_year') + ' 分钟文案' },
+  quarter: { id: 'vip_quarter', name: '季度会员', line1: planQuota('vip_quarter') + ' 积分', line2: '≈ ' + planMinutes('vip_quarter') + ' 分钟文案' },
 };
 
 Page({
@@ -194,7 +196,7 @@ Page({
         heroSub: isMember
           ? mem.unlimited
             ? '不限次提取，额度内不扣积分'
-            : '剩余 ' + mem.remaining + ' / ' + mem.total + ' 次额度'
+            : '剩余 ' + mem.remaining + ' 积分（≈ ' + pricing.minutesText(mem.remaining) + ' 分钟）'
           : '会员额度内提取不扣积分',
       };
       writeMemberCache(patch); // 写回缓存 → 下次进页面首帧即为正确态（不写的话冷启动必「先拉新、后会员」）
@@ -240,8 +242,8 @@ Page({
 
   showRules() {
     const quota = (pricing.QUOTA_RULES || []).map((r) => r.label + '：' + r.value).join('\n');
-    // 「单次怎么算」独立成段（2026-10-15 用户要求：单次＝只解析视频或文案，同时解析算 2 次）
-    const unit = (pricing.UNIT_RULES || []).map((r) => r.label + '：' + r.value).join('\n');
+    // 「扣费规则」独立成段（2026-10-16 v5：视频 5/10 两档、文案 起步 2 + 每分钟 2）
+    const unit = (pricing.CHARGE_RULES || []).map((r) => r.label + '：' + r.value).join('\n');
     const plans = (pricing.MEMBER_PLANS || [])
       .map((p) => {
         // 2026-10-15：原「月均 ¥X」改为「单次 ¥X」（现算）。不限次档没有分母 → 不追加。
@@ -254,7 +256,7 @@ Page({
     // ⚠️ 正文较长，但 x-dialog__body 有 max-height:56vh + scroll-y，可滚动，不会溢出。
     this.openDialog({
       title: '会员说明',
-      content: '档位：\n' + plans + '\n\n单次怎么算：\n' + unit + '\n\n额度与续费：\n' + quota,
+      content: '档位：\n' + plans + '\n\n扣费规则：\n' + unit + '\n\n额度与续费：\n' + quota,
       confirmText: '知道了',
     });
   },

@@ -221,8 +221,9 @@ function membershipInfo(user) {
   const tierText = TIER_TEXT[tier] || '会员';
   // 「剩余 30 天」；到期当天为 0 → 文案给「今日到期」，仍然算 active（云端 expires_at 未过）
   const daysText = active ? (daysLeft > 0 ? '剩余 ' + daysLeft + ' 天' : '今日到期') : '';
-  // 「60 次」/「不限次」；未开通 → 空串（调用方自己给「未开通」）
-  const quotaText = !active ? '' : unlimited ? '不限次' : hasQuota ? remaining + ' 次' : '';
+  // 「396 积分」/「不限次」；未开通 → 空串（调用方自己给「未开通」）
+  // ⭐ 2026-10-16 v5：会员额度单位由「次」改为「积分」（与充值积分同单位）
+  const quotaText = !active ? '' : unlimited ? '不限次' : hasQuota ? remaining + ' 积分' : '';
 
   return {
     active,
@@ -236,7 +237,7 @@ function membershipInfo(user) {
     hasQuota,
     daysText,
     quotaText,
-    // 一行式摘要：「月卡会员 · 剩余 30 天 / 60 次」；未开通 → '未开通'
+    // 一行式摘要：「月卡会员 · 剩余 30 天 / 396 积分」；未开通 → '未开通'
     summaryText: active
       ? tierText + ' · ' + (daysText || '生效中') + (quotaText ? ' / ' + quotaText : '')
       : '未开通',

@@ -298,7 +298,7 @@ function formatUsage(it) {
 function costOf(it) {
   if (it.refunded) return { t: '已退还', c: 'x-cost-back' };
   if (it.pay_type === 'credit') return { t: '-' + (it.credit_cost || 0) + ' 积分', c: 'x-cost-credit' };
-  if (it.pay_type === 'quota') return { t: '-' + (it.quota_used || 0) + ' 次额度', c: 'x-cost-quota' };
+  if (it.pay_type === 'quota') return { t: '-' + (it.quota_used || 0) + ' 积分额度', c: 'x-cost-quota' };
   if (it.pay_type === 'unlimited') return { t: '不限次', c: 'x-cost-free' };
   return { t: '—', c: 'x-cost-none' };
 }

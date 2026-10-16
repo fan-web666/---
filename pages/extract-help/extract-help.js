@@ -1,12 +1,11 @@
 const pricing = require('../../config/pricing');
 
-/* 费率示例行 —— 2026-10-15 计费改为「视频每 15 分钟 1 次 / 文案每 3 分钟 1 次」，
- * 时长分档从 2 档变成连续阶梯，故这里只列 4 个**代表性时长**，
- * 数字一律由 pricing.creditOf() 现算（与云端 computeCost 同口径），页面上不写死任何金额。 */
+/* 费率示例行 —— 2026-10-16 v5 计费：视频 5/10 两档、文案 起步 2 积分 + 每分钟 2 积分。
+ * 只列 4 个**代表性时长**，数字一律由 pricing.creditOf() 现算（与云端 computeCost 同口径），页面不写死金额。 */
 const FEE_SAMPLES = [
-  { label: '≤3 分钟', sec: 3 * 60 },
-  { label: '6 分钟', sec: 6 * 60 },
-  { label: '15 分钟', sec: 15 * 60 },
+  { label: '1 分钟', sec: 60 },
+  { label: '5 分钟', sec: 5 * 60 },
+  { label: '10 分钟', sec: 10 * 60 },
   { label: '30 分钟', sec: 30 * 60 },
 ];
 
@@ -22,8 +21,10 @@ Page({
     statusBarH: 0,
     navSafeRightRpx: 196,
     feeRows,
-    unitText: '规则：视频每 15 分钟算 1 次，文案每 3 分钟算 1 次（不足按 1 次）。',
-    memberText: '会员按 1 次 = 1 单位抵扣；单条超过 30 分钟暂不支持。',
+    unitText: '非会员扣积分：视频 ' + pricing.VIDEO_TIER_MIN + ' 分钟以内 ' + pricing.CREDIT_VIDEO_SHORT +
+      ' 积分、' + pricing.VIDEO_TIER_MIN + '~30 分钟 ' + pricing.CREDIT_VIDEO_LONG +
+      ' 积分；文案起步 ' + pricing.CREDIT_START_TEXT + ' 积分 + 每分钟 ' + pricing.CREDIT_PER_MIN_TEXT + ' 积分。',
+    memberText: '会员额度以积分计量（1 元 = ' + pricing.CREDIT_PER_YUAN_MEMBER + ' 积分）；单条超过 30 分钟暂不支持。',
   },
   onLoad() {
     const g = getApp().globalData;

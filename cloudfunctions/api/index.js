@@ -1611,7 +1611,7 @@ async function creditLogs(user, { page }) {
  *
  *  ⚠️ 主表是 tasks，**不是** copywritings：
  *     · copywritings（历史文案）里没有任何计费字段 —— 扣了多少积分 /
- *       用掉几个会员额度单位，只写在 tasks.credit_decision
+ *       用掉多少会员额度积分，只写在 tasks.credit_decision
  *       { payType:'unlimited'|'quota'|'credit', creditCost, quotaUsed }
  *     · credit_logs（积分流水）**只记积分**：会员额度消耗不写流水，
  *       所以额度追溯也只能从 tasks 拿

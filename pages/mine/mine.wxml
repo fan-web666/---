@@ -96,7 +96,7 @@
           <image class="suite-menu-icon" src="/images/suite-green/coins-small.png" mode="aspectFit" aria-hidden="true" />
         </view>
         <view class="x-row-t">积分充值</view>
-        <view class="x-row-v">{{creditsText}} 积分</view>
+        <view class="x-row-v">{{creditsText}} 积分 / {{minutesText}} 分钟</view>
         <view class="x-chevron">›</view>
       </view>
     </view>

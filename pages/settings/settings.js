@@ -28,8 +28,8 @@ Page({
 
     modes: pricing.EXTRACT_MODES,
     languages: pricing.LANGUAGES,
-    creditPerUnit: pricing.CREDIT_PER_UNIT,
-    unitText: '视频每 15 分钟 / 文案每 3 分钟',
+    chargeText: '视频 10 分钟以内 ' + pricing.CREDIT_VIDEO_SHORT + ' 积分、10~30 分钟 ' + pricing.CREDIT_VIDEO_LONG +
+      ' 积分；文案起步 ' + pricing.CREDIT_START_TEXT + ' 积分 + 每分钟 ' + pricing.CREDIT_PER_MIN_TEXT + ' 积分',
 
     form: Object.assign({}, DEFAULT_FORM),
 

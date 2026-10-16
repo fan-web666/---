@@ -139,6 +139,7 @@ Page({
     totalText: cachedOr('totalText', '—'),
     charsText: cachedOr('charsText', '—'),
     creditsText: cachedOr('creditsText', '—'),
+    minutesText: cachedOr('minutesText', '—'),
 
     // 提取记录卡（2026-09-26 起改为**消费摘要入口** —— 点进去是「积分与订单」子页）
     usageCount: cachedOr('usageCount', 0),
@@ -164,8 +165,8 @@ Page({
 
   onLoad() {
     const c = readMineCache();
-    const cached = {creditsText:'—',vipText:'开通会员',memberRowText:'未开通',totalText:'—',charsText:'—',usageCount:0,usageMain:'',usageSub:'',usageEmpty:'还没有消耗记录，去首页试试'};
-    ['creditsText','vipText','memberRowText','totalText','charsText','usageCount','usageMain','usageSub','usageEmpty'].forEach(k => { if (c[k] !== undefined) cached[k] = c[k]; });
+    const cached = {creditsText:'—',minutesText:'—',vipText:'开通会员',memberRowText:'未开通',totalText:'—',charsText:'—',usageCount:0,usageMain:'',usageSub:'',usageEmpty:'还没有消耗记录，去首页试试'};
+    ['creditsText','minutesText','vipText','memberRowText','totalText','charsText','usageCount','usageMain','usageSub','usageEmpty'].forEach(k => { if (c[k] !== undefined) cached[k] = c[k]; });
     this.setData(cached);
     const pref = wx.getStorageSync(PREF_KEY) || '';
     const hit = PREF_OPTS.find((o) => o.v === pref) || PREF_OPTS[1];
@@ -237,6 +238,8 @@ Page({
       userCode,
       needsProfile,
       creditsText: thousands(credits),
+      // ⭐ 2026-10-16 v5「一个余额、两种显示」：分钟由积分现算（M = N × 0.5），不存第二份
+      minutesText: pricing.minutesText(credits),
       // 间隔空格用真实不换行空格（\u00A0），不要写 HTML 实体
       vipText,
       memberRowText,
@@ -246,6 +249,7 @@ Page({
     //       wxfile://tmp 临时路径，缓存下来下次启动反而失效）。
     writeMineCache({
       creditsText: patch.creditsText,
+      minutesText: patch.minutesText,
       vipText: patch.vipText,
       memberRowText: patch.memberRowText,
     });
@@ -500,7 +504,8 @@ Page({
         content:
           '① 视频号转发：先关注「' + this.data.accountName + '」，再把视频转发给它即可；\n' +
           '② 粘贴链接：支持视频号 / 抖音 / 快手 / 小红书 / B 站；\n' +
-          '③ 积分规则：视频每 15 分钟 / 文案每 3 分钟各扣 ' + pricing.CREDIT_PER_UNIT + ' 积分，会员额度内不扣积分。',
+          '③ 积分规则：视频 10 分钟以内 ' + pricing.CREDIT_VIDEO_SHORT + ' 积分、10~30 分钟 ' + pricing.CREDIT_VIDEO_LONG +
+            ' 积分；文案起步 ' + pricing.CREDIT_START_TEXT + ' 积分 + 每分钟 ' + pricing.CREDIT_PER_MIN_TEXT + ' 积分。',
         showCancel: false,
         confirmText: '知道了',
       });
@@ -682,8 +687,12 @@ function usageCard(u) {
   }
   const mc = u.month_credit == null ? '—' : shortNumber(u.month_credit);
   const q = Number(u.month_quota) || 0;
+  // ⭐ 2026-10-16 v5：会员额度与充值积分**同一单位（积分）** → 两池合并显示为「本月消耗」
   // 间隔空格用真实不换行空格（\u00A0），不要写 HTML 实体
-  const main = '本月消耗 ' + mc + ' 积分' + (q ? '\u00A0·\u00A0会员额度 ' + q + ' 次' : '');
+  const main =
+    u.month_credit == null
+      ? '本月消耗 —'
+      : '本月消耗 ' + shortNumber((Number(u.month_credit) || 0) + q) + ' 积分';
 
   const l = u.last || null;
   const sub = l

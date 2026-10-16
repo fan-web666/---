@@ -296,7 +296,7 @@ async function stepResolve(task) {
   const parseMs = Date.now() - t0;
 
   // ⭐ 时长：解析服务**不返回**（实测返回体里没有 duration 字段），必须自己探 ——
-  //   计费已改为按时长分档（文案每 3 分钟 1 单位 / 视频每 15 分钟 1 单位），不探就只能按最低档扣。
+  //   计费按时长分档（2026-10-16 v5：视频 5/10 两档、文案 起步 2 + 每分钟 2），不探就只能按最低档扣。
   //   成本 = 一次 1MB Range 请求（实测 0.16~0.62s）；探不到回落最低档，**不阻断主链路**。
   let probe = { sec: 0 };
   if (resolved.url && !resolved.mock) {
