@@ -5,6 +5,7 @@ const cloud = require('wx-server-sdk');
 const { db, COLL } = require('./db');
 const providers = require('./providers');
 const { settleDecision } = require('./credit');
+const { MAX_DURATION_SEC } = require('./consts');
 
 // Read only MP4 box headers and mvhd, not a second full copy of a large video.
 function durationFromFile(file) {
@@ -146,7 +147,7 @@ async function get(user, event) {
     if (t.video_stage === 'resolve') {
       const meta = await providers.resolveVideoSource(t.source_url, t.source_platform);
       if (meta.mock || !meta.url || !/^https?:\/\//i.test(meta.url)) throw new Error('此链接未返回可保存的视频');
-      if (meta.durationSec > 1800) throw new Error('视频超过 30 分钟暂不支持');
+      if (meta.durationSec > MAX_DURATION_SEC) throw new Error('视频超过 ' + MAX_DURATION_SEC / 60 + ' 分钟暂不支持');
       await COLL.tasks().where({ _id: t._id, uid: user._id, video_lease: token }).update({ data: {
         video_meta: meta, video_title: meta.title || '', video_stage: 'download', status: 'video_pending',
         video_lease: '', video_lease_until: 0, updated_at: new Date() } });
@@ -155,7 +156,7 @@ async function get(user, event) {
     media = await providers.downloadMedia(t.video_meta, t._id);
     const seconds = durationFromFile(media.path);
     if (!(seconds > 0)) throw new Error('无法确认视频时长或视频格式不支持，未扣除积分');
-    if (seconds > 1800) throw new Error('视频超过 30 分钟暂不支持，未扣除积分');
+    if (seconds > MAX_DURATION_SEC) throw new Error('视频超过 ' + MAX_DURATION_SEC / 60 + ' 分钟暂不支持，未扣除积分');
     uploaded = await cloud.uploadFile({ cloudPath: 'video-delivery/' + t._id + '.mp4', fileContent: fs.createReadStream(media.path) });
     if (!uploaded.fileID) throw new Error('视频存储失败，请稍后重试');
     return view(await finish(user, t._id, token, uploaded.fileID, seconds));

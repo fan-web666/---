@@ -2,7 +2,7 @@
 // ⭐ 会员额度池与充值积分**同一单位（积分）**：会员与非会员的差别只是「1 元给多少积分」（40 vs 30）。
 // 所有扣减走服务端权威（不信任客户端上报），事务保证余额与流水一致
 const { db, cmd, COLL } = require('./db');
-const { computeCost, MAX_USER_CONCURRENT } = require('./consts');
+const { computeCost, MAX_USER_CONCURRENT, MAX_DURATION_SEC } = require('./consts');
 
 function now() {
   return new Date();
@@ -19,7 +19,14 @@ function now() {
 function settleDecision(user, durationSec, kind) {
   const cost = computeCost(durationSec, kind);
   if (!cost.allowed) {
-    return { ok: false, reason: 'too_long', msg: '视频超过 30 分钟暂不支持' };
+    // ⚠️ 必须按 kind 区分：computeCost 对**文案**超 MAX_DURATION_SEC 同样返回 allowed:false，
+    //    旧写法一律说「视频超过 30 分钟」⇒ 用户提交长文案时会看到张冠李戴的提示（2026-10-16 复核修）。
+    const what = cost.kind === 'video' ? '视频' : '文案';
+    return {
+      ok: false,
+      reason: 'too_long',
+      msg: what + '超过 ' + MAX_DURATION_SEC / 60 + ' 分钟暂不支持，未扣除积分',
+    };
   }
   const common = { kind: cost.kind, durationSec: cost.durationSec };
   const mem = user.membership || {};

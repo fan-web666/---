@@ -328,7 +328,9 @@ async function stepResolve(task) {
         .doc(task._id)
         .update({ data: { charged: false, updated_at: now() } })
         .catch(() => {});
-      await failTask(task, 'insufficient', chargeRes.msg);
+      // reason 保留真实成因（too_long / insufficient）：仅用于日志与埋点，端上展示的是 msg。
+      // ⚠️ 旧写法一律写 'insufficient'，会把「超时长」误记成「余额不足」。
+      await failTask(task, chargeRes.reason || 'insufficient', chargeRes.msg);
       return { ok: false, reason: 'insufficient', msg: chargeRes.msg };
     }
     decision = chargeRes.decision;
