@@ -1,4 +1,4 @@
-<!-- Figma 青柠首页 54:12；状态栏与微信胶囊由系统绘制。 -->
+<!-- Figma 首页三卡片 274:101；状态栏与微信胶囊由系统绘制。 -->
 <view class="x-home">
   <!-- 单页模式（朋友圈打开，scene 1154）下微信已自带顶部导航栏，隐藏本页自定义顶栏避免双层 -->
   <block wx:if="{{!timelineMode}}">
@@ -16,17 +16,9 @@
           <image class="x-hero-illustration" src="/images/home-green/hero-dual.png" mode="aspectFit" aria-hidden="true" />
         </view>
       </view>
-      <view class="x-shortcuts">
-        <view class="x-help-entry" bindtap="goForward" hover-class="x-pressed" role="button" aria-label="提取指南：三步轻松上手"><view class="x-help-heading"><image class="x-guide-art" src="/images/home-green/guide.png" mode="aspectFit" aria-hidden="true" /><text class="x-help-title">提取指南</text></view><text class="x-help-subtitle">三步轻松上手</text></view>
-        <view class="x-invite-entry" bindtap="goReferral" hover-class="x-pressed" role="button" aria-label="邀请好友得积分，每绑定一位新用户奖励100积分"><view class="x-invite-copy"><text class="x-invite-title">邀请好友得积分</text><text class="x-invite-bonus">+100 积分</text><text class="x-invite-rule">每绑定 1 位新用户</text></view><image class="x-gift-art" src="/images/home-green/gift.png" mode="aspectFit" aria-hidden="true" /></view>
-      </view>
-      <view class="x-balance-card">
-        <view class="x-balance-cell" bindtap="goRecharge" hover-class="x-pressed" role="button" aria-label="我的积分，点击充值"><image class="x-balance-art" src="/images/home-green/coins.png" mode="aspectFit" aria-hidden="true" /><view class="x-balance-copy"><text class="x-balance-label">我的积分</text><text class="x-balance-value">{{balanceText}}</text></view><image class="x-chevron-small" src="/images/home-green/chevron.png" mode="aspectFit" aria-hidden="true" /></view>
-        <view class="x-balance-cell" bindtap="goMember" hover-class="x-pressed" role="button" aria-label="会员额度，点击会员中心"><image class="x-balance-art" src="/images/home-green/member.png" mode="aspectFit" aria-hidden="true" /><view class="x-balance-copy"><text class="x-balance-label">会员额度</text><view class="x-member-values"><text class="x-balance-value {{memberValue === '未开通' ? 'x-member-off' : ''}}">{{memberValue}}</text><text wx:if="{{memberQuotaText}}" class="x-member-quota">{{memberQuotaText}}</text></view></view><image class="x-chevron-small" src="/images/home-green/chevron.png" mode="aspectFit" aria-hidden="true" /></view>
-      </view>
       <view class="x-extract-card">
         <view class="x-extract-heading"><text class="x-extract-title">开始提取</text><view class="x-mode-controls"><view class="x-mode-help" bindtap="goModeHelp" role="button">说明</view><view class="x-mode-switch"><view class="x-mode-slider x-mode-slider-{{extractionMode}}" aria-hidden="true"></view><view class="x-mode {{extractionMode === 'video' ? 'x-mode-active' : ''}}" data-mode="video" bindtap="switchMode" role="button" aria-label="提取视频">视频</view><view class="x-mode {{extractionMode === 'text' ? 'x-mode-active' : ''}}" data-mode="text" bindtap="switchMode" role="button" aria-label="提取文案">文案</view><view class="x-mode {{extractionMode === 'both' ? 'x-mode-active' : ''}}" data-mode="both" bindtap="switchMode" role="button" aria-label="同时提取文案和视频">同时</view></view></view></view>
-        <view class="x-link-field"><image class="x-link-art" src="/images/home-green/link.png" mode="aspectFit" aria-hidden="true" /><input class="x-link-input" value="{{url}}" placeholder="{{extractionMode === 'text' ? '粘贴视频链接或分享口令' : '粘贴视频分享链接'}}" placeholder-class="x-link-placeholder" confirm-type="go" maxlength="-1" bindinput="onInput" bindconfirm="startExtract" aria-label="视频链接或口令" /><view class="x-paste" bindtap="readClipboard" hover-class="x-pressed" role="button">粘贴</view></view>
+        <view class="x-link-field"><image class="x-link-art" src="/images/home-green/link.png" mode="aspectFit" aria-hidden="true" /><input class="x-link-input" value="{{url}}" placeholder="{{extractionMode === 'text' ? '粘贴视频链接或分享口令' : '粘贴视频分享链接'}}" placeholder-class="x-link-placeholder" confirm-type="go" maxlength="-1" bindinput="onInput" bindconfirm="startExtract" aria-label="视频链接或口令" /><view wx:if="{{url}}" class="x-link-clear" catchtap="clearLink" hover-class="x-pressed" role="button" aria-label="清除已粘贴的链接">×</view><view class="x-paste" bindtap="readClipboard" hover-class="x-pressed" role="button">粘贴</view></view>
         <view wx:if="{{extractionMode !== 'both' || videoState.phase === 'idle'}}" class="x-import-row {{extractionMode !== 'text' ? 'x-import-muted' : ''}}" bindtap="importVideo" hover-class="x-pressed" role="button" aria-label="从相册导入本地视频">
           <view class="x-import-icon"><text wx:if="{{localVideo}}" class="x-import-check">✓</text><image wx:else class="x-video-art" src="/images/home-green/video.png" mode="aspectFit" aria-hidden="true" /></view>
           <view class="x-import-copy"><text class="x-import-title">{{extractionMode !== 'text' ? '本地视频仅提取文案' : localVideo ? '已选择本地视频' : '导入本地视频'}}</text><text class="x-import-subtitle">{{extractionMode !== 'text' ? '切换到文案模式后导入' : localVideo ? localVideo.meta : '相册视频，≤100MB · ≤30 分钟'}}</text></view>
@@ -34,6 +26,16 @@
         </view>
         <video-status wx:if="{{extractionMode === 'both' && videoState.phase !== 'idle'}}" location="index" feedback="{{false}}" />
         <view class="x-extract-action" bindtap="startExtract" hover-class="x-action-pressed" role="button" aria-label="{{extractBtn}}"><view wx:if="{{extractionMode === 'video' && (videoState.phase === 'running' || videoState.phase === 'saving')}}" class="x-video-action-progress" style="width:{{videoState.percent}}%"></view><text class="x-extract-action-label">{{extractBtn}}</text><image class="x-arrow-art" src="/images/home-green/arrow.png" mode="aspectFit" aria-hidden="true" /></view>
+        <view class="x-account-divider" aria-hidden="true" />
+        <view class="x-balance-card">
+          <view class="x-balance-cell" bindtap="goRecharge" hover-class="x-pressed" role="button" aria-label="我的积分，点击充值"><image class="x-balance-art" src="/images/home-green/coins.png" mode="aspectFit" aria-hidden="true" /><view class="x-balance-copy"><text class="x-balance-label">我的积分</text><view class="x-balance-value-row"><text class="x-balance-value">{{balanceText}}</text><image class="x-chevron-small" src="/images/home-green/chevron.png" mode="aspectFit" aria-hidden="true" /></view></view></view>
+          <view class="x-balance-cell" bindtap="goMember" hover-class="x-pressed" role="button" aria-label="会员额度，点击会员中心"><image class="x-balance-art" src="/images/home-green/member.png" mode="aspectFit" aria-hidden="true" /><view class="x-balance-copy"><text class="x-balance-label">会员额度</text><view class="x-balance-value-row"><view class="x-member-values"><text class="x-balance-value {{memberValue === '未开通' ? 'x-member-off' : ''}}">{{memberValue}}</text><text wx:if="{{memberQuotaText}}" class="x-member-quota">{{memberQuotaText}}</text></view><image class="x-chevron-small" src="/images/home-green/chevron.png" mode="aspectFit" aria-hidden="true" /></view></view></view>
+        </view>
+      </view>
+      <view class="x-shortcuts">
+        <view class="x-help-entry" bindtap="goForward" hover-class="x-pressed" role="button" aria-label="提取指南：三步轻松上手"><image class="x-guide-art" src="/images/home-green/guide.png" mode="aspectFit" aria-hidden="true" /><view class="x-help-copy"><text class="x-help-title">提取指南</text><text class="x-help-subtitle">三步轻松上手</text></view></view>
+        <view class="x-shortcut-divider" aria-hidden="true" />
+        <view class="x-invite-entry" bindtap="goReferral" hover-class="x-pressed" role="button" aria-label="邀请好友得积分，每绑定一位新用户奖励100积分"><view class="x-invite-copy"><text class="x-invite-title">邀请好友得积分</text><text class="x-invite-bonus">+100 积分</text><text class="x-invite-rule">每绑定 1 位新用户</text></view><image class="x-gift-art" src="/images/home-green/gift.png" mode="aspectFit" aria-hidden="true" /></view>
       </view>
     </view>
   </scroll-view>
@@ -44,3 +46,5 @@
   </view></view>
   <video-status location="index" enabled="{{false}}" />
 </view>
+
+<app-feedback id="app-feedback" />

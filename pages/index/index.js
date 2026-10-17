@@ -234,6 +234,12 @@ Page({
     this.setData(patch);
   },
 
+  // 一键清除已粘贴的链接（2026-10-17）→ 清空后「×」自动消失（wxml 用 wx:if="{{url}}" 控制）
+  // ⚠️ 不用碰 localVideo：链接与本地视频本就互斥（见 onInput），url 有值即说明没选本地视频。
+  clearLink() {
+    this.setData({ url: '' });
+  },
+
   readClipboard() {
     wx.getClipboardData({
       success: (res) => {

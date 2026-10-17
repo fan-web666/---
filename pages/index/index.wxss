@@ -37,12 +37,12 @@ page { --home-primary:#16854A; --home-ink:#1B2620; --home-secondary:#79817D; --h
 .x-balance-cell { display:flex; align-items:center; flex:1; min-width:0; gap:13.46rpx; }
 .x-balance-art { flex:0 0 80.77rpx; width:80.77rpx; height:80.77rpx; }
 .x-balance-copy { flex:1; min-width:0; }
-.x-balance-label { display:block; font-size:19.23rpx; line-height:27.88rpx; color:var(--home-secondary); white-space:nowrap; }
-.x-balance-value { display:block; max-width:100%; font-size:42.31rpx; line-height:61.35rpx; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.x-balance-label { display:block; font-size:21.15rpx; line-height:30.77rpx; color:var(--home-secondary); white-space:nowrap; }
+.x-balance-value { display:block; max-width:100%; font-size:32.69rpx; line-height:46.15rpx; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .x-member-values { display:flex; flex-wrap:wrap; align-items:baseline; gap:0 7.69rpx; }
-.x-member-values .x-balance-value { font-size:38.46rpx; }
-.x-member-values .x-member-off { font-size:26.92rpx; font-weight:500; }
-.x-member-quota { font-size:17.31rpx; line-height:25rpx; color:var(--home-secondary); white-space:nowrap; }
+.x-member-values .x-balance-value { font-size:32.69rpx; }
+.x-member-values .x-member-off { font-size:28.85rpx; font-weight:500; }
+.x-member-quota { font-size:19.23rpx; line-height:27.88rpx; color:var(--home-secondary); white-space:nowrap; }
 .x-chevron-small { flex:0 0 23.08rpx; width:23.08rpx; height:23.08rpx; }
 .x-extract-card { display:flex; flex-direction:column; min-height:457.69rpx; padding:34.62rpx; gap:23.08rpx; border-radius:46.15rpx; background:var(--home-surface); }
 .x-extract-heading { display:flex; align-items:center; min-height:50rpx; gap:15.38rpx; }
@@ -53,7 +53,24 @@ page { --home-primary:#16854A; --home-ink:#1B2620; --home-secondary:#79817D; --h
 .x-link-input { flex:1; flex-shrink:1; width:0; min-width:0; height:57.69rpx; font-size:23.08rpx; line-height:33.46rpx; color:var(--home-ink); }
 .x-link-placeholder { color:var(--home-secondary); }
 .x-paste { display:flex; align-items:center; justify-content:center; flex:0 0 92.31rpx; width:92.31rpx; height:57.69rpx; border-radius:19.23rpx; background:var(--home-soft); color:var(--home-primary); font-size:23.08rpx; font-weight:700; }
-.x-import-row { display:flex; align-items:center; min-height:103.85rpx; gap:23.08rpx; }
+/* ⭐ 粘贴框一键清除按钮（2026-10-17）＝ 仅 url 非空时出现（wxml: wx:if="{{url}}"），清空即消失。
+   视觉影响最小化：无底色、次要色、只一个字；两侧负 margin 抵消 .x-link-field 的 gap:15.38
+   ⇒ 净占位 46.15 + (15.38-11.54)×2 = 53.83rpx（约 27px），粘贴按钮仅左移这一点。
+   ⚠️ 不用 position:absolute 是因为右侧就是「粘贴」按钮，绝对定位会压住它。 */
+.x-link-clear { display:flex; align-items:center; justify-content:center; flex:0 0 46.15rpx; width:46.15rpx; height:57.69rpx; margin:0 -11.54rpx; color:var(--home-secondary); font-size:36.92rpx; line-height:1; }
+/* ⭐⭐⭐ 首页「右侧中线」（2026-10-16 修正）＝ 4 个元素的**水平中点**落在同一条竖线 640.38rpx 上
+ *   ⚠️ 是「中心对齐」，不是右边缘对齐！右对齐会把各元素宽度差暴露成阶梯感。
+ *   4 个元素及各自宽度：① 导入行箭头 .x-chevron 30.77 ② 提取按钮箭头 .x-arrow-art 42.31
+ *                      ③ 会员额度箭头 .x-chevron-small 19.23 ④ 邀请卡礼品 .x-gift-art 76.92
+ *   ⚠️ 四个元素分属三个容器，坐标原点不同 ⇒ 必须各自补偿，**改一处要四个一起看**：
+ *      · ① 导入行内（内容右缘 676.92）→ padding-right:21.15 ⇒ 右缘 655.77，中心 640.38；
+ *      · ② 绿按钮内（内容右缘 676.92）→ padding-right:15.38 ⇒ 右缘 661.54，中心 640.38
+ *           ⭐ 它就是「中线基准」，**别动它**；要移中线就动另外三个；
+ *      · ③ 会员格内（解除 max-width 后视觉右缘 661.92，中心 652.30）→ translateX(-11.92)；
+ *      · ④ 邀请卡内（flex:1 + copy flex:1 顶到内容右缘 688.46，中心 650.00）→ translateX(-9.62)。
+ *   💡 想整体挪中线：位移 = 目标中线 − 该元素当前中心，四个一起改。
+ */
+.x-import-row { display:flex; align-items:center; min-height:103.85rpx; gap:23.08rpx; padding-right:21.15rpx; }
 .x-import-icon { display:flex; align-items:center; justify-content:center; flex:0 0 84.62rpx; width:84.62rpx; height:84.62rpx; }
 .x-video-art { width:84.62rpx; height:84.62rpx; }
 .x-import-check { display:flex; align-items:center; justify-content:center; width:73.08rpx; height:73.08rpx; border-radius:25rpx; background:var(--home-soft); color:var(--home-primary); font-size:46.15rpx; font-weight:700; }
@@ -62,7 +79,7 @@ page { --home-primary:#16854A; --home-ink:#1B2620; --home-secondary:#79817D; --h
 .x-import-subtitle { font-size:19.23rpx; line-height:27.88rpx; color:var(--home-secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .x-import-clear { display:flex; align-items:center; justify-content:center; width:53.85rpx; height:76.92rpx; color:var(--home-secondary); font-size:46.15rpx; }
 .x-chevron { flex:0 0 30.77rpx; width:30.77rpx; height:30.77rpx; }
-.x-extract-action { display:flex; align-items:center; justify-content:space-between; height:92.31rpx; padding:0 34.62rpx; border-radius:46.15rpx; background:var(--home-lime); color:var(--home-ink); }
+.x-extract-action { display:flex; align-items:center; justify-content:space-between; height:92.31rpx; padding:0 15.38rpx 0 34.62rpx; border-radius:46.15rpx; background:var(--home-lime); color:var(--home-ink); }
 .x-extract-action-label { font-size:32.69rpx; line-height:47.40rpx; font-weight:700; }
 .x-arrow-art { flex:0 0 42.31rpx; width:42.31rpx; height:42.31rpx; }
 .x-pressed { opacity:.72; }
@@ -76,3 +93,47 @@ page { --home-primary:#16854A; --home-ink:#1B2620; --home-secondary:#79817D; --h
 .x-hero-headline { flex:0 0 131.54rpx; width:273.46rpx; height:131.54rpx; }
 .x-extract-heading { margin-bottom:11.54rpx; }
 .x-extract-heading{justify-content:space-between;gap:8rpx;flex-wrap:wrap;}.x-extract-title{flex-shrink:0;}.x-mode-controls{display:flex;align-items:center;gap:12rpx;margin-left:auto;}.x-mode-switch{position:relative;display:flex;gap:4rpx;padding:6rpx;border-radius:32rpx;background:#F4F5F6;}.x-mode{position:relative;z-index:1;display:flex;align-items:center;justify-content:center;width:88.46rpx;height:46.15rpx;font-size:21.15rpx;line-height:30.67rpx;border-radius:24rpx;color:#79817D;font-weight:500;}.x-mode-active{color:#1B2620;}.x-mode-slider{position:absolute;left:6rpx;top:6rpx;width:88.46rpx;height:46.15rpx;border-radius:24rpx;background:#B8F76A;pointer-events:none;transform:translateX(0);transition:transform 240ms cubic-bezier(.22,.8,.25,1);}.x-mode-slider-text{transform:translateX(92.46rpx);}.x-mode-slider-both{transform:translateX(184.92rpx);}.x-mode-help{font-size:21.15rpx;color:#16854A;line-height:46.15rpx;padding:0 2rpx;}.x-import-muted{opacity:.5;}.x-extract-action{position:relative;overflow:hidden;}.x-extract-action-label,.x-arrow-art{position:relative;z-index:1;}.x-video-action-progress{position:absolute;left:0;top:0;bottom:0;background:rgba(22,133,74,.14);transition:width .2s;}
+/* Figma 274:101：宣传 / 提取与账户 / 指南与邀请，三张卡片。 */
+.x-extract-card{min-height:0;gap:26.92rpx;box-shadow:0 11.54rpx 46.15rpx rgba(26,64,41,.06);}
+.x-extract-heading{min-height:69.23rpx;margin-bottom:0;padding-bottom:11.54rpx;box-sizing:border-box;}
+.x-account-divider{height:1px;width:100%;flex-shrink:0;background:#E8EEE5;}
+.x-extract-card .x-balance-card{min-height:74.04rpx;padding:0;gap:23.08rpx;border-radius:0;box-shadow:none;background:transparent;}
+.x-balance-cell{gap:15.38rpx;}
+.x-balance-art{flex-basis:46.15rpx;width:46.15rpx;height:46.15rpx;}
+.x-balance-copy{display:flex;flex-direction:column;gap:1.92rpx;max-width:188.46rpx;}
+.x-balance-value-row{display:flex;align-items:center;justify-content:space-between;gap:7.69rpx;min-width:0;}
+.x-balance-value,.x-member-values .x-balance-value{font-size:32.69rpx;line-height:46.15rpx;color:var(--home-primary);}
+.x-member-values{flex:1;min-width:0;}
+.x-member-values .x-member-off{font-size:28.85rpx;}
+.x-chevron-small{flex-basis:19.23rpx;width:19.23rpx;height:19.23rpx;}
+.x-shortcuts{gap:0;align-items:center;border-radius:46.15rpx;background:var(--home-surface);overflow:hidden;box-shadow:0 3.85rpx 19.23rpx rgba(27,38,32,.04);}
+.x-help-entry{flex-basis:236.54rpx;height:157.69rpx;box-sizing:border-box;}
+.x-help-entry,.x-invite-entry{background:transparent;border-radius:0;box-shadow:none;}
+.x-shortcut-divider{flex:0 0 1px;width:1px;height:88.46rpx;background:#E8EEE5;}
+.x-invite-entry{height:157.69rpx;box-sizing:border-box;}
+/* Figma 279:275 / 284:113：两行文字对齐，分隔线对齐积分箭头。 */
+.x-help-entry{flex-basis:274.04rpx;flex-direction:row;align-items:center;justify-content:flex-start;gap:15.38rpx;padding-left:34.62rpx;padding-right:15.38rpx;}
+.x-guide-art{flex-basis:53.85rpx;width:53.85rpx;height:53.85rpx;}
+.x-help-copy{display:flex;flex-direction:column;gap:7.69rpx;min-width:0;}
+.x-help-title{font-size:25rpx;line-height:33.46rpx;}
+.x-help-subtitle{font-size:20.19rpx;line-height:27.88rpx;}
+.x-invite-entry{padding-left:61.15rpx;padding-right:23.08rpx;}
+.x-invite-copy{gap:1.92rpx;}
+.x-invite-title{font-size:24.04rpx;line-height:36.06rpx;}
+.x-invite-bonus{font-size:32.69rpx;line-height:49.04rpx;}
+.x-invite-rule{font-size:20.19rpx;line-height:30.29rpx;}
+.x-gift-art{flex-basis:76.92rpx;width:76.92rpx;height:76.92rpx;}
+/* 首页局部位置微调：累计会员入口左移 15rpx，邀请文字右移 15rpx。 */
+.x-balance-cell:last-child{transform:translateX(-15rpx);}
+/* 皇冠按可见图形左边缘与邀请标题对齐，补偿原图的透明留白。 */
+.x-balance-cell:last-child .x-balance-art{transform:translateX(calc(1px - .65rpx));}
+/* ⭐ ③ 会员额度箭头「中心」对齐中线 640.38rpx：
+   先解除 .x-balance-copy 的 max-width 上限，让箭头（.x-balance-value-row space-between 的右端）
+   顶到格子右缘 → 视觉右缘 661.92，中心 652.30；再左移 11.92 ⇒ 中心 640.38。
+   ⚠️ 只作用于「会员额度」格；「我的积分」那格的箭头在左边并列，不在这条中线上。 */
+.x-balance-cell:last-child .x-balance-copy{max-width:none;}
+.x-balance-cell:last-child .x-chevron-small{transform:translateX(-11.92rpx);}
+/* ⭐ ④ 邀请卡礼品图标「中心」对齐中线 640.38rpx：
+   .x-invite-entry 有 flex:1、.x-invite-copy 有 flex:1 ⇒ 图标天然顶在邀请卡内容右缘 688.46，
+   中心 650.00；再左移 9.62 ⇒ 中心 640.38。 */
+.x-gift-art{transform:translateX(-9.62rpx);}
