@@ -1,8 +1,10 @@
+const uiFeedback = require('./feedback');
+const { splitParagraphs } = require('./paragraphs');
 // utils/util.js - 通用工具
 
 /** 轻提示 */
 function toast(title, icon) {
-  wx.showToast({ title: title || '', icon: icon || 'none', duration: 1800 });
+  uiFeedback.showToast({ title: title || '', icon: icon || 'none', duration: 1800 });
 }
 
 /** 秒 → mm:ss */
@@ -284,6 +286,50 @@ function isValidUrl(url) {
   return /^[a-z0-9-]+(\.[a-z0-9-]+)+(\/[^\s]*)?$/i.test(u);
 }
 
+/**
+ * 「链接可解析性」预检 —— 拦掉**不是单条视频页**的链接（2026-10-18）
+ *
+ * ⭐ 动因（有数据支撑，别删）：后台 tasks 按链接形态统计（视频号 99 条）——
+ *      weixin.qq.com/sph       成功 73 / 失败  9   ← 正常单条视频页
+ *      mp.weixin.qq.com/s      成功  0 / 失败 11   ← 公众号文章，**从来没成功过**
+ *      finder.video.qq.com     成功  0 / 失败  5   ← 视频 CDN 直链，解析接口不认
+ *      channels.…/effect       成功  0 / 失败  1   ← 视频号「创作工具/特效」功能页
+ *    用户要白等 8.7 秒才看到「解析失败」（不扣费，但体验差，还污染后台失败率）。
+ *
+ * ⚠️ 只做**黑名单**（已证实的非内容页），绝不做白名单 —— 各平台分享短链形态太多，
+ *    白名单必然误伤正常链接。
+ * ⚠️ 必须与云端 cloud-common/providers.js#linkPageIssue **同表同序**（同 detectPlatform 的约定）。
+ *
+ * @returns {null | {code:string, msg:string}} null = 通过
+ */
+function linkPageIssue(url) {
+  const u = String(url || '').trim().toLowerCase();
+  if (!u) return null;
+
+  // ① 公众号文章：不是视频，没有音视频轨
+  if (/^https?:\/\/mp\.weixin\.qq\.com\/s(\/|\?|#|$)/.test(u)) {
+    return {
+      code: 'article',
+      msg: '这是公众号文章链接，不是视频。请打开视频后点「分享」→「复制链接」再粘贴',
+    };
+  }
+  // ② 视频号功能页（创作工具 / 特效 / 个人主页等）：没有具体的一条视频
+  if (/^https?:\/\/channels\.weixin\.qq\.com\/(effect|platform|home|login|creator|dashboard)\b/.test(u)) {
+    return {
+      code: 'channel_page',
+      msg: '这是视频号的功能页，不是某条视频。请打开那个视频，点右上角「···」→ 分享 → 复制链接',
+    };
+  }
+  // ③ 视频 CDN 直链：虽然指向视频文件，但解析接口只认「视频页链接」
+  if (/^https?:\/\/finder\.video\.qq\.com\//.test(u)) {
+    return {
+      code: 'cdn',
+      msg: '这是视频文件地址，不是视频页链接。请回到视频页面点「分享」→「复制链接」',
+    };
+  }
+  return null;
+}
+
 /** 从混杂文本中抽出 http 链接（抖音复制出来常带口令） */
 function extractUrl(text) {
   const t = String(text || '');
@@ -291,144 +337,7 @@ function extractUrl(text) {
   return m ? m[0] : '';
 }
 
-/* ------------------------------------------------------------------ *
- * 口播逐字稿 → 段落
- * ⚠️ 这是「逐字稿分段」的唯一实现。云端若也需要分段，必须复用同一份算法，
- *    不要各写一套 —— 两边漂移会出现「详情页分了 6 段、复制出来的还是 1 段」。
- * ------------------------------------------------------------------ */
-
-// 句末标点：命中的位置即一个「句子边界」（省略号要连着的两个一起吸收）
-const SENT_END = '。！？!?；;…';
-// 句末标点后可能跟的收尾符号，应归到上一句（如「……好了。”」）
-const SENT_TAIL = '"”』」）)］]》>';
-// 超长句拆分用的次级断点
-const SOFT_BREAK = '，,、：:';
-
-/** 按句读切句（单换行也是边界） */
-function splitSentences(block) {
-  const out = [];
-  let buf = '';
-  const flush = () => {
-    const t = buf.trim();
-    if (t) out.push(t);
-    buf = '';
-  };
-  for (let i = 0; i < block.length; i++) {
-    const ch = block[i];
-    if (ch === '\n') {
-      flush();
-      continue;
-    }
-    buf += ch;
-    if (SENT_END.indexOf(ch) > -1) {
-      // 「……」这类连续标点算一个句末
-      while (i + 1 < block.length && SENT_END.indexOf(block[i + 1]) > -1) buf += block[++i];
-      while (i + 1 < block.length && SENT_TAIL.indexOf(block[i + 1]) > -1) buf += block[++i];
-      flush();
-    }
-  }
-  flush();
-  return out;
-}
-
-/** 拼接两个句子：中文直接接，英文/数字之间补空格，避免「wordanother」粘连 */
-function joinSent(a, b) {
-  if (!a) return b || '';
-  if (!b) return a;
-  return /[A-Za-z0-9]$/.test(a) && /^[A-Za-z0-9]/.test(b) ? a + ' ' + b : a + b;
-}
-
-/**
- * 超长句硬拆：优先在逗号/顿号这类次级标点处断，实在没有标点才按字数切。
- * 只在单句超过 hardMax 时才会走到这里（ASR 偶尔会吐出一整段没标点的长句）。
- */
-function hardBreak(s, max) {
-  const out = [];
-  let buf = '';
-  for (let i = 0; i < s.length; i++) {
-    const ch = s[i];
-    buf += ch;
-    if (SOFT_BREAK.indexOf(ch) > -1 && buf.length >= max * 0.5) {
-      out.push(buf.trim());
-      buf = '';
-    } else if (buf.length >= max) {
-      out.push(buf.trim());
-      buf = '';
-    }
-  }
-  const t = buf.trim();
-  if (t) out.push(t);
-  return out.filter(Boolean);
-}
-
-/**
- * 逐字稿切成阅读友好的段落。
- *
- * 为什么需要它：ASR（whisper 的 json 格式）返回的是**一整段没有换行的文本**，
- * 直接渲染就是「一大坨」；字幕链路反过来 —— 每行一句，碎得看不出结构。
- * 这里统一按「句读 + 字数」重新聚合：
- *   ① 空行（\n\n）= 硬分段，保留已有的分段意图
- *   ② 单换行、句末标点 = 句子边界（字幕的一行一句会先散开、再按字数聚合）
- *   ③ 每段补足 softMin 字才允许断开；到了 softMin 且再加会超 softMax 就断开
- *   ④ 没标点的超长句按逗号/顿号再切，连逗号都没有才按字数硬切
- *
- * 阈值取值依据：正文 27rpx、卡片可用宽约 620rpx → 一行约 34 字，
- * softMax=120 约 3.5 行/段，是手机上比较舒服的阅读节奏。
- *
- * @param {string} text 逐字稿
- * @param {object} [opts]
- *   preserveBreaks 单换行也当硬分段（用于**用户手动编辑过**的文本，
- *                  尊重他手打的换行；默认 false，即字幕的「一行一句」会被聚合）
- *   softMin / softMax / hardMax 聚合阈值（字）
- * @returns {string[]} 段落数组
- */
-function splitParagraphs(text, opts) {
-  const o = opts || {};
-  const softMin = o.softMin != null ? o.softMin : 50;
-  const softMax = o.softMax != null ? o.softMax : 120;
-  const hardMax = o.hardMax != null ? o.hardMax : 260;
-
-  const raw = String(text == null ? '' : text)
-    .replace(/\r\n?/g, '\n')
-    .trim();
-  if (!raw) return [];
-
-  // 用户自己打过换行的，一律尊重；只把超长的无标点段落再切开
-  if (o.preserveBreaks) {
-    return raw
-      .split(/\n+/)
-      .map((s) => s.trim())
-      .filter(Boolean)
-      .reduce((acc, line) => acc.concat(line.length > hardMax ? hardBreak(line, softMax) : [line]), []);
-  }
-
-  const out = [];
-  raw.split(/\n{2,}/).forEach((block) => {
-    // 句子先散开，超长句再拆，然后按字数聚合
-    const pieces = [];
-    splitSentences(block).forEach((s) => {
-      if (s.length > hardMax) hardBreak(s, softMax).forEach((x) => pieces.push(x));
-      else pieces.push(s);
-    });
-
-    let cur = '';
-    pieces.forEach((s) => {
-      if (!cur) {
-        cur = s;
-        return;
-      }
-      if (cur.length >= softMin && cur.length + s.length > softMax) {
-        out.push(cur);
-        cur = s;
-      } else {
-        cur = joinSent(cur, s);
-      }
-    });
-    if (cur) out.push(cur);
-  });
-
-  return out.filter(Boolean);
-}
+// 阅读分段统一在 paragraphs.js 中实现，不按固定字数截断句子或单词。
 
 /* ══════════════════════════════════════════════════════════════════════════
    本地视频「即时封面」缓存（2026-09-27 用户反馈）
@@ -554,6 +463,7 @@ module.exports = {
   detectPlatform,
   isSupportedPlatform,
   isValidUrl,
+  linkPageIssue,
   extractUrl,
   splitParagraphs,
   PLATFORM_MAP,

@@ -10,6 +10,7 @@ const {
   thousands,
   extractUrl,
   isValidUrl,
+  linkPageIssue,
   membershipInfo,
 } = require('../../utils/util');
 const tracker = require('../../utils/tracker');
@@ -247,8 +248,13 @@ Page({
         if (!text) return toast('剪贴板是空的');
         const url = extractUrl(text) || text;
         const code = detectPlatform(url);
+        const issue = linkPageIssue(url);
         this.setData({ url, localVideo: null }); // 与本地视频互斥（同 onInput）
-        if (code) toast('已识别' + platformName(code) + '链接', 'success');
+        // ⚠️ 「粘错链接」先拦：公众号文章 / 视频号功能页 / CDN 直链在供应商那边 100% 解析失败
+        //    （实证数据见 utils/util.js#linkPageIssue）。不拦的话用户要白等 ~8 秒。
+        //    这里只给短提示、仍然回填 — 不打断操作，点「立即提取」时再给完整指引。
+        if (issue) toast('这不是视频链接');
+        else if (code) toast('已识别' + platformName(code) + '链接', 'success');
         else if (!isValidUrl(url)) toast('没识别出链接，请检查后重试');
       },
       fail: () => toast('读取剪贴板失败，请手动长按粘贴'),
@@ -384,6 +390,19 @@ Page({
     // 分享文案常夹口令（抖音、小红书），先抽链接再校验；裸域名放行（后端补协议）
     const url = extractUrl(raw) || raw;
     if (!isValidUrl(url)) return toast('链接格式不太对，请检查后再试');
+    // ⭐ 2026-10-18：粘错链接（公众号文章 / 视频号功能页 / CDN 直链）在这里就拦住，
+    //    并给出**可执行的指引** —— 不再让它走到云端换回一句笼统的「解析服务返回失败」。
+    //    （实证：07:12 那条任务的 source_url 是 channels.weixin.qq.com/effect/home）
+    const issue = linkPageIssue(url);
+    if (issue) {
+      uiFeedback.showModal({
+        title: '这不是视频链接',
+        content: issue.msg,
+        showCancel: false,
+        confirmText: '我知道了',
+      });
+      return;
+    }
     if (!this.precheckCredits()) return;
     if (!this.lockSubmit()) return;
 

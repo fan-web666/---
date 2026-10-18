@@ -142,6 +142,45 @@ function isSupportedPlatform(code) {
   return !!PLATFORM_LABEL[code] && code !== 'other' && code !== 'local';
 }
 
+/**
+ * 「链接可解析性」预检 —— 拦掉**不是单条视频页**的链接（2026-10-18）
+ *
+ * ⭐ 动因（后台 tasks 按链接形态统计，视频号 99 条）：
+ *      weixin.qq.com/sph       成功 73 / 失败  9   ← 正常单条视频页
+ *      mp.weixin.qq.com/s      成功  0 / 失败 11   ← 公众号文章，从来没成功过
+ *      finder.video.qq.com     成功  0 / 失败  5   ← 视频 CDN 直链，解析接口不认
+ *      channels.…/effect       成功  0 / 失败  1   ← 视频号「创作工具/特效」功能页
+ *    这些链接供应商必然返回 code=500，用户白等 8 秒、后台失败率也被污染。
+ *    在解析前直接给出**可执行的指引**，msg 会原样进 task.error.msg（后台「失败原因」列）。
+ *
+ * ⚠️ 只做**黑名单**（已证实的非内容页），不做白名单 —— 分享短链形态太多，白名单会误伤。
+ * ⚠️ 必须与端上 utils/util.js#linkPageIssue **同表同序**。
+ * @returns {null | {code:string, msg:string}}
+ */
+function linkPageIssue(url) {
+  const u = String(url || '').trim().toLowerCase();
+  if (!u) return null;
+  if (/^https?:\/\/mp\.weixin\.qq\.com\/s(\/|\?|#|$)/.test(u)) {
+    return {
+      code: 'article',
+      msg: '这是公众号文章链接，不是视频。请打开视频后点「分享」→「复制链接」再粘贴',
+    };
+  }
+  if (/^https?:\/\/channels\.weixin\.qq\.com\/(effect|platform|home|login|creator|dashboard)\b/.test(u)) {
+    return {
+      code: 'channel_page',
+      msg: '这是视频号的功能页，不是某条视频。请打开那个视频，点右上角「···」→ 分享 → 复制链接',
+    };
+  }
+  if (/^https?:\/\/finder\.video\.qq\.com\//.test(u)) {
+    return {
+      code: 'cdn',
+      msg: '这是视频文件地址，不是视频页链接。请回到视频页面点「分享」→「复制链接」',
+    };
+  }
+  return null;
+}
+
 /* ------------------------------------------------------------------ *
  * 通用 HTTP（云函数出网不受小程序域名白名单限制）
  * ------------------------------------------------------------------ */
@@ -1066,6 +1105,12 @@ async function resolveVideoSource(shareUrl, platform, opts) {
     if (useMock()) return mockSource(shareUrl);
     throw new Error('本地视频文件缺失，请重新选择');
   }
+
+  // ⭐ 2026-10-18：不是「单条视频页」的链接，在调供应商之前就拦下 ——
+  //    否则供应商只会回一句 code=500「解析失败」，用户看不懂、后台也看不出是粘错链接。
+  //    msg 会原样写进 task.error.msg（后台「失败原因」列），所以文案要能指导用户下一步。
+  const pageIssue = linkPageIssue(shareUrl);
+  if (pageIssue) throw new Error(pageIssue.msg);
 
   const apiUrl = env('PARSE_API_URL', '');
   if (apiUrl) {
